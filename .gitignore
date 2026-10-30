@@ -1,4 +1,6 @@
 .superpowers/
 /data/
 /build/
+/build-*/
+/results/state_*.bin
 .DS_Store

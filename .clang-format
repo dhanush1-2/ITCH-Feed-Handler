@@ -1,0 +1,16 @@
+---
+Language: Cpp
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 100
+AccessModifierOffset: -4
+PointerAlignment: Left
+AlignAfterOpenBracket: Align
+AllowShortFunctionsOnASingleLine: Inline
+IncludeBlocks: Regroup
+# Column alignment in type-alias and struct-field blocks is deliberate: these are
+# read as tables, and the aligned form makes a wrong type or a missing field
+# obvious at a glance. Encoded here rather than fought with on every commit.
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveDeclarations: Consecutive
+AlignTrailingComments: true

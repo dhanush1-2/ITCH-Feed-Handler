@@ -1,0 +1,59 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-gcc-release,    os: ubuntu-latest, cc: gcc,   cxx: g++,     preset: release }
+          - { name: linux-clang-release,  os: ubuntu-latest, cc: clang, cxx: clang++, preset: release }
+          - { name: linux-clang-asan,     os: ubuntu-latest, cc: clang, cxx: clang++, preset: asan }
+          - { name: macos-clang-release,  os: macos-latest,  cc: clang, cxx: clang++, preset: release }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ninja (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+      - name: Install Ninja (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja
+
+      - name: Configure
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: cmake --preset ${{ matrix.preset }} -G Ninja -DITCH_WARNINGS_AS_ERRORS=ON
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+
+      - name: Test
+        env:
+          ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: ctest --preset ${{ matrix.preset }} --timeout 300
+
+      - name: Fetch script self-test
+        if: matrix.preset == 'release' && matrix.os == 'ubuntu-latest' && matrix.cc == 'gcc'
+        run: python3 scripts/fetch_itch.py --self-test
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Pinned via pip: different clang-format majors disagree about formatting.
+      - run: python3 -m pip install --quiet --break-system-packages 'clang-format==20.1.7'
+      - name: Check formatting
+        run: |
+          CF=$(python3 -c "import clang_format, os; print(os.path.join(os.path.dirname(clang_format.__file__), 'data', 'bin', 'clang-format'))")
+          "$CF" --version
+          find include tests -name '*.hpp' -o -name '*.cpp' | xargs "$CF" --dry-run --Werror
