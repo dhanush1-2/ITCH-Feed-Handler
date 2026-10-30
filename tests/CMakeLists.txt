@@ -11,7 +11,8 @@ FetchContent_MakeAvailable(googletest)
 include(GoogleTest)
 
 add_executable(itch_tests
-    test_parser.cpp)
+    test_parser.cpp
+    test_mapped_file.cpp)
 target_include_directories(itch_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(itch_tests PRIVATE itch GTest::gtest_main)
 gtest_discover_tests(itch_tests)

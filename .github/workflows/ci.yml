@@ -46,6 +46,36 @@ jobs:
         if: matrix.preset == 'release' && matrix.os == 'ubuntu-latest' && matrix.cc == 'gcc'
         run: python3 scripts/fetch_itch.py --self-test
 
+  fuzz-smoke:
+    name: fuzz-60s
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clang and Ninja
+        run: sudo apt-get update && sudo apt-get install -y ninja-build clang
+      - name: Build fuzz_parser
+        env:
+          CC: clang
+          CXX: clang++
+        run: |
+          cmake -S . -B build/fuzz -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DITCH_BUILD_FUZZ=ON -DITCH_BUILD_TESTS=OFF -DITCH_BUILD_TOOLS=OFF
+          cmake --build build/fuzz --target fuzz_parser
+      - name: Fuzz for 60 seconds from the stored corpus
+        env:
+          ASAN_OPTIONS: detect_leaks=0
+        run: |
+          mkdir -p /tmp/work /tmp/art
+          cp fuzz/corpus/* /tmp/work/
+          build/fuzz/fuzz/fuzz_parser -max_total_time=60 -print_final_stats=1 \
+            -artifact_prefix=/tmp/art/ /tmp/work
+      - name: Upload crash artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crashes
+          path: /tmp/art
+
   format:
     runs-on: ubuntu-latest
     steps:
@@ -56,4 +86,4 @@ jobs:
         run: |
           CF=$(python3 -c "import clang_format, os; print(os.path.join(os.path.dirname(clang_format.__file__), 'data', 'bin', 'clang-format'))")
           "$CF" --version
-          find include tests -name '*.hpp' -o -name '*.cpp' | xargs "$CF" --dry-run --Werror
+          find include tests tools fuzz -name '*.hpp' -o -name '*.cpp' | xargs "$CF" --dry-run --Werror
