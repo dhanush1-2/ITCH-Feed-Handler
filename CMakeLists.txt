@@ -43,9 +43,10 @@ if(ITCH_VERIFY)
     target_compile_definitions(itch INTERFACE ITCH_VERIFY=1)
 endif()
 
-# Provenance stamp (include/itch/provenance.hpp). Evaluated at configure time, so
-# reconfigure after committing. results/ is excluded from the dirty check because tools
-# write their output there.
+# Provenance stamp (include/itch/provenance.hpp). The commit seen here is the BUILD commit,
+# recorded at configure time. The tool resolves HEAD and the dirty state again at run time
+# and compares: a binary whose build commit no longer matches HEAD is stamped
+# "-stale-build", and uncommitted changes outside results/ and data/ add "-dirty".
 find_package(Git QUIET)
 set(_commit "unknown")
 if(GIT_FOUND)
@@ -54,7 +55,8 @@ if(GIT_FOUND)
         OUTPUT_VARIABLE _head OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE _rc ERROR_QUIET)
     if(_rc EQUAL 0)
         set(_commit "${_head}")
-        execute_process(COMMAND ${GIT_EXECUTABLE} status --porcelain -- . ":(exclude)results"
+        execute_process(COMMAND ${GIT_EXECUTABLE} status --porcelain -- .
+                ":(exclude)results" ":(exclude)data"
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
             OUTPUT_VARIABLE _dirty OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
         if(_dirty)
@@ -62,10 +64,26 @@ if(GIT_FOUND)
         endif()
     endif()
 endif()
+
+# Everything that changes what was built: the user and build-type flags, the standard,
+# the sanitizer flags Project 1's ob_sanitize adds, ITCH_VERIFY and -Werror.
 string(TOUPPER "${CMAKE_BUILD_TYPE}" _bt)
-string(STRIP "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${_bt}} -std=c++20" _flags)
+set(_flags "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${_bt}} -std=c++20")
+if(ITCH_SANITIZE)
+    string(APPEND _flags " -fsanitize=address,undefined -fno-omit-frame-pointer"
+        " -fno-sanitize-recover=all -g")
+endif()
+if(ITCH_VERIFY)
+    string(APPEND _flags " -DITCH_VERIFY=1")
+endif()
+if(ITCH_WARNINGS_AS_ERRORS)
+    string(APPEND _flags " -Werror")
+endif()
+string(REGEX REPLACE "[ ]+" " " _flags "${_flags}")
+string(STRIP "${_flags}" _flags)
 target_compile_definitions(itch INTERFACE
     "ITCH_GIT_COMMIT=\"${_commit}\""
+    "ITCH_SOURCE_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}\""
     "ITCH_COMPILER=\"${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}\""
     "ITCH_BUILD_FLAGS=\"${_flags}\"")
 

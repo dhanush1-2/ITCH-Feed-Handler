@@ -10,18 +10,26 @@ bool is_hex(char c) {
     return std::isxdigit(static_cast<unsigned char>(c)) != 0;
 }
 
-TEST(Provenance, CommitIsRealHashWithOptionalDirtySuffix) {
-    std::string c = itch::make_provenance("x").commit;
+TEST(Provenance, CommitStartsWithRealHash) {
+    const std::string c = itch::make_provenance("x").commit;
     ASSERT_NE(c, "unknown") << "build was not configured through CMake inside a git checkout";
-    const std::string suffix = "-dirty";
-    if (c.size() > suffix.size() &&
-        c.compare(c.size() - suffix.size(), suffix.size(), suffix) == 0) {
-        c.resize(c.size() - suffix.size());
+    ASSERT_GE(c.size(), 40U) << c;
+    for (std::size_t i = 0; i < 40; ++i) {
+        EXPECT_TRUE(is_hex(c[i])) << c;
     }
-    ASSERT_EQ(c.size(), 40U) << c;
-    for (const char ch : c) {
-        EXPECT_TRUE(is_hex(ch)) << c;
-    }
+}
+
+TEST(Provenance, ClassifyCommit) {
+    const std::string a(40, 'a');
+    const std::string b(40, 'b');
+    EXPECT_EQ(itch::classify_commit(a, a, false), a);
+    EXPECT_EQ(itch::classify_commit(a, a, true), a + "-dirty");
+    EXPECT_EQ(itch::classify_commit(a, b, false), a + "-stale-build");
+    EXPECT_EQ(itch::classify_commit(a, b, true), a + "-stale-build-dirty");
+    // A binary built from a dirty tree can never match a hash, so it is never "clean".
+    EXPECT_EQ(itch::classify_commit(a + "-dirty", a, false), a + "-dirty-stale-build");
+    EXPECT_EQ(itch::classify_commit(a, "", false), a + "-unverified");
+    EXPECT_EQ(itch::classify_commit("unknown", b, false), "unknown");
 }
 
 TEST(Provenance, CompilerFlagsAndCpuArePopulated) {

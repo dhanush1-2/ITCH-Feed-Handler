@@ -2,13 +2,18 @@
 #pragma once
 
 // The stamp every results/ file carries: commit, data file, CPU, compiler, flags.
-// Commit, compiler and flags are baked in by CMake as compile definitions at configure
-// time (ITCH_GIT_COMMIT, ITCH_COMPILER, ITCH_BUILD_FLAGS); the CPU is queried at run time.
-// A tree with uncommitted changes outside results/ gets a "-dirty" suffix on the commit.
+// Compiler, flags and the BUILD commit are baked in by CMake as compile definitions
+// (ITCH_COMPILER, ITCH_BUILD_FLAGS, ITCH_GIT_COMMIT); the CPU, the current HEAD and the
+// dirty state are queried at run time from ITCH_SOURCE_DIR and compared (classify_commit):
+//   build == HEAD, tree clean     <hash>
+//   build == HEAD, tree dirty     <hash>-dirty        (changes outside results/, data/)
+//   build != HEAD                 <build>-stale-build [-dirty]
+//   git unavailable at run time   <build>-unverified
 // A binary built outside CMake reports "unknown" rather than inventing a value.
 
 #include <cstdio>
 #include <string>
+#include <utility>
 
 #if defined(__APPLE__)
 #include <sys/sysctl.h>
@@ -16,6 +21,9 @@
 
 #ifndef ITCH_GIT_COMMIT
 #define ITCH_GIT_COMMIT "unknown"
+#endif
+#ifndef ITCH_SOURCE_DIR
+#define ITCH_SOURCE_DIR "."
 #endif
 #ifndef ITCH_COMPILER
 #define ITCH_COMPILER "unknown"
@@ -70,8 +78,69 @@ struct Provenance {
     std::string flags;
 };
 
+// Pure classification of the commit string. `head` is empty when git could not be asked.
+[[nodiscard]] inline std::string classify_commit(const std::string& build, const std::string& head,
+                                                 bool dirty) {
+    if (build == "unknown") {
+        return "unknown";
+    }
+    if (head.empty()) {
+        return build + "-unverified";
+    }
+    std::string out = build == head ? head : build + "-stale-build";
+    if (dirty) {
+        out += "-dirty";
+    }
+    return out;
+}
+
+namespace detail {
+
+// Runs `cmd`, returns false if it cannot start or exits nonzero; stdout goes to `out`.
+[[nodiscard]] inline bool run_capture(const std::string& cmd, std::string& out) {
+    std::FILE* f = ::popen(cmd.c_str(), "r");
+    if (f == nullptr) {
+        return false;
+    }
+    char buf[256];
+    out.clear();
+    while (std::fgets(buf, sizeof buf, f) != nullptr) {
+        out += buf;
+    }
+    return ::pclose(f) == 0;
+}
+
+[[nodiscard]] inline std::string shell_quote(const std::string& s) {
+    std::string out = "'";
+    for (const char c : s) {
+        out += c == '\'' ? std::string("'\\''") : std::string(1, c);
+    }
+    return out + "'";
+}
+
+}  // namespace detail
+
+// HEAD and dirty state of the source tree, resolved now, not at configure time.
+[[nodiscard]] inline std::string resolve_commit() {
+    const std::string git = "git -C " + detail::shell_quote(ITCH_SOURCE_DIR) + " ";
+    std::string       head;
+    std::string       status;
+    if (!detail::run_capture(git + "rev-parse HEAD 2>/dev/null", head)) {
+        return classify_commit(ITCH_GIT_COMMIT, "", false);
+    }
+    while (!head.empty() && (head.back() == '\n' || head.back() == '\r')) {
+        head.pop_back();
+    }
+    if (!detail::run_capture(
+            git + "status --porcelain -- . ':(exclude)results' ':(exclude)data' 2>/dev/null",
+            status)) {
+        return classify_commit(ITCH_GIT_COMMIT, "", false);
+    }
+    return classify_commit(ITCH_GIT_COMMIT, head, !status.empty());
+}
+
 [[nodiscard]] inline Provenance make_provenance(const std::string& data_file) {
-    return {ITCH_GIT_COMMIT, data_file, cpu_model(), ITCH_COMPILER, ITCH_BUILD_FLAGS};
+    return {resolve_commit(), data_file, cpu_model(), ITCH_COMPILER, ITCH_BUILD_FLAGS};
 }
 
 [[nodiscard]] inline std::string json_escape(const std::string& s) {
