@@ -194,3 +194,19 @@ def test_dump_state_is_stamped_in_the_export(day, tmp_path):
     j = json.loads(out.read_text())["state_dump"]
     assert j["bytes"] == dump.stat().st_size == 3 * 19
     assert j["sha256"] == hashlib.sha256(dump.read_bytes()).hexdigest()
+
+
+def test_dump_at_second_captures_midday_state(day, tmp_path):
+    out, dump = tmp_path / "out.json", tmp_path / "mid.bin"
+    # The adds are at second 1, the execute at 2, the deletes at 3, so just before second 2
+    # three orders rest; the end-of-file state is empty.
+    r = run(day, "--dump-state", str(dump), "--dump-at-s", "2", "--export", str(out))
+    assert r.returncode == 0, r.stderr
+    j = json.loads(out.read_text())["state_dump"]
+    assert j["at"] == "before_feed_second" and j["feed_second"] == 2
+    assert j["bytes"] == dump.stat().st_size == 3 * 19
+    r = run(day, "--dump-state", str(tmp_path / "end.bin"))
+    assert r.returncode == 0 and (tmp_path / "end.bin").stat().st_size == 0
+    r = run(day, "--dump-state", str(tmp_path / "never.bin"), "--dump-at-s", "99")
+    assert r.returncode == 2 and "99" in r.stderr
+    assert run(day, "--dump-at-s", "2").returncode == 2

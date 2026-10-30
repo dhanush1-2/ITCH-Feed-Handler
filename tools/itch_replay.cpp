@@ -4,7 +4,7 @@
 // statistics.
 //
 //   itch_replay <file> [--symbols A,B] [--max-live-orders N] [--verify]
-//               [--full-check-every N] [--halt-grace-s S] [--dump-state path]
+//               [--full-check-every N] [--halt-grace-s S] [--dump-state path] [--dump-at-s S]
 //               [--export path] [--speed max]
 //
 //   --symbols            symbols whose top of book is recorded once per second (case is
@@ -17,7 +17,10 @@
 //                        1,000,000; the end-of-run check always runs)
 //   --halt-grace-s       seconds of feed time after a halt resumes before the symbol counts
 //                        as continuous trading (default 5)
-//   --dump-state         write every resting order at the end (see state_dump.hpp)
+//   --dump-state         write every resting order (see state_dump.hpp), at the end of the
+//                        file unless --dump-at-s says otherwise. A full day ends with no
+//                        resting orders, so its end-of-file dump is empty
+//   --dump-at-s S        dump just before the first message at or after feed second S
 //   --export             write the JSON export (results/day_<date>.json for a full day)
 //
 // Exit codes (shared by every tool): 0 success, 2 input error (bad option, unreadable or
@@ -67,6 +70,8 @@ struct Options {
     bool                     full_every_set = false;
     std::uint64_t            grace_s        = 5;
     std::string              dump_path;
+    bool                     dump_at_set = false;
+    std::uint64_t            dump_at_s   = 0;
     std::string              export_path;
 };
 
@@ -118,6 +123,9 @@ Options parse(int argc, char** argv) {
             o.grace_s = parse_u64(a, value());
         } else if (a == "--dump-state") {
             o.dump_path = value();
+        } else if (a == "--dump-at-s") {
+            o.dump_at_s   = parse_u64(a, value());
+            o.dump_at_set = true;
         } else if (a == "--export") {
             o.export_path = value();
         } else if (a == "--speed") {
@@ -135,6 +143,9 @@ Options parse(int argc, char** argv) {
     }
     if (o.file.empty()) {
         throw InputError("no input file given");
+    }
+    if (o.dump_at_set && o.dump_path.empty()) {
+        throw InputError("--dump-at-s needs --dump-state");
     }
     if (o.verify && !o.full_every_set) {
         o.full_every = 1'000'000;
@@ -204,6 +215,9 @@ struct Dump {
     std::string   path;
     std::uint64_t bytes = 0;
     std::string   sha256;
+    bool          at_end     = true;
+    std::uint64_t at_second  = 0;  // feed second the dump was taken before (when !at_end)
+    std::uint64_t at_message = 0;  // frames read before the dump
 };
 
 std::string file_sha256(const std::string& path, std::uint64_t& bytes) {
@@ -378,7 +392,10 @@ void write_export(const Options& o, const itch::MappedFile& mf, const Builder& b
     js << "  \"symbols_with_orders\": " << with_orders << ",\n";
     if (dump != nullptr) {
         js << "  \"state_dump\": {\"path\": " << json_str(dump->path)
-           << ", \"bytes\": " << dump->bytes << ", \"sha256\": \"" << dump->sha256 << "\"},\n";
+           << ", \"at\": " << (dump->at_end ? "\"end\"" : "\"before_feed_second\"")
+           << ", \"feed_second\": " << (dump->at_end ? "null" : std::to_string(dump->at_second))
+           << ", \"after_messages\": " << dump->at_message << ", \"bytes\": " << dump->bytes
+           << ", \"sha256\": \"" << dump->sha256 << "\"},\n";
     } else {
         js << "  \"state_dump\": null,\n";
     }
@@ -452,7 +469,33 @@ int run(const Options& o, const itch::MappedFile& mf, const itch::Resolved& reso
     itch::FrameStatus          status;
     std::span<const std::byte> msg;
     std::uint64_t              handled = 0, skipped = 0, wrong_length = 0;
+    Dump                       dump;
+    bool                       dumped    = false;
+    const auto                 take_dump = [&](bool at_end, std::uint64_t second) {
+        std::filesystem::path dp(o.dump_path);
+        if (dp.has_parent_path()) {
+            std::filesystem::create_directories(dp.parent_path());
+        }
+        {
+            std::ofstream os(dp, std::ios::binary);
+            if (!os) {
+                throw InputError("cannot write '" + o.dump_path + "'");
+            }
+            book::write_state(os, b);
+        }
+        dump.path       = o.dump_path;
+        dump.at_end     = at_end;
+        dump.at_second  = second;
+        dump.at_message = st.frames();
+        dump.sha256     = file_sha256(o.dump_path, dump.bytes);
+        dumped          = true;
+    };
+    const std::uint64_t dump_at_ns = o.dump_at_s * 1'000'000'000ULL;
     while ((status = framer.next(msg)) == itch::FrameStatus::Ok) {
+        if (o.dump_at_set && !dumped && msg.size() >= 11 &&
+            itch::HeaderView(msg.data()).timestamp_ns() >= dump_at_ns) {
+            take_dump(false, o.dump_at_s);
+        }
         st.on_frame(msg);
         switch (itch::decode(msg, b)) {
             case itch::DecodeStatus::Handled:
@@ -501,24 +544,14 @@ int run(const Options& o, const itch::MappedFile& mf, const itch::Resolved& reso
         }
     }
 
-    Dump  dump;
-    Dump* dump_ptr = nullptr;
-    if (!o.dump_path.empty()) {
-        std::filesystem::path dp(o.dump_path);
-        if (dp.has_parent_path()) {
-            std::filesystem::create_directories(dp.parent_path());
+    if (!o.dump_path.empty() && !dumped) {
+        if (o.dump_at_set) {
+            throw InputError("the file never reaches feed second " + std::to_string(o.dump_at_s) +
+                             ", so there is no state to dump there");
         }
-        {
-            std::ofstream os(dp, std::ios::binary);
-            if (!os) {
-                throw InputError("cannot write '" + o.dump_path + "'");
-            }
-            book::write_state(os, b);
-        }
-        dump.path   = o.dump_path;
-        dump.sha256 = file_sha256(o.dump_path, dump.bytes);
-        dump_ptr    = &dump;
+        take_dump(true, 0);
     }
+    const Dump* dump_ptr = dumped ? &dump : nullptr;
 
     if (!o.export_path.empty()) {
         const book::Oracle* oracle = nullptr;
