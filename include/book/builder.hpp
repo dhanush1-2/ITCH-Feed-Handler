@@ -107,6 +107,8 @@ public:
     [[nodiscard]] std::size_t peak_live_orders() const noexcept { return peak_; }
     // For state_dump: order data by slot.
     [[nodiscard]] const ob::OrderPool& pool() const noexcept { return pool_; }
+    // For the invariant checker: the id index must agree with the pool.
+    [[nodiscard]] std::size_t index_size() const noexcept { return index_.size(); }
 
 private:
     void add_order(std::uint16_t locate, std::uint64_t ref, char side_ch, std::uint32_t shares,

@@ -15,7 +15,10 @@ add_executable(itch_tests
     test_mapped_file.cpp
     test_provenance.cpp
     test_book.cpp
-    test_builder.cpp)
+    test_builder.cpp
+    test_market_state.cpp
+    test_invariants.cpp
+    test_oracle.cpp)
 target_include_directories(itch_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(itch_tests PRIVATE itch GTest::gtest_main)
 gtest_discover_tests(itch_tests)

@@ -64,6 +64,7 @@ public:
         lv.tail = s;
         ++lv.count;
         lv.total += o.remaining;
+        ++orders_;
     }
 
     // Unlinks the order and takes its CURRENT remaining out of the level total. The slot is
@@ -89,6 +90,7 @@ public:
         o.prev = ob::kInvalidSlot;
         --lv.count;
         lv.total -= o.remaining;
+        --orders_;
         if (lv.count == 0) {
             v.erase(v.begin() + static_cast<std::ptrdiff_t>(i));
         }
@@ -113,6 +115,8 @@ public:
     [[nodiscard]] std::optional<std::int32_t> best_ask() const noexcept {
         return asks_.empty() ? std::nullopt : std::optional<std::int32_t>(asks_.back().price);
     }
+    // Orders resting in this book, kept as a running count so a checker can read it in O(1).
+    [[nodiscard]] std::size_t order_count() const noexcept { return orders_; }
     [[nodiscard]] std::size_t level_count(ob::Side side) const noexcept {
         return (side == ob::Side::Buy ? bids_ : asks_).size();
     }
@@ -154,6 +158,7 @@ private:
 
     std::vector<Level> bids_;  // ascending: best bid at the back
     std::vector<Level> asks_;  // descending: best ask at the back
+    std::size_t        orders_ = 0;
 };
 
 }  // namespace book
