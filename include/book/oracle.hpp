@@ -32,8 +32,19 @@ struct OracleCounts {
     std::uint64_t exec_checked       = 0;
     std::uint64_t exec_not_best      = 0;
     std::uint64_t exec_not_head      = 0;
-    std::uint64_t crossed_continuous = 0;
-    std::uint64_t crossed_other      = 0;
+    std::uint64_t crossed_continuous = 0;  // touches that left a crossed book, in continuous
+    std::uint64_t crossed_other      = 0;  // ... and outside it
+    // Denominators and splits. The *_continuous fields are subsets of the totals above.
+    std::uint64_t exec_checked_continuous  = 0;
+    std::uint64_t exec_not_best_continuous = 0;
+    std::uint64_t exec_not_head_continuous = 0;
+    std::uint64_t touches_continuous = 0;  // book-changing messages seen in continuous trading
+    std::uint64_t touches_other      = 0;
+    // A crossed episode starts when a book goes from not crossed to crossed (and ends when it
+    // is uncrossed), classified by continuous() at its start. Lasting crossed books add
+    // crossed_* once per touch but an episode only once.
+    std::uint64_t episodes_continuous = 0;
+    std::uint64_t episodes_other      = 0;
 };
 
 enum class OracleKind : std::uint8_t { NotBest = 0, NotHead, CrossedContinuous, CrossedOther };
@@ -51,19 +62,36 @@ public:
 
     // Call before the fill is applied.
     void on_execute(const Book& bk, const ob::OrderPool& pool, const ob::Order& o,
-                    std::uint64_t ts_ns) {
+                    std::uint64_t ts_ns, bool continuous) {
         ++counts_.exec_checked;
+        counts_.exec_checked_continuous += continuous;
         const bool   buy   = o.side == ob::Side::Buy;
         const bool   empty = bk.level_count(o.side) == 0;
         if (empty) {
             record(OracleKind::NotBest, counts_.exec_not_best, ts_ns, o.pad, o.id);
+            counts_.exec_not_best_continuous += continuous;
             return;
         }
         const Level& best = buy ? bk.bids().front() : bk.asks().front();
         if (best.price != o.price) {
             record(OracleKind::NotBest, counts_.exec_not_best, ts_ns, o.pad, o.id);
+            counts_.exec_not_best_continuous += continuous;
         } else if (best.head == ob::kInvalidSlot || pool.at(best.head).id != o.id) {
             record(OracleKind::NotHead, counts_.exec_not_head, ts_ns, o.pad, o.id);
+            counts_.exec_not_head_continuous += continuous;
+        }
+    }
+
+    // Called after every book-changing message with the book's crossed state before (`was`) and
+    // after (`now`) it. Counts the touch, the crossed touch, and any new episode.
+    void on_touch(bool continuous, bool was_crossed, bool now_crossed, std::uint64_t ts_ns,
+                  std::uint16_t locate, std::uint64_t ref) {
+        (continuous ? counts_.touches_continuous : counts_.touches_other)++;
+        if (now_crossed) {
+            on_crossed(continuous, ts_ns, locate, ref);
+            if (!was_crossed) {
+                (continuous ? counts_.episodes_continuous : counts_.episodes_other)++;
+            }
         }
     }
 

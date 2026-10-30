@@ -60,16 +60,11 @@ private:
 
 namespace detail {
 
-// An order at the end of a level's queue (head or tail) must belong to that level.
-[[nodiscard]] inline const char* check_end_order(const ob::OrderPool& pool, ob::Slot s,
-                                                 const Level& lv, ob::Side side,
-                                                 std::uint16_t locate, bool is_head) {
-    if (s >= pool.capacity()) {
-        return "level end slot out of range";
-    }
-    const ob::Order& o = pool.at(s);
+// What every resting order must satisfy against the level and book that hold it.
+[[nodiscard]] inline const char* check_order(const ob::Order& o, const Level& lv, ob::Side side,
+                                             std::uint16_t locate) {
     if (o.id == 0) {
-        return "level end order is a free slot";
+        return "order is a free slot";
     }
     if (o.pad != locate) {
         return "order locate does not match its book";
@@ -82,6 +77,20 @@ namespace detail {
     }
     if (o.remaining == 0) {
         return "resting order has zero shares";
+    }
+    return nullptr;
+}
+
+// The head or tail of a level's queue: check_order plus a terminated link.
+[[nodiscard]] inline const char* check_end_order(const ob::OrderPool& pool, ob::Slot s,
+                                                 const Level& lv, ob::Side side,
+                                                 std::uint16_t locate, bool is_head) {
+    if (s >= pool.capacity()) {
+        return "level end slot out of range";
+    }
+    const ob::Order& o = pool.at(s);
+    if (const char* w = check_order(o, lv, side, locate)) {
+        return w;
     }
     if (is_head ? o.prev != ob::kInvalidSlot : o.next != ob::kInvalidSlot) {
         return "level end order has a dangling link";
@@ -166,20 +175,8 @@ template <class Range>
                 return "fifo is longer than the pool (cycle)";
             }
             const ob::Order& o = pool.at(s);
-            if (o.id == 0) {
-                return "fifo reaches a free slot";
-            }
-            if (o.pad != locate) {
-                return "order locate does not match its book";
-            }
-            if (o.side != side) {
-                return "order side does not match its book side";
-            }
-            if (o.price != lv.price) {
-                return "order price does not match its level";
-            }
-            if (o.remaining == 0) {
-                return "resting order has zero shares";
+            if (const char* w = check_order(o, lv, side, locate)) {
+                return w;
             }
             if (o.prev != prev) {
                 return "fifo prev link is inconsistent";
@@ -304,7 +301,7 @@ public:
 
     void before_execute(const Book& bk, const ob::Order& o, ob::Side, std::uint32_t, std::uint64_t,
                         std::uint32_t) {
-        oracle_.on_execute(bk, builder_->pool(), o, ts_);
+        oracle_.on_execute(bk, builder_->pool(), o, ts_, market_.continuous(o.pad));
     }
 
     void after_apply(std::uint16_t locate) {
@@ -314,9 +311,10 @@ public:
         const Book& bk = builder_->book(locate);
         const auto  bb = bk.best_bid();
         const auto  ba = bk.best_ask();
-        if (bb && ba && *bb > *ba) {
-            oracle_.on_crossed(market_.continuous(locate), ts_, locate, ref_);
-        }
+        const bool crossed = bb && ba && *bb > *ba;
+        oracle_.on_touch(market_.continuous(locate), crossed_[locate] != 0, crossed, ts_, locate,
+                         ref_);
+        crossed_[locate] = crossed;
     }
 
     // Runs check_full once more on the final state.
@@ -340,6 +338,7 @@ private:
     MarketState      market_;
     Oracle           oracle_;
     OrderTally       tally_;
+    std::vector<std::uint8_t> crossed_ = std::vector<std::uint8_t>(65536, 0);
     const Builder*   builder_     = nullptr;
     std::uint64_t    idx_         = 0;
     std::uint64_t    ts_          = 0;

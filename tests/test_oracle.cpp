@@ -68,3 +68,18 @@ TEST(Oracle, KeepsOnlyTheFirstHundredInstances) {
     EXPECT_EQ(r.obs.counts().exec_not_best, 150u);
     EXPECT_EQ(r.obs.oracle().exceptions(book::OracleKind::NotBest).size(), 100u);
 }
+
+TEST(Oracle, ExceptionsAreSplitByContinuous) {
+    VerifyRig r;
+    r.add(1, 1, 'B', 100, 5000);
+    r.add(1, 2, 'B', 100, 4900);
+    r.feed(itch::test::make_executed(H1, 2, 50, 1));  // before market hours: not continuous
+    r.open_market(1);
+    r.feed(itch::test::make_executed(H1, 2, 50, 2));  // continuous
+    const auto& c = r.obs.counts();
+    EXPECT_EQ(c.exec_checked, 2u);
+    EXPECT_EQ(c.exec_checked_continuous, 1u);
+    EXPECT_EQ(c.exec_not_best, 2u);
+    EXPECT_EQ(c.exec_not_best_continuous, 1u);
+    EXPECT_EQ(c.exec_not_head_continuous, 0u);
+}

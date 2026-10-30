@@ -97,22 +97,23 @@ TEST(Invariants, TouchedCatchesBestLevelAndAggregateCorruption) {
     }
 }
 
-TEST(Invariants, VerifyObserverThrowsWithIndexAndLocate) {
+TEST(Invariants, VerifyObserverThrowsFromTheAddWithIndexAndLocate) {
     VerifyRig r;
-    populate(r);
-    pool(r).at(bid(r, 0).head).remaining += 5;  // total drifts from its fifo
-    bool thrown = false;
+    populate(r);  // messages 1..6
+    ASSERT_EQ(r.obs.messages(), 6u);
+    pool(r).at(bid(r, 0).head).pad = 99;  // the best bid's head now claims another book
+    const auto m = itch::test::make_add(Hdr{1}, 7, 'S', 10, "TEST", 5300);
     try {
-        r.add(1, 7, 'B', 10, 5000);  // touches the corrupt level; best-level checks see it
-        r.feed(itch::test::make_delete(Hdr{1}, 7));
-        r.obs.finish();
+        (void)itch::decode(std::span<const std::byte>(m), r.b);
+        FAIL() << "add did not throw";
     } catch (const book::VerificationFailure& e) {
-        thrown = true;
-        const std::string m = e.what();
-        EXPECT_NE(m.find("locate 1"), std::string::npos) << m;
-        EXPECT_NE(m.find("message "), std::string::npos) << m;
+        EXPECT_EQ(e.violation.msg_index, 7u);
+        EXPECT_EQ(e.violation.locate, 1u);
+        const std::string w = e.what();
+        EXPECT_NE(w.find("message 7 locate 1"), std::string::npos) << w;
+        EXPECT_NE(w.find("locate does not match"), std::string::npos) << w;
     }
-    EXPECT_TRUE(thrown);
+    EXPECT_EQ(r.obs.messages(), 7u);
 }
 
 TEST(Invariants, PeriodicFullCheckRuns) {
@@ -151,4 +152,29 @@ TEST(Invariants, LockedBookIsNotCrossed) {
     r.add(1, 2, 'S', 100, 5000);
     EXPECT_EQ(r.obs.counts().crossed_continuous, 0u);
     EXPECT_EQ(r.obs.counts().crossed_other, 0u);
+}
+
+TEST(Invariants, CrossedBeforeAndAfterOpeningCrossOfNasdaqListed) {
+    VerifyRig r;
+    r.open_market(1, 'Q');  // Nasdaq-listed: awaits its O cross
+    const auto& c = r.obs.counts();
+    r.add(1, 1, 'B', 100, 5100);
+    r.add(1, 2, 'S', 100, 5000);  // crossed, episode starts before the O cross
+    r.add(1, 3, 'S', 100, 5050);  // still crossed: one more crossed touch, same episode
+    EXPECT_EQ(c.touches_other, 3u);
+    EXPECT_EQ(c.touches_continuous, 0u);
+    EXPECT_EQ(c.crossed_other, 2u);
+    EXPECT_EQ(c.episodes_other, 1u);
+    r.feed(itch::test::make_cross(Hdr{1}, 1000, "TEST", 5050, 9, 'O'));
+    r.feed(itch::test::make_delete(Hdr{1}, 2));
+    // Order 2's delete leaves 5100 over 5050: still the same crossed episode, now continuous.
+    EXPECT_EQ(c.crossed_continuous, 1u);
+    EXPECT_EQ(c.episodes_continuous, 0u);
+    r.feed(itch::test::make_delete(Hdr{1}, 3));  // uncrossed
+    r.add(1, 4, 'S', 100, 5000);                 // crossed again, a new continuous episode
+    EXPECT_EQ(c.touches_other, 3u);
+    EXPECT_EQ(c.touches_continuous, 3u);
+    EXPECT_EQ(c.crossed_continuous, 2u);
+    EXPECT_EQ(c.episodes_continuous, 1u);
+    EXPECT_EQ(c.episodes_other, 1u);
 }
