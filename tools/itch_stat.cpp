@@ -23,6 +23,7 @@
 #include <itch/framer.hpp>
 #include <itch/mapped_file.hpp>
 #include <itch/messages.hpp>
+#include <itch/provenance.hpp>
 #include <string>
 #include <type_traits>
 
@@ -189,6 +190,7 @@ int main(int argc, char** argv) {
             return kExitInput;
         }
         js << "{\n";
+        js << "  \"meta\": " << itch::provenance_json(itch::make_provenance(file), 2) << ",\n";
         js << "  \"file\": " << json_str(std::filesystem::path(file).filename().string()) << ",\n";
         js << "  \"file_bytes\": " << mf.bytes().size() << ",\n";
         js << "  \"frame_status\": \"" << status_name(status) << "\",\n";

@@ -6,6 +6,8 @@
 //
 //   itch_seed_corpus <dir>
 
+#include <array>
+#include <cstdint>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>

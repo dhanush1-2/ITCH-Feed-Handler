@@ -43,6 +43,32 @@ if(ITCH_VERIFY)
     target_compile_definitions(itch INTERFACE ITCH_VERIFY=1)
 endif()
 
+# Provenance stamp (include/itch/provenance.hpp). Evaluated at configure time, so
+# reconfigure after committing. results/ is excluded from the dirty check because tools
+# write their output there.
+find_package(Git QUIET)
+set(_commit "unknown")
+if(GIT_FOUND)
+    execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        OUTPUT_VARIABLE _head OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE _rc ERROR_QUIET)
+    if(_rc EQUAL 0)
+        set(_commit "${_head}")
+        execute_process(COMMAND ${GIT_EXECUTABLE} status --porcelain -- . ":(exclude)results"
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            OUTPUT_VARIABLE _dirty OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+        if(_dirty)
+            set(_commit "${_commit}-dirty")
+        endif()
+    endif()
+endif()
+string(TOUPPER "${CMAKE_BUILD_TYPE}" _bt)
+string(STRIP "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${_bt}} -std=c++20" _flags)
+target_compile_definitions(itch INTERFACE
+    "ITCH_GIT_COMMIT=\"${_commit}\""
+    "ITCH_COMPILER=\"${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}\""
+    "ITCH_BUILD_FLAGS=\"${_flags}\"")
+
 if(ITCH_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
