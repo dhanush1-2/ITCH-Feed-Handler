@@ -27,11 +27,16 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install ninja
 
+      - name: Install pytest
+        run: python3 -m pip install --quiet --break-system-packages pytest
+
       - name: Configure
         env:
           CC: ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
-        run: cmake --preset ${{ matrix.preset }} -G Ninja -DITCH_WARNINGS_AS_ERRORS=ON
+        run: |
+          cmake --preset ${{ matrix.preset }} -G Ninja -DITCH_WARNINGS_AS_ERRORS=ON \
+            -DITCH_REQUIRE_PYTEST=ON -DPython3_EXECUTABLE="$(command -v python3)"
 
       - name: Build
         run: cmake --build --preset ${{ matrix.preset }}
@@ -45,6 +50,28 @@ jobs:
       - name: Fetch script self-test
         if: matrix.preset == 'release' && matrix.os == 'ubuntu-latest' && matrix.cc == 'gcc'
         run: python3 scripts/fetch_itch.py --self-test
+
+  verify-slice:
+    name: verify-slice
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ninja
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Build itch_replay
+        run: |
+          cmake --preset release -G Ninja -DITCH_BUILD_TESTS=OFF
+          cmake --build --preset release --target itch_replay
+      - name: Expand the slice
+        run: python3 scripts/prepare_slice.py --out /tmp/slice.itch
+      - name: Replay the real-data slice with every check on
+        run: |
+          build/release/tools/itch_replay /tmp/slice.itch --verify --full-check-every 1 \
+            --symbols "$(cat testdata/slice_symbols.txt)" --export /tmp/slice_export.json \
+            | tee /tmp/replay.log
+          grep -q VERIFIED /tmp/replay.log
+      - name: Compare the export with the golden file
+        run: python3 scripts/compare_export.py /tmp/slice_export.json testdata/expected_slice.json
 
   fuzz-smoke:
     name: fuzz-60s

@@ -23,6 +23,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace book {
@@ -259,6 +260,11 @@ template <class Obs>
     return std::nullopt;
 }
 
+struct VerifyOptions {
+    std::uint64_t full_every    = 0;  // run check_full every N messages; 0 = never
+    std::uint64_t halt_grace_ns = MarketState::kDefaultGraceNs;
+};
+
 // The observer a verifying run plugs into BookBuilder. Per message: market state is updated,
 // every execution is checked by the oracle before it is applied, and after each message that
 // changed a book that book is structurally checked (hard: throws VerificationFailure) and
@@ -266,17 +272,21 @@ template <class Obs>
 //
 // msg_index is the 1-based count of messages that reached the handler (not file position).
 // Construct, build the BookBuilder with this observer, then call bind().
-class VerifyObserver {
+//
+// Extra is a second observer the verifier forwards every hook to (after its own checks), so a
+// run can verify and gather statistics through one BookBuilder. VerifyObserver is the plain
+// verifier with nothing attached.
+template <class Extra>
+class BasicVerifyObserver {
 public:
-    using Builder = BookBuilder<VerifyObserver>;
+    using Builder = BookBuilder<BasicVerifyObserver>;
 
-    struct Options {
-        std::uint64_t full_every    = 0;  // run check_full every N messages; 0 = never
-        std::uint64_t halt_grace_ns = MarketState::kDefaultGraceNs;
-    };
+    using Options = VerifyOptions;
 
-    VerifyObserver() : VerifyObserver(Options{}) {}
-    explicit VerifyObserver(const Options& o) : opt_(o), market_(o.halt_grace_ns) {}
+    BasicVerifyObserver() : BasicVerifyObserver(Options{}) {}
+    template <class... Args>
+    explicit BasicVerifyObserver(const Options& o, Args&&... args)
+        : opt_(o), market_(o.halt_grace_ns), extra_(std::forward<Args>(args)...) {}
 
     void bind(const Builder& b) noexcept { builder_ = &b; }
 
@@ -297,11 +307,24 @@ public:
         if constexpr (requires { market_.on(v); }) {
             market_.on(v);
         }
+        extra_.pass(v);
     }
 
-    void before_execute(const Book& bk, const ob::Order& o, ob::Side, std::uint32_t, std::uint64_t,
-                        std::uint32_t) {
+    void before_execute(const Book& bk, const ob::Order& o, ob::Side side, std::uint32_t shares,
+                        std::uint64_t match, std::uint32_t price) {
         oracle_.on_execute(bk, builder_->pool(), o, ts_, market_.continuous(o.pad));
+        extra_.before_execute(bk, o, side, shares, match, price);
+    }
+
+    void added(std::uint16_t locate, std::uint32_t shares, bool replacement) {
+        if constexpr (requires { extra_.added(locate, shares, replacement); }) {
+            extra_.added(locate, shares, replacement);
+        }
+    }
+    void removed(std::uint16_t locate, RemoveKind kind, std::uint32_t shares) {
+        if constexpr (requires { extra_.removed(locate, kind, shares); }) {
+            extra_.removed(locate, kind, shares);
+        }
     }
 
     void after_apply(std::uint16_t locate) {
@@ -315,6 +338,7 @@ public:
         oracle_.on_touch(market_.continuous(locate), crossed_[locate] != 0, crossed, ts_, locate,
                          ref_);
         crossed_[locate] = crossed;
+        extra_.after_apply(locate);
     }
 
     // Runs check_full once more on the final state.
@@ -325,6 +349,8 @@ public:
     [[nodiscard]] const Oracle&         oracle() const noexcept { return oracle_; }
     [[nodiscard]] const MarketState&    market() const noexcept { return market_; }
     [[nodiscard]] std::uint64_t         full_checks() const noexcept { return full_checks_; }
+    [[nodiscard]] Extra&                extra() noexcept { return extra_; }
+    [[nodiscard]] const Extra&          extra() const noexcept { return extra_; }
 
 private:
     void full_check() {
@@ -336,6 +362,7 @@ private:
 
     Options          opt_;
     MarketState      market_;
+    Extra            extra_;
     Oracle           oracle_;
     OrderTally       tally_;
     std::vector<std::uint8_t> crossed_ = std::vector<std::uint8_t>(65536, 0);
@@ -345,5 +372,7 @@ private:
     std::uint64_t    ref_         = 0;
     std::uint64_t    full_checks_ = 0;
 };
+
+using VerifyObserver = BasicVerifyObserver<NullObserver>;
 
 }  // namespace book

@@ -54,6 +54,13 @@ struct CapacityExceeded : std::runtime_error {
 //                         price for E
 //   after_apply(locate)   once per message that changed a book (U fires once, not twice);
 //                         `locate` is the owning book
+// Optional hooks, called only if the observer has them (for share accounting):
+//   added(locate, shares, is_replacement)   a new resting order; is_replacement for U's new order
+//   removed(locate, RemoveKind, shares)     shares leaving the book: what an E/C took (clamped),
+//                                           what an X took (clamped), the remaining of a deleted
+//                                           order, the remaining of the order a U replaced
+enum class RemoveKind : std::uint8_t { Executed = 0, Cancelled, Deleted, ReplacedOut };
+
 struct NullObserver {
     template <class View>
     void pass(const View&) noexcept {}
@@ -111,6 +118,17 @@ public:
     [[nodiscard]] std::size_t index_size() const noexcept { return index_.size(); }
 
 private:
+    void note_added(std::uint16_t locate, std::uint32_t shares, bool replacement) {
+        if constexpr (requires { obs_.added(locate, shares, replacement); }) {
+            obs_.added(locate, shares, replacement);
+        }
+    }
+    void note_removed(std::uint16_t locate, RemoveKind kind, std::uint32_t shares) {
+        if constexpr (requires { obs_.removed(locate, kind, shares); }) {
+            obs_.removed(locate, kind, shares);
+        }
+    }
+
     void add_order(std::uint16_t locate, std::uint64_t ref, char side_ch, std::uint32_t shares,
                    std::uint32_t price) {
         if (shares == 0) {
@@ -143,6 +161,7 @@ private:
         if (pool_.size() > peak_) {
             peak_ = pool_.size();
         }
+        note_added(locate, shares, false);
         obs_.after_apply(locate);
     }
 
@@ -170,6 +189,7 @@ private:
         // C executes at the order's resting price: the level is untouched by the print price.
         obs_.before_execute(books_[loc], o, o.side, take, match,
                             has_price ? print_price : static_cast<std::uint32_t>(o.price));
+        note_removed(loc, RemoveKind::Executed, take);
         if (take == o.remaining) {
             retire(s);
         } else {
@@ -198,6 +218,7 @@ private:
             ++anomalies_.over_cancel;
             take = o.remaining;
         }
+        note_removed(loc, RemoveKind::Cancelled, take);
         if (take == o.remaining) {
             retire(s);
         } else {
@@ -216,6 +237,7 @@ private:
         if (loc != hdr_locate) {
             ++anomalies_.locate_mismatch;
         }
+        note_removed(loc, RemoveKind::Deleted, pool_.at(s).remaining);
         retire(s);
         obs_.after_apply(loc);
     }
@@ -244,10 +266,12 @@ private:
             } else {
                 ++anomalies_.unknown_ref;
             }
+            note_removed(loc, RemoveKind::ReplacedOut, o.remaining);
             retire(s);
             obs_.after_apply(loc);
             return;
         }
+        note_removed(loc, RemoveKind::ReplacedOut, o.remaining);
         books_[loc].remove(pool_, s);
         index_.erase(old_ref);
         o.id        = new_ref;
@@ -256,6 +280,7 @@ private:
         [[maybe_unused]] const bool inserted = index_.insert(new_ref, s);
         ITCH_ASSERT(inserted);
         books_[loc].add(pool_, s);
+        note_added(loc, shares, true);
         obs_.after_apply(loc);
     }
 

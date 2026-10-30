@@ -15,6 +15,7 @@ option(ITCH_BUILD_TOOLS       "Build tools"                  ON)
 option(ITCH_BUILD_FUZZ        "Build libFuzzer targets (needs clang)" OFF)
 option(ITCH_VERIFY            "Enable ITCH_ASSERT checks"    OFF)
 option(ITCH_SANITIZE          "Enable ASan + UBSan"          OFF)
+option(ITCH_REQUIRE_PYTEST     "Fail configure if pytest is missing" OFF)
 option(ITCH_WARNINGS_AS_ERRORS "Treat warnings as errors"    OFF)
 
 # Project 1 (orderbook-cpp) is pinned to an exact commit. Its option names map

@@ -159,12 +159,16 @@ namespace detail {
 }
 
 // The value of a "meta" key: an object, indented by `indent` spaces, no trailing newline.
-[[nodiscard]] inline std::string provenance_json(const Provenance& p, int indent = 2) {
+// `extra` is already-formatted members ("key": value, comma separated, no leading comma)
+// appended after the stamp, e.g. the manifest of the data file.
+[[nodiscard]] inline std::string provenance_json(const Provenance& p, int indent = 2,
+                                                 const std::string& extra = {}) {
     const std::string in(static_cast<std::size_t>(indent), ' ');
     return "{\n" + in + "  \"commit\": \"" + json_escape(p.commit) + "\",\n" + in +
            "  \"data_file\": \"" + json_escape(p.data_file) + "\",\n" + in + "  \"cpu\": \"" +
            json_escape(p.cpu) + "\",\n" + in + "  \"compiler\": \"" + json_escape(p.compiler) +
-           "\",\n" + in + "  \"flags\": \"" + json_escape(p.flags) + "\"\n" + in + "}";
+           "\",\n" + in + "  \"flags\": \"" + json_escape(p.flags) + "\"" +
+           (extra.empty() ? std::string() : ",\n" + in + "  " + extra) + "\n" + in + "}";
 }
 
 }  // namespace itch
