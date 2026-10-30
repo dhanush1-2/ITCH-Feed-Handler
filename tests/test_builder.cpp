@@ -219,8 +219,9 @@ TEST(Builder, CapacityIsFatal) {
     r.add(1, 1, 'B', 10, 5000);
     r.add(1, 2, 'B', 10, 5001);
     const auto m = itch::test::make_add(H1, 3, 'B', 10, "TEST", 5002);
+    static_assert(!noexcept(itch::decode(std::span<const std::byte>(m), r.b)));
     try {
-        r.b.on(itch::AddOrderView(m.data()));
+        (void)itch::decode(std::span<const std::byte>(m), r.b);
         FAIL() << "expected CapacityExceeded";
     } catch (const CapacityExceeded& e) {
         const std::string w = e.what();

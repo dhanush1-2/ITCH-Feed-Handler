@@ -13,6 +13,8 @@
 #include <cstddef>
 #include <itch/messages.hpp>
 #include <span>
+#include <type_traits>
+#include <utility>
 
 namespace itch {
 
@@ -20,9 +22,27 @@ enum class DecodeStatus { Handled, Skipped, WrongLength };
 
 namespace detail {
 
+// True when h.on(view) cannot throw for every view type decode() can build. A handler that
+// can throw (a book builder reporting exhausted capacity, or std::bad_alloc) must see its
+// exception reach the caller, not std::terminate, so noexcept is conditional.
+template <class H>
+inline constexpr bool kHandlerNothrow =
+    noexcept(std::declval<H&>().on(std::declval<AddOrderView>())) &&
+    noexcept(std::declval<H&>().on(std::declval<ExecutedView>())) &&
+    noexcept(std::declval<H&>().on(std::declval<ExecutedPriceView>())) &&
+    noexcept(std::declval<H&>().on(std::declval<CancelView>())) &&
+    noexcept(std::declval<H&>().on(std::declval<DeleteView>())) &&
+    noexcept(std::declval<H&>().on(std::declval<ReplaceView>())) &&
+    noexcept(std::declval<H&>().on(std::declval<TradeView>())) &&
+    noexcept(std::declval<H&>().on(std::declval<CrossTradeView>())) &&
+    noexcept(std::declval<H&>().on(std::declval<BrokenTradeView>())) &&
+    noexcept(std::declval<H&>().on(std::declval<SystemEventView>())) &&
+    noexcept(std::declval<H&>().on(std::declval<TradingActionView>())) &&
+    noexcept(std::declval<H&>().on(std::declval<StockDirectoryView>()));
+
 template <class View, class H>
 [[nodiscard]] inline DecodeStatus dispatch_one(std::span<const std::byte> msg, H& h,
-                                               std::size_t expected) noexcept {
+                                               std::size_t expected) noexcept(kHandlerNothrow<H>) {
     if (msg.size() != expected) {
         return DecodeStatus::WrongLength;
     }
@@ -33,7 +53,8 @@ template <class View, class H>
 }  // namespace detail
 
 template <class H>
-[[nodiscard]] inline DecodeStatus decode(std::span<const std::byte> msg, H& h) noexcept {
+[[nodiscard]] inline DecodeStatus decode(std::span<const std::byte> msg,
+                                         H&                         h) noexcept(detail::kHandlerNothrow<H>) {
     if (msg.empty()) {
         return DecodeStatus::Skipped;
     }
