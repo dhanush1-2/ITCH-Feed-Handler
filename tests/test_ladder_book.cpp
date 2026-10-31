@@ -177,7 +177,8 @@ TEST(LadderBook, AgreesWithVectorBookOnRandomStream) {
 TEST(LadderBook, AgreesWithVectorBookOnSlice) {
     const char* path = std::getenv("ITCH_SLICE");
     if (path == nullptr || *path == '\0') {
-        GTEST_SKIP() << "ITCH_SLICE is not set: run through ctest, which expands the synthetic day first";
+        GTEST_SKIP()
+            << "ITCH_SLICE is not set: run through ctest, which expands the synthetic day first";
     }
     const itch::MappedFile mf = itch::MappedFile::open(path);
     Tee                    t(1 << 18);

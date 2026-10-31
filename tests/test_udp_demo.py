@@ -1,4 +1,4 @@
-"""mold_udp_demo as a command: real loopback UDP against a direct file replay, on the slice.
+"""mold_udp_demo as a command: real loopback UDP against a direct file replay, on the synthetic day.
 
 Environment (set by ctest): MOLD_UDP_DEMO, ITCH_REPLAY, ITCH_SLICE.
 """
