@@ -19,6 +19,7 @@
     <button id="theme" type="button" class="btn" aria-label="Switch colour theme">Theme: auto</button>
   </div>
   <div class="wrap">
+    <p class="prov" id="prov"></p>
     <p class="caveat">This is a replay of a recorded file on one laptop. It makes no claim about network latency, tick-to-trade time or production use.</p>
   </div>
 </header>
@@ -32,7 +33,7 @@
 
   <section class="panel" id="p-day" aria-labelledby="h-day">
     <h2 id="h-day">Messages per second, whole day</h2>
-    <p class="lede">Per-minute average and peak second of the 268 million messages. Pre-market is quiet; the open and the 16:00 closing cross are the bursts.</p>
+    <p class="lede">Per-minute average and peak second of the day's messages. Pre-market is quiet; the open and the 16:00 closing cross are the bursts.</p>
     <div class="chart" id="c-day" role="img" aria-label="Line chart of messages per second across the day"></div>
     <details class="table-view"><summary>Table view</summary><div id="t-day"></div></details>
     <p class="src" data-src="day"></p>
@@ -94,7 +95,7 @@
 </main>
 
 <footer class="wrap foot">
-  <p>Every number on this page is loaded from a file under <code>results/</code> that carries the commit, data file, CPU, compiler and flags it was produced with. Nothing is typed by hand.</p>
+  <p>Figures on this page are loaded from files under <code>results/</code>, each stamped with the commit, data file, CPU, compiler and flags it was produced with. The status words and explanations in the discrepancy table come from <code>docs/DISCREPANCIES.md</code>; headings and captions are written by hand.</p>
 </footer>
 
 <div id="tip" class="tip" hidden></div>

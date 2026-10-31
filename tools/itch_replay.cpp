@@ -42,10 +42,13 @@
 //                        10 feed minutes
 //   --from HH:MM:SS      with a paced --speed: replay at max speed up to this feed time, then pace
 //   --tui A,B,...        live terminal view of these symbols (needs a terminal); n/Tab and p
-//                        change the symbol, q or ctrl-c stops the run early without an export
+//                        change the symbol, q or ctrl-c stops the run early with no export (exit 4
+//                        if an output was asked for)
 //
 // Exit codes (shared by every tool): 0 success, 2 input error (bad option, unreadable or
-// truncated file, unknown symbol, capacity exhausted), 3 verification failure.
+// truncated file, unknown symbol, capacity exhausted), 3 verification failure, 4 a --tui run
+// stopped early (q, ctrl-c) after being asked for --export, --dump-state or --export-orders:
+// no output was written. Stopped early with no output asked for, it exits 0.
 
 #include <sys/resource.h>
 #include <unistd.h>
@@ -90,6 +93,8 @@ namespace {
 constexpr int kExitOk     = 0;
 constexpr int kExitInput  = 2;
 constexpr int kExitVerify = 3;
+// A --tui run stopped by q or ctrl-c while it was asked to write output: nothing was written.
+constexpr int kExitInterrupted = 4;
 
 struct InputError : std::runtime_error {
     using std::runtime_error::runtime_error;
@@ -550,12 +555,13 @@ private:
 
 // What the pacing did, for the export. At max speed nothing was paced and only wall_s is set.
 struct ReplayInfo {
-    bool          paced         = false;
-    std::uint64_t paced_feed_ns = 0;  // feed time covered by the paced part
-    std::uint64_t paced_wall_ns = 0;  // wall time the paced part took
-    std::uint64_t max_lag_ns    = 0;
-    std::uint64_t waits         = 0;
-    double        wall_s        = 0;  // whole run, including the max-speed part before --from
+    bool          paced           = false;
+    std::uint64_t paced_feed_ns   = 0;  // feed time covered by the paced part
+    std::uint64_t paced_wall_ns   = 0;  // wall time the paced part took
+    std::uint64_t max_lag_ns      = 0;
+    std::uint64_t max_lag_feed_ns = 0;  // feed timestamp at which max_lag_ns was seen
+    std::uint64_t waits           = 0;
+    double        wall_s          = 0;  // whole run, including the max-speed part before --from
 };
 
 template <class Builder>
@@ -591,6 +597,10 @@ void write_export(const Options& o, const itch::MappedFile& mf, const Builder& b
        << ", \"paced_wall_s\": "
        << (rp.paced ? std::to_string(static_cast<double>(rp.paced_wall_ns) / 1e9) : "null")
        << ", \"max_lag_ns\": " << (rp.paced ? std::to_string(rp.max_lag_ns) : "null")
+       << ", \"max_lag_at_feed_s\": "
+       << (rp.paced && rp.max_lag_ns != 0
+               ? std::to_string(static_cast<double>(rp.max_lag_feed_ns) / 1e9)
+               : "null")
        << ", \"pacer_waits\": " << (rp.paced ? std::to_string(rp.waits) : "null")
        << ", \"wall_s\": " << rp.wall_s << "},\n";
 
@@ -1016,9 +1026,11 @@ int run(const Options& o, const itch::MappedFile& mf, const itch::Resolved& reso
     }
     view.reset();  // joins the view thread and restores the terminal before anything prints
     if (interrupted) {
-        std::printf("interrupted after %llu messages; no export written\n",
+        const bool wanted_output =
+            !o.export_path.empty() || !o.dump_path.empty() || !o.orders_path.empty();
+        std::printf("interrupted after %llu messages; no export was written\n",
                     static_cast<unsigned long long>(st.frames()));
-        return kExitOk;
+        return wanted_output ? kExitInterrupted : kExitOk;
     }
     if (status != itch::FrameStatus::End) {
         throw InputError(std::string("framing error: ") + status_name(status) + " at offset " +
@@ -1039,8 +1051,9 @@ int run(const Options& o, const itch::MappedFile& mf, const itch::Resolved& reso
         rp.paced_wall_ns = static_cast<std::uint64_t>(
             std::chrono::duration<double>(std::chrono::steady_clock::now() - paced_t0).count() *
             1e9);
-        rp.max_lag_ns = pacer.max_lag_ns();
-        rp.waits      = pacer.waits();
+        rp.max_lag_ns      = pacer.max_lag_ns();
+        rp.max_lag_feed_ns = pacer.max_lag_feed_ns();
+        rp.waits           = pacer.waits();
     } else {
         rp.paced = false;
     }

@@ -115,3 +115,79 @@ def test_per_minute_buckets():
     ps[61] = 600
     m = ed.per_minute(ps)
     assert m["peak"][1] == 600 and m["avg"][1] == 10.0 and len(m["avg"]) == 1440
+
+
+def _edit(path, fn):
+    d = json.loads(path.read_text())
+    fn(d)
+    path.write_text(json.dumps(d))
+
+
+@pytest.mark.parametrize("suffix", ["-dirty", "-stale-build", "-unverified", "-stale-build-dirty"])
+def test_refuses_commit_stamps_that_are_not_clean(results, tmp_path, suffix):
+    _edit(results / "loss_table.json", lambda d: d["meta"].update(commit=d["meta"]["commit"] + suffix))
+    r = run(results, tmp_path / "out")
+    assert r.returncode == 2
+    assert "loss_table.json" in r.stderr and suffix.split("-")[1] in r.stderr
+    assert not (tmp_path / "out" / "loss.json").exists()
+
+
+def test_refuses_an_unknown_commit(results, tmp_path):
+    _edit(results / "bench_12302019.json", lambda d: d["meta"].update(commit="unknown"))
+    r = run(results, tmp_path / "out")
+    assert r.returncode == 2 and "bench_12302019.json" in r.stderr
+
+
+def test_refuses_2019_inputs_that_disagree_on_the_data_file(results, tmp_path):
+    _edit(results / "recon_12302019.json", lambda d: d["meta"].update(data_file="data/other.itch"))
+    r = run(results, tmp_path / "out")
+    assert r.returncode == 2 and "data_file" in r.stderr and "recon_12302019.json" in r.stderr
+
+
+def test_2025_inputs_are_checked_against_each_other_not_against_2019(results, tmp_path):
+    assert run(results, tmp_path / "ok").returncode == 0  # 2019 and 2025 differ, and that is fine
+    _edit(results / "recon_20251208.json", lambda d: d["meta"].update(data_file="data/x.txt"))
+    r = run(results, tmp_path / "out")
+    assert r.returncode == 2 and "data_file" in r.stderr
+
+
+def test_provenance_counts_commits(results, tmp_path):
+    assert run(results, tmp_path / "out").returncode == 0
+    p = json.loads((tmp_path / "out" / "provenance.json").read_text())
+    assert p["commit_count"] == len(p["commits"]) >= 2
+    files = [f for c in p["commits"] for f in c["files"]]
+    assert "loss_table.json" in files and len(files) == len(set(files))
+
+
+def test_a_failed_recovery_is_exported_as_a_failure(results, tmp_path):
+    _edit(results / "loss_full_day.json", lambda d: d["result"].update(stream_matches_source=False))
+    _edit(results / "loss_table.json",
+          lambda d: d["rows"][2]["result"].update(delivered_messages=d["rows"][2]["result"]["delivered_messages"] - 1))
+    assert run(results, tmp_path / "out").returncode == 0
+    loss = json.loads((tmp_path / "out" / "loss.json").read_text())
+    stress = [f for f in loss["full_day"] if f["cmp"] != "reference"][0]
+    assert stress["recovered_all"] is False and stress["stream_matches_source"] is False
+    assert loss["rows"][2]["recovered_all"] is False
+    verify = json.loads((tmp_path / "out" / "verify.json").read_text())
+    assert verify["checks"]["bit_identical"] is False and verify["checks"]["stream_hash_equal"] is False
+
+
+def test_a_differing_state_is_exported_as_differs(results, tmp_path):
+    _edit(results / "loss_full_day.json", lambda d: d["dump"].update(sha256="0" * 64))
+    _edit(results / "loss_table.json", lambda d: d["rows"][1]["dump"].update(matches_direct=False))
+    assert run(results, tmp_path / "out").returncode == 0
+    loss = json.loads((tmp_path / "out" / "loss.json").read_text())
+    stress = [f for f in loss["full_day"] if f["cmp"] != "reference"][0]
+    assert stress["cmp"] == "differs"
+    assert stress["same_as_lossless"] is False and stress["same_as_max_speed_replay"] is False
+    assert loss["rows"][1]["cmp"] == "differs"
+    verify = json.loads((tmp_path / "out" / "verify.json").read_text())
+    assert verify["checks"]["bit_identical"] is False
+
+
+def test_lossless_rows_are_the_reference_not_a_self_comparison(results, tmp_path):
+    assert run(results, tmp_path / "out").returncode == 0
+    loss = json.loads((tmp_path / "out" / "loss.json").read_text())
+    assert [r["cmp"] for r in loss["rows"] if r["kind"] == "baseline"] == ["reference"]
+    assert [f["cmp"] for f in loss["full_day"] if f["loss"] == 0] == ["reference"]
+    assert all(r["checkpoint"] for r in loss["rows"])

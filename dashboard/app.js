@@ -151,6 +151,11 @@
     });
   }
 
+  function provenance(p) {
+    var parts = p.commits.map(function (c) { return c.commit.slice(0, 7) + " (" + c.files.join(", ") + ")"; });
+    $("prov").textContent = "Results from " + p.commit_count + " commit" + (p.commit_count === 1 ? "" : "s") + ": " + parts.join("; ") + ".";
+  }
+
   function kpis(day, verify, bench) {
     var apply = bench.table.filter(function (r) { return r.key === "apply"; })[0];
     var items = [
@@ -295,48 +300,63 @@
     var t = $("loss-table");
     t.textContent = "";
     var head = el("tr");
-    ["Scenario", "Messages", "Lost downstream", "Gaps detected", "Recovered", "cmp of final state"].forEach(function (h, i) {
+    ["Scenario", "Messages", "Lost downstream", "Gaps detected", "Recovered", "State at checkpoint (cmp)"].forEach(function (h, i) {
       head.appendChild(el("th", { class: i >= 1 && i <= 3 ? "num" : "", text: h }));
     });
     t.appendChild(el("thead", null, [head]));
     var tb = el("tbody");
     function groupRow(txt) { tb.appendChild(el("tr", { class: "group" }, [el("th", { colspan: "6", text: txt })])); }
-    function yes(ok, txt) { return el("span", { class: ok ? "yes" : "", text: (ok ? "✓ " : "✗ ") + txt }); }
+    function mark(ok, txt) { return el("span", { class: ok ? "yes" : "no", text: (ok ? "\u2713 " : "\u2717 ") + txt }); }
     function sc(r) {
       if (r.kind === "baseline") return "No loss (baseline)";
       if (r.kind === "loss_only") return pct(r.loss, 1).replace(/\.0%$/, "%") + " packet loss";
       return pct(r.loss, 0) + " loss, " + pct(r.dup, 1) + " duplicates, reorder " + r.reorder_window + ", bursts, lossy retransmit";
     }
-    function addRow(label, msgs, r, recoveredAll, cmp) {
+    // Recovered is judged here from the recorded stream result, not asserted: the delivered
+    // stream must have the source's message count and hash.
+    function recovered(r) {
+      var ok = r.stream_matches_source === true && r.delivered === r.messages;
+      if (ok) return mark(true, r.lost === 0 ? "nothing lost; stream hash equals source" : "all, stream hash equals source");
+      return mark(false, "not all: " + n(r.delivered) + " of " + n(r.messages) + " delivered" + (r.stream_matches_source ? "" : ", stream hash differs"));
+    }
+    function cmp(r) {
+      if (r.cmp === "reference") return el("span", { text: "n/a (reference)" });
+      if (r.cmp === "identical") return mark(true, "identical, " + r.checkpoint);
+      return mark(false, "differs, " + r.checkpoint);
+    }
+    function addRow(label, r) {
       tb.appendChild(el("tr", null, [
         el("td", { text: label }),
-        el("td", { class: "num", text: n(msgs) }),
+        el("td", { class: "num", text: n(r.messages) }),
         el("td", { class: "num", text: n(r.lost) }),
         el("td", { class: "num", text: n(r.gaps_detected) }),
-        el("td", null, [yes(recoveredAll, recoveredAll ? "all, stream hash equals source" : "not all")]),
-        el("td", null, [yes(cmp, cmp ? "identical" : "differs")])
+        el("td", null, [recovered(r)]),
+        el("td", null, [cmp(r)])
       ]));
     }
     groupRow("Loss only (first " + n(loss.table_messages) + " messages of the day)");
-    loss.rows.filter(function (r) { return r.kind === "baseline" || r.kind === "loss_only"; }).forEach(function (r) {
-      addRow(sc(r), loss.table_messages, r, r.recovered_all, r.cmp_identical);
-    });
+    loss.rows.filter(function (r) { return r.kind === "baseline" || r.kind === "loss_only"; }).forEach(function (r) { addRow(sc(r), r); });
     groupRow("Stress (loss with duplicates, reordering, bursts and lossy retransmits), reported separately");
-    loss.rows.filter(function (r) { return r.kind !== "baseline" && r.kind !== "loss_only"; }).forEach(function (r) {
-      addRow(sc(r), loss.table_messages, r, r.recovered_all, r.cmp_identical);
-    });
-    groupRow("Full day (" + n(loss.full_day[0].messages) + " messages), compared at feed second 43,200");
+    loss.rows.filter(function (r) { return r.kind !== "baseline" && r.kind !== "loss_only"; }).forEach(function (r) { addRow(sc(r), r); });
+    groupRow("Full day (" + n(loss.full_day[0].messages) + " messages)");
     loss.full_day.forEach(function (f) {
-      var lossless = f.loss === 0 && f.dup === 0;
-      var ok = f.stream_matches_source && f.delivered === f.messages;
-      var noon = loss.full_day[0].noon_sha256 === loss.full_day[1].noon_sha256;
-      addRow(lossless ? "No loss" : "Stress: " + pct(f.loss, 0) + " loss, " + pct(f.dup, 1) + " dup, reorder " + f.reorder_window,
-        f.messages, f, ok, noon);
+      var ref = f.cmp === "reference";
+      addRow(ref ? "No loss (reference)" : "Stress: " + pct(f.loss, 0) + " loss, " + pct(f.dup, 1) + " dup, reorder " + f.reorder_window, f);
     });
     t.appendChild(tb);
-    var f0 = loss.full_day[0];
-    $("loss-note").textContent = "Full-day stress run: " + n(f0.lost) + " messages lost downstream, all recovered. Final state at second 43,200: " +
-      n(f0.noon_resting_orders) + " resting orders, identical to the lossless run byte for byte. " + loss.note;
+
+    var f = loss.full_day.filter(function (x) { return x.cmp !== "reference"; })[0];
+    var txt;
+    if (!f) {
+      txt = "No stressed full-day run in the data.";
+    } else {
+      var ok = f.stream_matches_source === true && f.delivered === f.messages;
+      txt = "Full-day stress run: " + n(f.lost) + " messages lost downstream, " + (ok ? "all recovered" : "NOT all recovered") + ". State " + f.checkpoint + ": " +
+        n(f.noon_resting_orders) + " resting orders, ";
+      if (f.cmp === "identical") txt += "byte for byte identical to the lossless run and to the max-speed replay's dump.";
+      else txt += "DIFFERENT from " + [f.same_as_lossless ? null : "the lossless run", f.same_as_max_speed_replay ? null : "the max-speed replay's dump"].filter(Boolean).join(" and ") + ".";
+    }
+    $("loss-note").textContent = txt + " " + loss.note;
   }
 
   function verifySection(v) {
@@ -345,8 +365,8 @@
       c.verify_passed ? "Full-day --verify passed: " + n(c.whole_state_checks) + " whole-state checks" : "Full-day --verify FAILED",
       n(c.unknown_refs) + " unknown order references",
       n(c.conservation_failures) + " share-conservation failures",
-      "Known-answer comparison with an independent Python book: " + c.known_answer_identical + " of " + c.known_answer_symbols + " symbols identical (" + n(c.known_answer_resting_orders["43200"]) + " resting orders at noon)",
-      "Noon state with and without loss: " + (c.noon_loss_equals_lossless ? "identical" : "DIFFERENT") + " (" + n(c.noon_resting_orders) + " orders)",
+      "Known-answer comparison with an independent Python book: " + c.known_answer_identical + " of " + c.known_answer_symbols + " symbols identical (" + n(c.known_answer_resting_orders[c.known_answer_checkpoint]) + " resting orders at the feed-second-" + n(Number(c.known_answer_checkpoint)) + " checkpoint)",
+      "State at feed second " + n(c.checkpoint_second) + " with and without loss: " + (c.noon_loss_equals_lossless ? "identical" : "DIFFERENT") + " (" + n(c.noon_resting_orders) + " orders); equal to the max-speed replay's dump: " + (c.noon_equals_max_speed_dump ? "yes" : "NO"),
       "Whole-stream hash after loss recovery: " + (c.stream_hash_equal ? "equal to the source" : "DIFFERENT"),
       "Robustness day 2025-12-08, " + n(v.robustness.messages) + " messages: " + (v.robustness.verify_passed ? "passed" : "FAILED") + ", " + n(v.robustness.unknown_refs) + " unknown references"
     ];
@@ -379,7 +399,7 @@
     t.appendChild(tb);
   }
 
-  function benchSection(b) {
+  function benchSection(b, day) {
     $("bench-lede").textContent = b.machine.cpu + ", " + gb(b.machine.memory_bytes) + " (" + Math.round(b.machine.memory_bytes / 1073741824) + " GiB), " + b.machine.os + ". Each row is the " +
       b.protocol.published + " of " + b.protocol.processes + " fresh processes over the whole recorded day, input locked in memory. Spread is (max - min) / median.";
     var t = $("bench-table"); t.textContent = "";
@@ -397,7 +417,7 @@
     });
     t.appendChild(tb);
     var lat = b.latency_ns;
-    tb.appendChild(el("tr", { class: "group" }, [el("th", { colspan: "4", text: "Per-message apply latency, every message in the file (42 ns clock granularity)" })]));
+    tb.appendChild(el("tr", { class: "group" }, [el("th", { colspan: "4", text: "Per-message apply latency, every message in the file (" + b.clock_granularity_ns + " ns clock granularity)" })]));
     tb.appendChild(el("tr", null, [el("td", { text: "p50 / p90 / p99 / p99.9" }), el("td", { class: "num", colspan: "3", text: [lat.p50_ns, lat.p90_ns, lat.p99_ns, lat.p99_9_ns].join(" / ") + " ns" })]));
 
     var l = b.ladder, box = $("ladder");
@@ -410,7 +430,7 @@
     var mt = $("mem-table"); mt.textContent = "";
     mt.appendChild(el("thead", null, [el("tr", null, [el("th", { text: "Table" }), el("th", { class: "num", text: "Size" })])]));
     var mtb = el("tbody");
-    [["Order pool (16 M slots)", m.order_pool_bytes], ["Order id index", m.id_index_bytes], ["Book array (65,536 locates)", m.books_array_bytes],
+    [["Order pool", m.order_pool_bytes], ["Order id index", m.id_index_bytes], ["Book array", m.books_array_bytes],
      ["Level vectors, all " + n(m.books_with_levels) + " books, high-water", m.level_vectors_bytes]].forEach(function (r) {
       mtb.appendChild(el("tr", null, [el("td", { text: r[0] }), el("td", { class: "num", text: mb(r[1]) })]));
     });
@@ -419,8 +439,19 @@
 
     var p = b.paced_replay;
     if (p) {
-      $("paced").textContent = "Paced replay at " + p.speed + "x: " + (p.paced_feed_s / 3600).toFixed(2) + " h of feed time in " + (p.paced_wall_s / 3600).toFixed(2) +
-        " h of wall time. Worst sampled lag behind schedule: " + (p.max_lag_ns / 1e6).toFixed(2) + " ms (" + n(p.max_lag_ns) + " ns). The books it built equal the max-speed run's.";
+      var sched = p.paced_feed_s / p.speed;
+      var txt = "Paced replay at " + p.speed + "x: " + (p.paced_feed_s / 3600).toFixed(2) + " h of feed time in " + (p.paced_wall_s / 3600).toFixed(2) +
+        " h of wall time (" + pct(p.paced_wall_s / sched, 1) + " of the schedule). Worst sampled lag behind schedule: " + (p.max_lag_ns / 1e6).toFixed(1) + " ms (" + n(p.max_lag_ns) + " ns)";
+      if (p.max_lag_ns > 0) {
+        if (p.max_lag_at_feed_s != null) {
+          var near = Math.abs(p.max_lag_at_feed_s - day.kpi.peak_second_s) <= 5;
+          txt += ", seen at feed time " + clockS(p.max_lag_at_feed_s) + (near ? ", the day's peak-rate second (" + day.kpi.peak_second + "), the closing-cross burst" : "");
+        } else {
+          txt += "; this file does not record where in the feed it occurred";
+        }
+        txt += ". The replay was behind schedule by that much at its worst, so " + p.speed + "x was not held at every moment";
+      }
+      $("paced").textContent = txt + ". The books it built equal the max-speed run's.";
     } else {
       $("paced").textContent = "No paced replay was recorded in the data.";
     }
@@ -434,15 +465,16 @@
       return r.json();
     });
   }
-  Promise.all(["day", "loss", "verify", "bench"].map(load)).then(function (all) {
-    var day = all[0], loss = all[1], verify = all[2], bench = all[3];
+  Promise.all(["day", "loss", "verify", "bench", "provenance"].map(load)).then(function (all) {
+    var day = all[0], loss = all[1], verify = all[2], bench = all[3], prov = all[4];
+    provenance(prov);
     kpis(day, verify, bench);
     daySection(day);
     bookSection(day);
     mixSection(day);
     lossSection(loss);
     verifySection(verify);
-    benchSection(bench);
+    benchSection(bench, day);
     fillSources("day", { a: day.sources.day }); fillSources("top_of_book", { a: day.sources.top_of_book });
     fillSources("loss", loss.sources); fillSources("verify", verify.sources); fillSources("bench", bench.sources);
     $("status").hidden = true;

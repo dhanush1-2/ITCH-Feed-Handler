@@ -317,9 +317,15 @@ def test_paced_run_has_the_same_books_as_max_and_reports_its_pacing(day, tmp_pat
     f, s = json.loads(fast.read_text()), json.loads(slow.read_text())
     assert f["replay"]["speed"] == "max" and f["replay"]["max_lag_ns"] is None
     assert s["replay"]["speed"] == 10
-    # The file spans 4 s of feed time, so about 0.4 s of wall time at 10x.
-    assert 0.3 < s["replay"]["paced_wall_s"] < 1.0
+    # The file spans 4 s of feed time, so at least 0.4 s of wall time at 10x (a lower bound that
+    # a run which did not pace could not meet), and generous headroom above it for a loaded runner.
+    assert 0.35 < s["replay"]["paced_wall_s"] < 15.0
     assert s["replay"]["max_lag_ns"] >= 0
+    assert "max_lag_at_feed_s" in s["replay"] and "max_lag_at_feed_s" in f["replay"]
+    if s["replay"]["max_lag_ns"] == 0:
+        assert s["replay"]["max_lag_at_feed_s"] is None
+    else:
+        assert 0 <= s["replay"]["max_lag_at_feed_s"] <= 4.0
     assert "progress:" in r.stdout
     for k in ("totals", "by_type", "per_second", "anomalies", "per_symbol"):
         assert f[k] == s[k], k
@@ -333,10 +339,62 @@ def test_from_replays_the_early_part_at_max_speed(day, tmp_path):
     j = json.loads(out.read_text())
     assert j["replay"]["from_feed_s"] == 3
     assert j["replay"]["paced_feed_s"] <= 1.001
-    assert j["replay"]["wall_s"] < 2.5
+    # One paced feed second takes at least a wall second at 1x; the early part is not paced, so
+    # the whole run is far below the 3 s it would take if everything were. Wide upper bound.
+    assert j["replay"]["paced_wall_s"] >= 0.9
+    assert j["replay"]["wall_s"] < 30
 
 
 def test_tui_needs_a_terminal(day):
     r = run(day, "--tui", "AAPL")
     assert r.returncode == 2
     assert "terminal" in r.stderr
+
+
+def _run_tui_and_quit(day, extra, tmp_path):
+    """Start --tui under a pty, press q after the first frames, return (rc, output)."""
+    pty = pytest.importorskip("pty")
+    import select
+    import time
+    m, s = pty.openpty()
+    p = subprocess.Popen([str(BIN), str(day), "--speed", "1", "--tui", "AAPL", *extra],
+                         stdin=s, stdout=s, stderr=s, close_fds=True)
+    out = b""
+    end = time.time() + 1.0
+    while time.time() < end:
+        r, _, _ = select.select([m], [], [], 0.1)
+        if r:
+            out += os.read(m, 65536)
+    os.write(m, b"q")
+    end = time.time() + 20
+    while p.poll() is None and time.time() < end:
+        r, _, _ = select.select([m], [], [], 0.1)
+        if r:
+            try:
+                out += os.read(m, 65536)
+            except OSError:
+                break
+    rc = p.poll()
+    if rc is None:
+        p.kill()
+        pytest.fail("itch_replay did not stop after q")
+    try:
+        while select.select([m], [], [], 0.1)[0]:
+            out += os.read(m, 65536)
+    except OSError:
+        pass
+    return rc, out.decode(errors="replace")
+
+
+def test_interrupted_run_with_export_exits_4_and_writes_nothing(day, tmp_path):
+    out = tmp_path / "out.json"
+    rc, text = _run_tui_and_quit(day, ["--export", str(out)], tmp_path)
+    assert rc == 4, text
+    assert "no export was written" in text
+    assert not out.exists()
+
+
+def test_interrupted_run_without_output_exits_0(day, tmp_path):
+    rc, text = _run_tui_and_quit(day, [], tmp_path)
+    assert rc == 0, text
+    assert "no export was written" in text

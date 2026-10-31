@@ -13,6 +13,7 @@ compiler, flags), or if a number that two files must agree on does not.
 """
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -58,6 +59,26 @@ class ExportError(Exception):
     pass
 
 
+COMMIT_RE = re.compile(r"^[0-9a-f]{7,40}$")
+REFUSED_SUFFIXES = ("-dirty", "-stale-build", "-unverified")
+# Every 2019 input must be about the same data file; the 2025 robustness inputs about another.
+DATA_2019 = {DAY, REPLAY, LOSS_TABLE, LOSS_DAY, LOSS_LOSSLESS, BENCH, RECON, RECON_ARRIVAL,
+             CPP_SUBSET}
+DATA_2025 = {DAY_2025, RECON_2025}
+
+
+def check_commit(name: str, commit: str) -> None:
+    """A results file must come from a clean, verified build of a known commit. A '-dirty'
+    stamp means uncommitted changes, '-stale-build' a binary older than HEAD, '-unverified' that
+    git could not be asked; none of them says which code produced the numbers."""
+    for suffix in REFUSED_SUFFIXES:
+        if commit.endswith(suffix) or suffix + "-" in commit:
+            raise ExportError(f"{name}: commit stamp '{commit}' is {suffix[1:]}; regenerate it "
+                              "from a clean build")
+    if not COMMIT_RE.match(commit):
+        raise ExportError(f"{name}: commit stamp '{commit}' is not a commit hash")
+
+
 def load(results: Path, name: str) -> dict:
     """Read one results file and check its stamp."""
     path = results / name
@@ -73,6 +94,7 @@ def load(results: Path, name: str) -> dict:
         missing = [k for k in need if not meta.get(k)]
         if missing:
             raise ExportError(f"{name}: meta stamp lacks {', '.join(missing)}")
+        check_commit(name, meta["commit"])
     return d
 
 
@@ -137,6 +159,29 @@ def check_same(a: dict, b: dict, name_a: str, name_b: str, keys) -> None:
                               "the paced replay must reproduce the max-speed books")
 
 
+def check_data_files(results: Path) -> dict:
+    """Every input's data_file, with the rule that the 2019 inputs agree and the 2025 ones agree."""
+    seen = {}
+    for group in (DATA_2019, DATA_2025):
+        files = {n: load(results, n)["meta"]["data_file"] for n in sorted(group)}
+        if len(set(files.values())) > 1:
+            raise ExportError("inputs disagree on data_file: " +
+                              ", ".join(f"{n}={f}" for n, f in files.items()))
+        seen.update(files)
+    return seen
+
+
+def build_provenance(results: Path) -> dict:
+    data = check_data_files(results)
+    by_commit = {}
+    for name in sorted(data):
+        c = load(results, name)["meta"]["commit"]
+        by_commit.setdefault(c, []).append(name)
+    return {"commit_count": len(by_commit),
+            "commits": [{"commit": c, "files": f} for c, f in by_commit.items()],
+            "data_files": sorted(set(data.values()))}
+
+
 def build_day(results: Path, max_bytes: int) -> dict:
     day, rep = load(results, DAY), load(results, REPLAY)
     check_same(day, rep, DAY, REPLAY,
@@ -168,6 +213,7 @@ def build_day(results: Path, max_bytes: int) -> dict:
             "symbols_note": "stock directory entries (type R)",
             "peak_msgs_per_sec": peak,
             "peak_second": clock(peak_s),
+            "peak_second_s": peak_s,
             "unknown_refs": day["anomalies"]["unknown_ref"],
             "first_message": clock(totals["first_timestamp_ns"] // 10**9),
             "last_message": clock(totals["last_timestamp_ns"] // 10**9),
@@ -189,44 +235,70 @@ def build_day(results: Path, max_bytes: int) -> dict:
     return out
 
 
+def checkpoint_text(d: dict) -> str:
+    return f"after {d['at_message']:,} messages" if d["at_end"] \
+        else f"at feed second {d['at_second']:,}"
+
+
 def build_loss(results: Path) -> dict:
     table = load(results, LOSS_TABLE)
     full, lossless = load(results, LOSS_DAY), load(results, LOSS_LOSSLESS)
+    day = load(results, DAY)
     rows = []
     for r in table["rows"]:
         c, res, ch, rx, d = r["config"], r["result"], r["channel"], r["rx"], r["dump"]
+        lossless_row = r["kind"] == "baseline"
         # Every lost message is recovered exactly when the delivered stream is the source stream:
         # same count, same hash, nothing skipped.
-        recovered_all = res["stream_matches_source"] and res["finished"] and \
-            res["delivered_messages"] == table["source"]["messages"]
+        recovered_all = bool(res["stream_matches_source"] and res["finished"] and
+                             res["delivered_messages"] == table["source"]["messages"])
         rows.append({
             "label": r["label"], "kind": r["kind"],
             "loss": c["loss"], "dup": c["dup"], "reorder_window": c["reorder_window"],
             "burst_start": c["burst_start"], "retransmit_loss": c["retransmit_loss"],
+            "messages": table["source"]["messages"], "delivered": res["delivered_messages"],
             "lost": ch["messages_lost_downstream"],
             "gaps_detected": rx["gaps_detected"],
-            "recovered_all": bool(recovered_all),
             "stream_matches_source": res["stream_matches_source"],
-            "cmp_identical": bool(d["matches_direct"]),
+            "recovered_all": recovered_all,
+            # The recorded comparison of the receiver's state with a direct replay's (cmp).
+            "cmp": "reference" if lossless_row else
+                   ("identical" if d["matches_direct"] else "differs"),
+            "checkpoint": checkpoint_text(d),
             "resting_orders": d["resting_orders"],
         })
     full_rows = []
-    for name, f in ((LOSS_DAY, full), (LOSS_LOSSLESS, lossless)):
+    ref_sha = lossless["dump"]["sha256"]
+    for name, f in ((LOSS_LOSSLESS, lossless), (LOSS_DAY, full)):
         c, res, ch, rx, d = f["config"], f["result"], f["channel"], f["rx"], f["dump"]
+        is_ref = name == LOSS_LOSSLESS
+        # Stress is compared with the lossless run AND with the dump the max-speed replay took
+        # at the same second (day_12302019.json). The lossless run is the reference, so it is
+        # compared with the max-speed dump only.
+        same_as_direct = d["sha256"] == day["state_dump"]["sha256"] and \
+            d["at_second"] == day["state_dump"]["feed_second"]
+        same_as_ref = d["sha256"] == ref_sha
+        if is_ref:
+            cmp = "reference"
+        else:
+            cmp = "identical" if (same_as_ref and same_as_direct) else "differs"
         full_rows.append({
             "file": name, "loss": c["loss"], "dup": c["dup"], "reorder_window": c["reorder_window"],
             "lost": ch["messages_lost_downstream"], "gaps_detected": rx["gaps_detected"],
             "messages": f["source"]["messages"], "delivered": res["delivered_messages"],
             "stream_matches_source": res["stream_matches_source"],
+            "recovered_all": bool(res["stream_matches_source"] and res["finished"] and
+                                  res["delivered_messages"] == f["source"]["messages"]),
+            "cmp": cmp, "checkpoint": checkpoint_text(d),
+            "same_as_lossless": same_as_ref, "same_as_max_speed_replay": same_as_direct,
             "stream_sha256": res["stream_sha256"],
             "noon_resting_orders": d["resting_orders"], "noon_sha256": d["sha256"],
             "passed": f["verdict"]["passed"],
         })
-    if full["dump"]["sha256"] != lossless["dump"]["sha256"]:
-        raise ExportError("noon states of the loss and lossless full-day runs differ")
     return {
         "sources": {"table": src(LOSS_TABLE, table), "full_day": src(LOSS_DAY, full),
-                    "full_day_lossless": src(LOSS_LOSSLESS, lossless)},
+                    "full_day_lossless": src(LOSS_LOSSLESS, lossless),
+                    "max_speed_replay": src(DAY, day)},
         "table_messages": table["source"]["messages"],
         "rows": rows,
         "full_day": full_rows,
@@ -272,7 +344,7 @@ def build_verify(results: Path) -> dict:
          "detail": "Not queue events. The order types behind them are not visible on this feed."},
         {"what": "C executions at the display price, not at the head",
          "count": c_at_display, "status": "Explained",
-         "detail": "Non-printable, outside continuous trading, within 1.214 ms of a cross."},
+         "detail": "Non-printable, outside continuous trading, at a cross."},
         {"what": "Executions not at the best price", "count": o["exec_not_best"],
          "status": "Explained", "detail": "Halt-cross allocations at the cross price."},
         {"what": "Crossed-book touches outside continuous trading", "count": o["crossed_other"],
@@ -282,7 +354,8 @@ def build_verify(results: Path) -> dict:
          "count": day["totals"]["match_number_collisions"]["distinct"], "status": "Explained",
          "detail": "Two sides of one match, exactly one printable. Volume is not double counted."},
         {"what": "Crossed-book touches in continuous trading", "count": o["crossed_continuous"],
-         "status": "Agrees", "detail": "Zero, with a 5 s halt grace."},
+         "status": "Agrees",
+         "detail": f"Zero, with a {day['verify']['halt_grace_s']} s halt grace."},
         {"what": "2025-12-08: printable E not at the best price", "count": unexplained_2025,
          "status": "Unexplained",
          "detail": "Outside continuous trading, in a crossed book near a halt cross; not shown."},
@@ -300,8 +373,10 @@ def build_verify(results: Path) -> dict:
             "conservation_failures": day["conservation"]["failures"],
             "known_answer_symbols": len(names), "known_answer_identical": len(same),
             "known_answer_resting_orders": populated,
+            "known_answer_checkpoint": next(k for k in populated if k != "eod"),
             "noon_resting_orders": noon_orders,
             "noon_sha256": full["dump"]["sha256"],
+            "checkpoint_second": full["dump"]["at_second"],
             "noon_loss_equals_lossless": full["dump"]["sha256"] == lossless["dump"]["sha256"],
             "noon_equals_max_speed_dump": full["dump"]["sha256"] == day["state_dump"]["sha256"],
             "stream_hash_equal": full["result"]["stream_matches_source"] and
@@ -313,8 +388,9 @@ def build_verify(results: Path) -> dict:
                 and full["result"]["stream_matches_source"]
                 and lossless["result"]["stream_matches_source"]),
             "bit_identical_note": (
-                f"The state at feed second 43,200 ({noon_orders:,} resting orders) and the "
-                "whole-stream hash. The end-of-day book is empty, so it proves nothing."),
+                f"The state at feed second {full['dump']['at_second']:,} ({noon_orders:,} resting "
+                "orders) and the whole-stream hash. The end-of-day book is empty, so it proves "
+                "nothing."),
         },
         "robustness": {"messages": d25["totals"]["messages"], "verify_passed": d25["verify"]["passed"],
                        "unknown_refs": d25["anomalies"]["unknown_ref"],
@@ -359,6 +435,7 @@ def build_bench(results: Path) -> dict:
         "protocol": {"processes": b["protocol"]["processes_per_measurement"],
                      "published": b["protocol"]["published"]},
         "table": table,
+        "clock_granularity_ns": r["latency"]["clock"]["granularity_median_ns"],
         "latency_ns": {k: lat[k]["median"] for k in ("p50_ns", "p90_ns", "p99_ns", "p99_9_ns")},
         "handler_memory": {
             "order_pool_bytes": mem["order_pool_bytes"], "id_index_bytes": mem["id_index_bytes"],
@@ -394,6 +471,7 @@ def main(argv=None) -> int:
             "loss.json": build_loss(results),
             "verify.json": build_verify(results),
             "bench.json": build_bench(results),
+            "provenance.json": build_provenance(results),
         }
     except ExportError as e:
         print(f"export_dashboard: {e}", file=sys.stderr)

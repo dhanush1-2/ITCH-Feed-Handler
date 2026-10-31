@@ -152,6 +152,8 @@ td .sub-d { display: block; color: var(--ink-3); font-size: 12.5px; max-width: 4
 .badge.warn { color: var(--warn-ink); }
 .badge.serious { color: var(--serious-ink); }
 .yes { color: var(--good); font-weight: 600; }
+.no { color: var(--serious-ink); font-weight: 700; }
+.prov { margin: 8px 0 0; font-size: 12.5px; color: var(--ink-3); overflow-wrap: anywhere; }
 
 /* checks list */
 .checks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px 24px; }

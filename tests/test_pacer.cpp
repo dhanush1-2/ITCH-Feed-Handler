@@ -69,6 +69,7 @@ TEST(Pacer, RecordsLagWhenBehind) {
     p.wait_until(10'000'000);           // due at wall 1000 + 1 ms
     EXPECT_EQ(p.clock().sleeps, 0u);
     EXPECT_EQ(p.max_lag_ns(), 4'000'000u);
+    EXPECT_EQ(p.max_lag_feed_ns(), 10'000'000u);  // the feed time at which it was seen
     // Lag is a maximum: a later message that is on time does not lower it.
     p.clock().now = 1'000 + 5'000'000;
     p.wait_until(100'000'000);  // due at 1000 + 10 ms: ahead, so it waits

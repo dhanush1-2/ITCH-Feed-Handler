@@ -90,8 +90,11 @@ public:
         const std::uint64_t now = clock_.now_ns();
         if (now >= target) {
             const std::uint64_t lag = now - target;
-            max_lag_ns_             = lag > max_lag_ns_ ? lag : max_lag_ns_;
-            last_now_               = now;
+            if (lag > max_lag_ns_) {
+                max_lag_ns_      = lag;
+                max_lag_feed_ns_ = feed_ns;  // where in the feed the worst lag was seen
+            }
+            last_now_ = now;
         } else {
             clock_.sleep_until_ns(target);
             ++waits_;
@@ -102,6 +105,8 @@ public:
     [[nodiscard]] bool          paced() const noexcept { return speed_ > 0.0; }
     [[nodiscard]] double        speed() const noexcept { return speed_; }
     [[nodiscard]] std::uint64_t max_lag_ns() const noexcept { return max_lag_ns_; }
+    // Feed timestamp of the message at which max_lag_ns() was recorded (0 if never behind).
+    [[nodiscard]] std::uint64_t max_lag_feed_ns() const noexcept { return max_lag_feed_ns_; }
     [[nodiscard]] std::uint64_t waits() const noexcept { return waits_; }
     [[nodiscard]] Clock&        clock() noexcept { return clock_; }
     [[nodiscard]] const Clock&  clock() const noexcept { return clock_; }
@@ -109,13 +114,14 @@ public:
 private:
     double        speed_;
     Clock         clock_;
-    bool          anchored_    = false;
-    std::uint64_t anchor_feed_ = 0;
-    std::uint64_t anchor_wall_ = 0;
-    std::uint64_t last_now_    = 0;
-    std::uint64_t max_lag_ns_  = 0;
-    std::uint64_t waits_       = 0;
-    std::uint32_t since_check_ = 0;
+    bool          anchored_        = false;
+    std::uint64_t anchor_feed_     = 0;
+    std::uint64_t anchor_wall_     = 0;
+    std::uint64_t last_now_        = 0;
+    std::uint64_t max_lag_feed_ns_ = 0;
+    std::uint64_t max_lag_ns_      = 0;
+    std::uint64_t waits_           = 0;
+    std::uint32_t since_check_     = 0;
 };
 
 }  // namespace replay
