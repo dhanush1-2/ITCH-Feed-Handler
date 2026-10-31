@@ -12,22 +12,22 @@ This is a replay of recorded files. Nothing here is a network latency, tick-to-t
 
 ## Proof
 
-Each number below is generated from the stamped file named beside it by `scripts/gen_docs.py`, and CI fails if a block goes stale. <!-- gen:provenance -->The current result files come from 7 commits: `0ec51a7`, `1c9f43a`, `2aabbec`, `a3857fc`, `ae87c50`, `cb6d700`, `ee12565`.<!-- /gen -->
+Each number below is generated from the stamped file named beside it by `scripts/gen_docs.py`, and CI fails if a block goes stale. <!-- gen:provenance -->The current result files come from 13 commits: `0db1b32`, `0ec51a7`, `1c9f43a`, `2aabbec`, `43d1e2f`, `82e91fc`, `8523e7f`, `a3857fc`, `ae87c50`, `cb6d700`, `ea06f30`, `ee12565`, `f0d3f3d`. The kScan screening and the profile come from patched builds and say so in their own files.<!-- /gen -->
 
 <!-- gen:proof_table -->
 
 | Claim | Result | File | Reproduce |
 |---|---|---|---|
-| Full real day replayed and checked | 268,744,780 messages, `unknown_ref` 0, conservation holds, 265 whole-state checks, no book crossed in continuous trading | [`day_12302019.json`](results/day_12302019.json) | `itch_replay data/12302019.NASDAQ_ITCH50 --verify` |
+| Full real day replayed and checked | 268,744,780 messages, `unknown_ref` 0, conservation holds, 265 whole-state checks, no book crossed in continuous trading with a 5 s grace after a resume (634 crossed touches at 0 s of grace, all within 1.214 ms of a resume) | [`day_12302019.json`](results/day_12302019.json) | `itch_replay data/12302019.NASDAQ_ITCH50 --verify` |
 | Second day, six years later | 650,338,709 messages, `unknown_ref` 0, peak 5,271,230 live orders; no new message types | [`day_20251208.json`](results/day_20251208.json) | `itch_replay data/S120825-v50.txt --verify` |
-| Agrees with an independent Python reference | 20 symbols, identical field for field, 121,587 resting orders compared at noon | [`cpp_subset_12302019.json`](results/cpp_subset_12302019.json), [`ref_12302019.json`](results/ref_12302019.json) | `verify/compare.py results/cpp_subset_12302019.json results/ref_12302019.json` |
+| Agrees with a separate Python reference | 20 symbols, identical field for field, 121,587 resting orders at noon, 6.9% of noon orders, 2019 only. No shared code, same author; shares the queue rule | [`cpp_subset_12302019.json`](results/cpp_subset_12302019.json), [`ref_12302019.json`](results/ref_12302019.json) | `verify/compare.py results/cpp_subset_12302019.json results/ref_12302019.json` |
 | Bit-identical books after injected loss | 11,085,799 messages lost (`messages_lost_downstream`) and recovered; state at feed second 43,200 (1,771,377 resting orders) and stream hash both equal the lossless run. The end-of-day book is empty, so it proves nothing | [`loss_full_day.json`](results/loss_full_day.json), [`loss_full_day_lossless.json`](results/loss_full_day_lossless.json) | `mold_sim <day> --loss 0.01 --dup 0.005 --reorder 16 --burst 0.0005,64 --retransmit-loss 0.01 --seed 1 --retention 1048576 --dump-state s.bin --dump-at-s 43200`, then `cmp` |
 | Throughput, single thread, file replay | 14.25 M msgs/s applied, 203.76 M msgs/s parsed, on Apple M4 Pro | [`bench_12302019.json`](results/bench_12302019.json) | `scripts/run_bench.py --day 12302019` |
-| Per-message latency shape | p50 83 ns, p99 375 ns, p99.9 625 ns, quantized at 42 ns | [`bench_12302019.json`](results/bench_12302019.json) | `scripts/run_bench.py --day 12302019` |
-| Paced replay reproduces the max-speed books | 10x, 1.70 h of wall time | [`replay_10x.json`](results/replay_10x.json) | `itch_replay <day> --speed 10 --symbols QQQ,SPY,AAPL,AMD,MSFT --export out.json`, then `scripts/compare_export.py` |
+| Per-message latency shape | p50 83 ns, p99 375 ns, p99.9 625 ns, quantized at 42 ns. From a separately timed run at 9.92 M msgs/s, 100.8 ns per message, with two clock reads per message; throughput comes from runs with no per-message clock | [`bench_12302019.json`](results/bench_12302019.json) | `scripts/run_bench.py --day 12302019` |
+| Paced replay gives the same export as a max-speed run | 10x, 1.70 h of wall time. Its export equals a max-speed run's: the per-symbol share ledger, and top of book each second for 5 symbols. The 10x run takes no state dump | [`replay_10x.json`](results/replay_10x.json), [`replay_max_compare.json`](results/replay_max_compare.json) | `itch_replay <day> --speed 10 --symbols QQQ,SPY,AAPL,AMD,MSFT --export out.json`, then `scripts/record_replay_compare.py` |
 | Recovery over real sockets, loopback only | First 5,000,000 messages at 1,000,000 msgs/s, stream and state identical | [`udp_demo.json`](results/udp_demo.json) | `mold_udp_demo <day> --max-messages 5000000 --drop 0.01 --seed 1 --rate-mps 1000000 --dump-state s.bin --dump-at-s 25000 --check-direct` |
 | Parser and receiver fuzzed (libFuzzer, in Docker) | `fuzz_parser` 16,198,868 executions, `fuzz_mold` 32,295,598 executions, 0 crashes | [`fuzz.json`](results/fuzz.json) | `scripts/fuzz.sh fuzz_parser 300` |
-| Closing prices against public closes | 7 of 7 equal on the raw 2019 basis. Rests mostly on Yahoo; the CMCSA split factor is unconfirmed | [`recon_12302019.json`](results/recon_12302019.json) | `verify/recon_summary.py` |
+| Closing prices against public closes | 7 of 7 equal on the raw 2019 basis. Rests mostly on Yahoo; the CMCSA split factor is unconfirmed | [`recon_12302019.json`](results/recon_12302019.json) | `verify/recon_summary.py build/r_day.pickle build/recon_match.json verify/closing_sources.json results/halt_grace_12302019.json --out results/recon_12302019.json` |
 
 <!-- /gen -->
 
@@ -71,6 +71,8 @@ Each image is the captured output of the command in its caption, made by `script
 <!-- gen:public_proofs --><!-- /gen -->
 
 ## Try it in two minutes
+
+Prerequisites: CMake 3.25 or newer (the apt package on Ubuntu 22.04 is 3.22, too old), a C++20 compiler (AppleClang 21 here, GCC 13 builds with `-Werror`), Python 3 and network access for the first configure.
 
 The committed slice is eight symbols cut from the real day, with every order's whole life in it. See `testdata/README.md`.
 
@@ -127,7 +129,7 @@ The hot path has one thread. Details and the evidence for each decision are in [
 | Observers | Template parameter | The benchmark build pays for no checks |
 | Snapshot to the viewer | One seqlock per watched symbol | The viewer retries and never blocks the replay thread |
 
-From Project 1 (my order book, pinned by commit in `CMakeLists.txt`):
+From [Project 1](https://github.com/dhanush1-2/orderbook-cpp), my order book, pinned by commit in `CMakeLists.txt`:
 
 | Part | Status |
 |---|---|
@@ -147,6 +149,7 @@ File replay of one day, <!-- gen:messages -->268,744,780<!-- /gen --> messages, 
 | Messages parsed/s (parse only) | 203.76 M |
 | Messages applied/s (parse + book) | 14.25 M (spread 1.0%) |
 | p50 / p99 / p99.9 per-message apply latency | 83 / 375 / 625 ns |
+| How the latency was timed | From a separately timed run at 9.92 M msgs/s, 100.8 ns per message, with two clock reads per message; throughput comes from runs with no per-message clock |
 | Peak live orders | 1,924,078 |
 | Handler tables (order pool, id index, books array) | 265.9 MB at setup, at a benchmark capacity of 4,000,000 orders |
 | Heap added by the end of the run, over the input | 312.6 MB |
@@ -158,16 +161,17 @@ File replay of one day, <!-- gen:messages -->268,744,780<!-- /gen --> messages, 
 
 Caveats, all of which limit these numbers:
 
+- Throughput and latency are separate runs. <!-- gen:latency_caveat -->From a separately timed run at 9.92 M msgs/s, 100.8 ns per message, with two clock reads per message; throughput comes from runs with no per-message clock<!-- /gen -->.
 - It is a replay from a memory-mapped, locked file, not network traffic.
 - The thread is unpinned. macOS has no core affinity API.
 - The timer ticks every 41.67 ns, so per-message percentiles only show shape.
 - One machine, one day, with no x86 cross-check.
-- Paced replay: <!-- gen:lag_text -->At 10x the worst sampled lag behind schedule was 157.1 ms; this results file does not record where in the feed it occurred. 10x was not held at every moment.<!-- /gen --> The books it built equal the max-speed run's.
+- Paced replay: <!-- gen:lag_text -->At 10x the worst sampled lag behind schedule was 157.1 ms; this results file does not record where in the feed it occurred. 10x was not held at every moment.<!-- /gen --> <!-- gen:paced_export -->Its export equals a max-speed run's: the per-symbol share ledger, and top of book each second for 5 symbols.<!-- /gen -->
 - Handler memory is the table figures above. `max_rss` includes the mapped input.
 
 The loopback UDP demo covers the first <!-- gen:udp_messages -->5,000,000<!-- /gen --> messages at <!-- gen:udp_rate -->1,000,000<!-- /gen --> msgs/s. Unpaced, it goes Stale, because the kernel drops more than recovery can repair. It shows that the receiver works over real sockets. It is not a claim about real networks.
 
-**Rejected: Project 1's ladder.** It runs <!-- gen:ladder_speedup -->1.41x<!-- /gen --> faster on the ten busiest symbols, and that is its best case. It is not used because a full-market ladder needs <!-- gen:ladder_full_gb -->28.1 GB<!-- /gen --> on a <!-- gen:machine_gb -->24 GiB<!-- /gen --> machine, against <!-- gen:vector_levels_mb -->38.9 MB<!-- /gen --> of level vectors for the production book.
+**Rejected: Project 1's ladder.** It runs <!-- gen:ladder_speedup -->1.41x<!-- /gen --> faster on the ten busiest symbols, with pre-allocated tables and an informed base. It is not used because a full-market ladder needs <!-- gen:ladder_full_gb -->28.1 GB<!-- /gen --> on a <!-- gen:machine_gb -->24 GiB<!-- /gen --> machine, against <!-- gen:vector_levels_mb -->38.9 MB<!-- /gen --> of level vectors for the production book.
 
 <!-- gen:ladder_table -->
 
@@ -185,11 +189,11 @@ Full method: [docs/METHODOLOGY.md](docs/METHODOLOGY.md). Every optimization trie
 The full account, with first instances and hypotheses tested, is in [docs/DISCREPANCIES.md](docs/DISCREPANCIES.md).
 
 - **The exchange's queue runs in reference-number order, not arrival order.** The book first queued by arrival, and <!-- gen:not_head_e_before -->10,565<!-- /gen --> `E` executions were not at the head. Every `E` at a best level hit the lowest reference number. After the fix the count is <!-- gen:not_head_e -->0<!-- /gen --> on both days.
-- **<!-- gen:c_away -->82,356<!-- /gen --> `C` executions are characterised, mechanism not shown.** They trade at a price the head of the display level could not have traded at, so they are not queue events. The order types behind them are not visible on this feed.
+- **<!-- gen:c_away -->82,356<!-- /gen --> `C` executions are characterised, mechanism not shown.** <!-- gen:c_through -->82,345<!-- /gen --> trade through their display price, so the displayed level does not show their real limit and the oracle's head test does not apply. The other <!-- gen:c_other -->11<!-- /gen --> are non-printable, outside continuous trading. The order types are not visible on this feed. With <!-- gen:c_at_display -->9<!-- /gen --> cross allocations, `exec_not_head` totals <!-- gen:exec_not_head -->82,365<!-- /gen -->.
 - **<!-- gen:unexplained_2025 -->43<!-- /gen --> printable `E` messages on the 2025 day were not at the best price, and are unexplained.** They are outside continuous trading in a crossed book, near a halt cross. That fits a crossed book trading out, but it has not been shown.
 - **<!-- gen:match_two -->4,324<!-- /gen --> match numbers appear on two messages.** They are two sides of one match, exactly one printable, so printed volume has no double count. This overturned the plan's assumption that match numbers are disjoint.
 - **Zero-share crosses are not trades.** Spec 1.5.2 says a `Q` with no shares means no cross took place. The independent reference caught the C++ counting them, on <!-- gen:zero_share_q -->12,189<!-- /gen --> messages.
-- **Crossed books occur only outside continuous trading.** <!-- gen:crossed_continuous -->0<!-- /gen --> crossed touches in continuous trading, <!-- gen:crossed_other -->8,579<!-- /gen --> in <!-- gen:episodes_other -->30<!-- /gen --> episodes outside it. Every episode starts in a halted or paused symbol.
+- **Crossed books occur only outside continuous trading.** <!-- gen:crossed_continuous -->0<!-- /gen --> crossed touches in continuous trading, <!-- gen:crossed_other -->8,579<!-- /gen --> in <!-- gen:episodes_other -->30<!-- /gen --> episodes outside it. That is <!-- gen:crossed_scope -->with a 5 s grace after a resume (634 crossed touches at 0 s of grace, all within 1.214 ms of a resume)<!-- /gen -->. Every episode starts in a halted or paused symbol.
 - **Closing prices agree, <!-- gen:closes_ok -->7 of 7<!-- /gen -->.** This rests mostly on Yahoo, on a raw 2019 basis, and Yahoo's CMCSA split factor is unconfirmed.
 
 Rejected optimizations, with numbers, are in the optimization log: other level-scan bounds and a galloping search. The kept change raised applied throughput from <!-- gen:apply_before_mps -->13.16 M<!-- /gen --> to <!-- gen:apply_mps -->14.25 M<!-- /gen -->. It was chosen and published on the same day, so the gain may be smaller on another.
@@ -208,4 +212,4 @@ Verification layers and what each one does not cover: [docs/VERIFICATION.md](doc
 
 ## Licence and data
 
-The code is MIT, see [LICENSE](LICENSE). That licence covers the code only and excludes the data: `testdata/slice.itch.gz` and the files `scripts/fetch_itch.py` downloads are Nasdaq's. `testdata/README.md` states their source.
+The code is MIT, see [LICENSE](LICENSE). That licence covers the code only and excludes the data: `testdata/slice.itch.gz` and `testdata/expected_slice.json`, the files `scripts/fetch_itch.py` downloads, the seeds cut from real data in `fuzz/corpus/`, and data-derived results in `results/`, `dashboard/data/` and `docs/images/`. The source data is Nasdaq's, and `testdata/README.md` states where it came from. The protocol specifications are linked from [docs/spec/README.md](docs/spec/README.md).

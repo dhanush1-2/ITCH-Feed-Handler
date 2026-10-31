@@ -29,6 +29,7 @@ Excluded from timing: opening, mapping, locking and (for the ten-symbol runs) fi
 
 - 5 fresh processes per measurement, sequential, 5 s apart. Median published, with min, max and spread = (max - min) / median.
 - A set with spread over 10% is rejected, retried once, then dropped. None was rejected in the published run.
+- A set does not start with the 1-minute load average above 4.0 on this 12-core machine (`LOAD_LIMIT` in `run_bench.py`): it waits up to 5 minutes, then refuses. A normal idle desktop here sits at 2 to 4. The load before each set is recorded. `meta.complete` is true only if every set was published and none was ever rejected. The published file is replaced by rename only when the run finishes; progress goes to a `.partial` file.
 - Runs of a set must agree on state checksum, peak live orders, anomaly counts and message count, or the script fails. Pairs that must fold to the same state (index A/B, vector vs ladder) are checked.
 - No warm-up is discarded and no outlier is dropped: one pass is the workload, the first chunks are the quiet pre-market, and the tail is the product. Max is published.
 - Latency set: the spread rule applies to its throughput; percentile min and max across the 5 runs are published beside the median.
@@ -38,8 +39,8 @@ Excluded from timing: opening, mapping, locking and (for the ten-symbol runs) fi
 | Error | Handling |
 |---|---|
 | Page faults on the 8.25 GB input | `mlock` of the mapping; major faults in each timed span are recorded and `run_bench.py` fails a set if the input is not locked or any timed span has a major fault (0 in all published runs). Without it, early uncommitted runs showed 75% to 97% spread |
-| Clock granularity 42 ns | per-message percentiles are quoted only as multiples of the tick; <!-- gen:zero_tick_pct -->8.7%<!-- /gen --> of apply samples read zero ticks (published); the empty-region timer floor is published (p50 0, p99 42 ns) |
-| Timer overhead | measured and published, not subtracted: subtracting 9 ns from a distribution quantized at 42 ns is false precision |
+| Clock granularity 42 ns | per-message percentiles are quoted only as multiples of the tick; <!-- gen:zero_tick_pct -->8.7%<!-- /gen --> of apply samples read zero ticks (published); the empty-region timer floor is published (p50 <!-- gen:floor_p50 -->0<!-- /gen --> ns, p99 <!-- gen:floor_p99 -->42<!-- /gen --> ns) |
+| Timer overhead | measured and published, not subtracted. An empty timed region averages <!-- gen:floor_mean -->8.7<!-- /gen --> ns, but two serialized reads per message raise the whole run's cost from <!-- gen:apply_ns -->70<!-- /gen --> to <!-- gen:timed_ns -->100.8<!-- /gen --> ns per message, so the percentiles describe a separately timed run at <!-- gen:timed_mps -->9.92 M<!-- /gen --> msgs/s, not the published throughput run. Subtracting anything from a distribution quantized at the clock tick is false precision |
 | Compiler removing work | parse sink and the state fold are read; fold checksums are compared across variants |
 | Cache pollution by the harness | histogram stores happen after the second timestamp; the fold runs between chunks |
 | Throughput/latency interference | separate modes; apply has no per-message clock |

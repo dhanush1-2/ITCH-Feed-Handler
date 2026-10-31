@@ -451,7 +451,7 @@
         }
         txt += ". The replay was behind schedule by that much at its worst, so " + p.speed + "x was not held at every moment";
       }
-      $("paced").textContent = txt + ". The books it built equal the max-speed run's.";
+      $("paced").textContent = txt + ". Its export equals a max-speed run's: the per-symbol share ledger, and top of book each second for the watched symbols.";
     } else {
       $("paced").textContent = "No paced replay was recorded in the data.";
     }

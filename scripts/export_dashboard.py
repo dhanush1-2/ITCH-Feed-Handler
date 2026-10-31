@@ -171,11 +171,11 @@ def per_minute(per_second: list) -> dict:
 
 
 def check_same(a: dict, b: dict, name_a: str, name_b: str, keys) -> None:
-    """The paced replay and the max-speed run are the same books: refuse if they differ."""
+    """The paced replay and the max-speed run must give the same export: refuse if they differ."""
     for k in keys:
         if a.get(k) != b.get(k):
             raise ExportError(f"{name_a} and {name_b} differ in '{k}'; "
-                              "the paced replay must reproduce the max-speed books")
+                              "the paced replay must give the max-speed export")
 
 
 def check_data_files(results: Path) -> dict:
@@ -361,7 +361,8 @@ def build_verify(results: Path) -> dict:
          "detail": "Levels queue by reference number, as the exchange does, not by arrival."},
         {"what": "C executions away from the display price, not at the head",
          "count": away, "status": "Characterised, mechanism not shown",
-         "detail": "Not queue events. The order types behind them are not visible on this feed."},
+         "detail": "Most trade through their display price, so the displayed level does not show "
+                   "their real limit and the head test does not apply. Order types are not visible."},
         {"what": "C executions at the display price, not at the head",
          "count": c_at_display, "status": "Explained",
          "detail": "Non-printable, outside continuous trading, at a cross."},

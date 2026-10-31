@@ -2,7 +2,7 @@
 #pragma once
 
 // Builds ITCH 5.0 messages for tests. Written from the offset table in the spec PDF
-// (docs/spec/NQTVITCHspecification.pdf), and deliberately independent of the views:
+// (see docs/spec/README.md), and deliberately independent of the views:
 // it shares no code with include/itch, so a wrong offset in one cannot hide in the other.
 
 #include <array>

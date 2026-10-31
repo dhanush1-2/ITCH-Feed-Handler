@@ -4,22 +4,22 @@ What each layer checks, how far it reaches, and where it stops. All of it is abo
 
 | Layer | What it checks | Scope | Limit |
 |---|---|---|---|
-| Unit tests (`tests/*.cpp`) | Wire layouts at every alignment, book operations, receiver cases, pacer, snapshot | Every commit, in CI on GCC, Clang, ASan+UBSan and macOS | Synthetic streams, written by me from the spec |
+| Unit tests (`tests/*.cpp`) | Wire layouts at every alignment, book operations, receiver cases, pacer, snapshot | Pushes to main and PRs, in CI on GCC, Clang, ASan+UBSan and macOS | Synthetic streams, written by me from the spec |
 | O(1) invariants | The touched book's best levels; live counts agree | After every message in `--verify` | Touched book only |
 | Whole-state invariants | Every level, queue and link | Every message on the slice; <!-- gen:full_checks -->265<!-- /gen --> walks on the full day | Between walks, only the O(1) checks run |
 | Conservation | Share ledger per locate | End of run, every locate | A compensating pair of errors in one locate would pass |
 | Feed oracle | Each of <!-- gen:exec_checked -->5,822,741<!-- /gen --> executions at best and at head; crossed books | Whole day. Exceptions are counted and pinned | Says where the model and the feed disagree, not why |
 | Pins (`results/expected_anomalies.json`) | Oracle counts cannot rise; `exec_not_head_e` is pinned at <!-- gen:not_head_e -->0<!-- /gen --> | The 2019 file and the slice | The 2025 counts are findings, not pins |
-| Independent reference (`verify/reference_book.py`) | Message counts, shares, printed volume, trades, levels and queues | <!-- gen:ka_symbols -->20<!-- /gen --> symbols, <!-- gen:ka_orders -->121,587<!-- /gen --> resting orders at noon | 2019 only. It was written from the spec first, but shares the queue rule the data taught both |
+| Independent reference (`verify/reference_book.py`) | Message counts, shares, printed volume, trades, levels and queues | <!-- gen:ka_symbols -->20<!-- /gen --> symbols, <!-- gen:ka_orders -->121,587<!-- /gen --> resting orders at noon | 2019 only. No shared code, same author. Shares the queue rule the data taught both |
 | `verify/recon_book.py` | Reproduces every oracle count from a second Python book | Both days | Independent of the C++ book, not of its market-state rule, which it mirrors |
 | Closing prices | Closing cross against public closes, <!-- gen:closes_ok -->7 of 7<!-- /gen --> | Seven symbols | Mostly one unofficial source (Yahoo), raw 2019 basis, CMCSA factor unconfirmed |
-| Loss injection, slice | Five seeds at three loss levels, state and stream compared with a direct replay | Every commit, in CI | Simulated channel |
+| Loss injection, slice | Five seeds at three loss levels, state and stream compared with a direct replay | Pushes to main and PRs, in CI | Simulated channel |
 | Loss injection, full day | Stream hash, and state at feed second <!-- gen:noon_second -->43,200<!-- /gen --> (<!-- gen:noon_orders -->1,771,377<!-- /gen --> orders), under <!-- gen:lost -->11,085,799<!-- /gen --> lost messages | One stress run with one seed | End of day is empty and is not the comparison |
 | Loopback UDP | Same receiver over real sockets | First <!-- gen:udp_messages -->5,000,000<!-- /gen --> messages at <!-- gen:udp_rate -->1,000,000<!-- /gen --> msgs/s | Goes Stale when unpaced. Not multicast, not a statement about real networks |
 | Second day | `--verify` passes on <!-- gen:messages_2025 -->650,338,709<!-- /gen --> messages | 2025-12-08 | The reference was not run on it. <!-- gen:unexplained_2025 -->43<!-- /gen --> printable `E` not at best stay unexplained |
 | Fuzzing | Parser and receiver under ASan and UBSan, via libFuzzer in Docker | See the table below; 60 s of each in CI | Apple clang has no libFuzzer runtime, so it runs only in Linux |
 | ThreadSanitizer | Seqlock snapshot, pacer, viewer | CI job | Those tests only |
-| Document checks (`tests/test_docs_fresh.py`) | Generated blocks, images, links, stamps | Every commit | Hand-written prose in `docs/DISCREPANCIES.md` is checked only for its headline counts |
+| Document checks (`tests/test_docs_fresh.py`) | Generated blocks, images, links, stamps | Pushes to main and PRs | Hand-written prose in `docs/DISCREPANCIES.md` is checked only for its headline counts |
 
 ## Loss table
 
@@ -59,3 +59,17 @@ Only what `results/fuzz.json` records.
 - The <!-- gen:c_away -->82,356<!-- /gen --> `C` executions are characterised, mechanism not shown.
 - The inferences about Nasdaq's engine in `docs/DISCREPANCIES.md` are marked as inferences.
 - Benchmarks ran on one machine with no x86 cross-check.
+
+## Definition of done
+
+From the brief. Unticked items wait for the owner or for the final regeneration.
+
+- [x] Parser and book builder pass verification on at least one full day: `results/day_12302019.json`, with a second day in `results/day_20251208.json`.
+- [x] Loss-injection test suite green, locally: `ctest` entries `loss_injection` and `mold_sim_cli`.
+- [ ] The same suites green in CI: the workflow has not yet run on GitHub.
+- [x] Published benchmark table with full methodology: README, `docs/METHODOLOGY.md`.
+- [x] Replay demo recording: `docs/images/demo-replay.gif`.
+- [ ] Hosted static dashboard: it runs locally; it is not deployed.
+- [x] DESIGN.md written.
+- [ ] README complete: the CI and deployed-dashboard images, the badge and the dashboard link wait for a public repository.
+- [ ] All results regenerated from the final commit: `scripts/regenerate_results.sh`.

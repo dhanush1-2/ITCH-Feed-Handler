@@ -121,12 +121,20 @@ def test_public_proofs_appear_only_when_their_file_exists(tmp_path):
     assert "docs/images/proof-ci-green.png" in gen.public_proofs(tmp_path)
 
 
-def test_repo_slug_is_empty_so_no_badge_or_link():
+def test_repo_slug_and_badge_agree():
     gen = gen_module()
-    assert gen.REPO_SLUG == ""
+    readme = text("README.md")
     assert gen.badges("") == ""
-    assert "github.com" not in text("README.md")
-    assert "github.io" not in text("README.md")
+    assert ("badge.svg" in readme) == bool(gen.REPO_SLUG)
+    assert ("github.io" in readme) == bool(gen.REPO_SLUG)
+    if gen.REPO_SLUG:
+        assert f"{gen.REPO_SLUG}/actions/workflows/ci.yml/badge.svg" in readme
+
+
+def test_project_1_link_is_the_dependency_cmake_fetches():
+    url = re.search(r"GIT_REPOSITORY\s+(https://github\.com/\S*orderbook\S*?)\.git",
+                    text("CMakeLists.txt")).group(1)
+    assert url in text("README.md")
 
 
 def test_repo_slug_set_gives_badge_and_dashboard_link():
@@ -286,3 +294,111 @@ def test_ci_runs_the_docs_check():
 
 def test_docs_test_is_registered_with_ctest():
     assert "test_docs_fresh.py" in text("tests/CMakeLists.txt")
+
+
+def test_replay_comparison_is_recorded_and_not_overstated():
+    rec = json.loads(text("results/replay_max_compare.json"))
+    assert rec["matches"] is True and rec["meta"]["commit"]
+    assert "state_dump" in rec["ignored"] and "per_symbol" in rec["compared"]
+    assert "watch" in rec["compared"]
+    for rel in DOCS:
+        assert "reproduces the max-speed" not in text(rel), rel
+        assert "books it built equal" not in text(rel), rel
+    assert "books it built equal" not in text("dashboard/app.js")
+    assert "per-symbol share ledger" in text("README.md")
+
+
+def test_c_execution_wording():
+    readme = text("README.md")
+    recon = json.loads(text("results/recon_12302019.json"))["exec_not_head"]["C"]
+    through = recon["away_from_display_price"]["direction"]
+    doc = text("docs/DISCREPANCIES.md")
+    for t in (readme, doc):
+        assert f"{through['inside_the_spread_side']:,}" in t
+        assert "trade through their display price" in t
+        assert "82,365" in t
+    assert f"{through['away_from_the_spread']}" in readme
+
+
+def test_crossed_headline_carries_its_grace():
+    readme = text("README.md")
+    grace = json.loads(text("results/recon_12302019.json"))["crossed"]["halt_grace"]
+    assert f"{grace['crossed_touches_after_resume_before_cross']} crossed touches at 0 s" in readme
+    assert f"{grace['max_s_after_resume'] * 1000:.3f} ms of a resume" in readme
+
+
+def test_latency_is_labelled_as_a_separate_run():
+    bench = json.loads(text("results/bench_12302019.json"))["results"]["latency"]
+    readme = text("README.md")
+    assert f"{bench['msgs_per_sec']['median'] / 1e6:.2f} M msgs/s" in readme
+    assert f"{bench['ns_per_msg_median']:.1f} ns" in readme
+    assert "separately timed run" in text("docs/RESUME.md")
+    assert "subtracting 9 ns" not in text("docs/METHODOLOGY.md")
+
+
+def test_reference_row_states_how_independent_it_is():
+    readme = text("README.md")
+    assert "no shared code, same author" in readme.lower() and "queue rule" in readme
+    assert "of noon orders" in readme and "2019 only" in readme
+    assert "before `include/itch`" not in text("docs/DISCREPANCIES.md")
+
+
+def test_provenance_counts_every_stamped_commit():
+    line = re.search(r"<!-- gen:provenance -->(.*?)<!-- /gen -->", text("README.md")).group(1)
+    assert "82e91fc" in line and "43d1e2f" in line
+
+
+def test_spec_pdfs_are_links_not_files():
+    assert not list((ROOT / "docs" / "spec").glob("*.pdf"))
+    spec = text("docs/spec/README.md")
+    assert "NQTVITCHspecification.pdf" in spec and "moldudp64.pdf" in spec and "https://" in spec
+
+
+def test_licence_exclusion_names_all_the_data():
+    section = text("README.md").split("## Licence and data")[1]
+    for name in ("testdata/slice.itch.gz", "fuzz/corpus", "results/", "dashboard/data/"):
+        assert name in section, name
+
+
+def test_readme_states_prerequisites():
+    assert "CMake 3.25" in text("README.md")
+
+
+def test_definition_of_done_is_honest():
+    section = text("docs/VERIFICATION.md").split("## Definition of done")[1]
+    assert "- [x]" in section and "- [ ]" in section
+    hosted = next(x for x in section.splitlines() if "hosted" in x.lower())
+    assert hosted.startswith("- [ ]")
+
+
+def _dry(*args):
+    return subprocess.run(["bash", str(REGEN), "--dry-run", *args], capture_output=True, text=True,
+                          cwd=ROOT).stdout
+
+
+def test_regenerate_runs_fuzz_before_anything_timed():
+    out = _dry()
+    assert out.index("[fuzz_mold]") < out.index("[bench]")
+    assert out.index("[fuzz_mold]") < out.index("[replay_10x]")
+    assert "replay_max_compare.json" in out
+
+
+@pytest.mark.parametrize("job", ["export_dashboard", "gen_demo_assets", "gen_docs_check"])
+def test_late_restart_skips_the_clean_tree_check(job):
+    out = _dry("--from", job)
+    assert "clean-tree check skipped" in out and "the tree is not clean" not in out
+
+
+def test_early_restart_keeps_the_clean_tree_check():
+    assert "clean-tree check skipped" not in _dry("--from", "bench")
+
+
+def test_regenerate_reexecs_under_caffeinate_and_checks_bench_completeness():
+    script = REGEN.read_text()
+    assert re.search(r'exec caffeinate -i bash', script)
+    assert '"complete"' in script or "complete" in script
+    assert "caffeinate -i python3" not in script
+
+
+def test_ci_format_check_covers_bench():
+    assert "find include tests tools fuzz bench" in text(".github/workflows/ci.yml")

@@ -141,6 +141,12 @@ public:
         return (bids_.capacity() + asks_.capacity()) * sizeof(Level);
     }
 
+    // The touch. The side must not be empty. A plain reference into the level vector: a loop-free
+    // caller needs nothing more, and front() of a view's temporary trips GCC's dangling check.
+    [[nodiscard]] const Level& best_level(ob::Side side) const noexcept {
+        return (side == ob::Side::Buy ? bids_ : asks_).back();
+    }
+
     // Best to worst.
     [[nodiscard]] auto bids() const noexcept {
         return std::views::reverse(std::span<const Level>(bids_));

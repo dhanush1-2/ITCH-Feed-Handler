@@ -1,8 +1,8 @@
 // tests/test_mold_packet.cpp
 //
 // MoldUDP64 framing (include/mold/packet.hpp), the packetizer and the retransmit server.
-// Expected bytes are written out by hand from docs/spec/moldudp64.pdf, not through the code
-// under test: a wrong offset in the header code cannot hide in the test.
+// Expected bytes are written out by hand from the MoldUDP64 spec (docs/spec/README.md), not through
+// the code under test: a wrong offset in the header code cannot hide in the test.
 
 #include <gtest/gtest.h>
 

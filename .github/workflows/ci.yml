@@ -19,9 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Ninja (Linux)
+      - name: Install Ninja and clang (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y ninja-build
+        run: sudo apt-get update && sudo apt-get install -y ninja-build clang
 
       - name: Install Ninja (macOS)
         if: runner.os == 'macOS'
@@ -187,4 +187,4 @@ jobs:
         run: |
           CF=$(python3 -c "import clang_format, os; print(os.path.join(os.path.dirname(clang_format.__file__), 'data', 'bin', 'clang-format'))")
           "$CF" --version
-          find include tests tools fuzz -name '*.hpp' -o -name '*.cpp' | xargs "$CF" --dry-run --Werror
+          find include tests tools fuzz bench -name '*.hpp' -o -name '*.cpp' | xargs "$CF" --dry-run --Werror

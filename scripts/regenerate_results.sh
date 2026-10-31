@@ -8,6 +8,12 @@
 #   --skip-fuzz  keep the committed results/fuzz.json, for when Docker is down
 #   --from JOB   start at this job, after a failure. Earlier output must still be valid
 #
+# The whole script re-executes itself under caffeinate -i, so the machine stays awake throughout.
+#
+# Fuzzing runs first, and nothing else runs alongside it. Docker is needed only for those two jobs:
+# quit Docker Desktop once they finish, because an idle VM still costs load during the timed jobs.
+# run_bench.py refuses a set above its load limit; the 10x job logs load to build/regen.
+#
 # Needs: a clean tree at the final commit, data/12302019.NASDAQ_ITCH50, data/S120825-v50.txt.gz,
 # Docker for the fuzz jobs, ITCH_PLAYWRIGHT_PYTHON (a Python with Playwright, plus
 # PLAYWRIGHT_BROWSERS_PATH if its browsers are not in the default place) for the dashboard
@@ -20,6 +26,17 @@
 #
 # Recorded times come from earlier runs' logs and result files; a job with none shows "none".
 set -euo pipefail
+
+# Stay awake for all of it. A dry run does nothing, so it needs no assertion.
+case " $* " in
+  *" --dry-run "*) ;;
+  *)
+    if [ -z "${ITCH_REGEN_CAFFEINATED:-}" ] && command -v caffeinate >/dev/null; then
+      export ITCH_REGEN_CAFFEINATED=1
+      exec caffeinate -i bash "$0" "$@"
+    fi
+    ;;
+esac
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -64,13 +81,23 @@ preflight() {
   note() { echo "cannot run here: $1"; problems=$((problems + 1)); }
   [ -f "$DAY" ] || note "$DAY is missing (scripts/fetch_itch.py 12302019.NASDAQ_ITCH50.gz)"
   [ -f "$GZ_2025" ] || note "$GZ_2025 is missing (scripts/fetch_itch.py S120825-v50.txt.gz)"
-  if [ "$SKIP_FUZZ" = 0 ] && ! docker info >/dev/null 2>&1; then
+  case "$FROM" in
+    ""|build|fuzz_parser|fuzz_mold) need_docker=1 ;;
+    *) need_docker=0 ;;
+  esac
+  if [ "$SKIP_FUZZ" = 0 ] && [ "$need_docker" = 1 ] && ! docker info >/dev/null 2>&1; then
     note "fuzz_parser, fuzz_mold: Docker is down (start it, or pass --skip-fuzz to keep results/fuzz.json)"
   fi
   [ -n "${ITCH_PLAYWRIGHT_PYTHON:-}" ] || note "dashboard images: ITCH_PLAYWRIGHT_PYTHON is not set"
   python3 -c 'import PIL' 2>/dev/null || note "proof images: Pillow is not installed for python3"
-  [ -z "$(git status --porcelain -- . ':(exclude)results' ':(exclude)data')" ] ||
-    note "the tree is not clean, so stamps would say -dirty; commit first"
+  case "$FROM" in
+    # These steps write no stamps, and gen_docs has already changed the tree. check_stamps guards.
+    export_dashboard|gen_demo_assets|gen_docs_check) echo "clean-tree check skipped for --from $FROM" ;;
+    *)
+      [ -z "$(git status --porcelain -- . ':(exclude)results' ':(exclude)data')" ] ||
+        note "the tree is not clean, so stamps would say -dirty; commit first"
+      ;;
+  esac
   if [ "$problems" -gt 0 ] && [ "$DRY" = 0 ]; then
     echo "stopping: $problems problem(s) above" >&2
     exit 1
@@ -119,8 +146,10 @@ job() {
 }
 
 build_all() {
-  cmake --preset release && cmake --build --preset release -j
-  cmake --preset verify && cmake --build --preset verify -j
+  cmake --preset release
+  cmake --build --preset release -j
+  cmake --preset verify
+  cmake --build --preset verify -j
 }
 
 census() { "$RELEASE/itch_stat" "$DAY" --json results/census_12302019.json; }
@@ -198,15 +227,20 @@ udp_demo() {
     --dump-state results/state_udp_demo.bin --dump-at-s 25000 --check-direct --json results/udp_demo.json
 }
 
-bench() { caffeinate -i python3 -I scripts/run_bench.py --day 12302019 --label "final, kScan=64"; }
+bench() { python3 -I scripts/run_bench.py --day 12302019 --label "final, kScan=64"; }
 
 replay_10x() {
+  local load_log="$WORK/replay_10x_load.log" sampler
+  ( while :; do echo "$(date -u +%FT%TZ) $(uptime)"; sleep 300; done ) >> "$load_log" &
+  sampler=$!
+  trap 'kill "$sampler" 2>/dev/null || true' EXIT
   "$RELEASE/itch_replay" "$DAY" --speed 10 --symbols QQQ,SPY,AAPL,AMD,MSFT --export results/replay_10x.json
 }
 
 replay_max_compare() {
   "$RELEASE/itch_replay" "$DAY" --symbols QQQ,SPY,AAPL,AMD,MSFT --export "$WORK/replay_max.json"
-  python3 -I scripts/compare_export.py results/replay_10x.json "$WORK/replay_max.json"
+  python3 -I scripts/record_replay_compare.py results/replay_10x.json "$WORK/replay_max.json" \
+    --out results/replay_max_compare.json
 }
 
 # The 2025 file's decompressed copy was removed to save disk, so it comes from the kept .gz.
@@ -230,12 +264,14 @@ import json, sys
 head, skip_fuzz = sys.argv[1], sys.argv[2] == "1"
 names = ["census_12302019", "day_12302019", "day_20251208", "cpp_subset_12302019", "recon_12302019",
          "recon_20251208", "loss_table", "loss_full_day", "loss_full_day_lossless", "udp_demo",
-         "bench_12302019", "replay_10x"]
+         "bench_12302019", "replay_10x", "replay_max_compare"]
 bad = []
 for n in names:
     c = json.load(open(f"results/{n}.json"))["meta"]["commit"]
     if c != head:
         bad.append(f"{n}: {c}")
+if not json.load(open("results/bench_12302019.json"))["meta"]["complete"]:
+    bad.append("bench_12302019: complete is false, a set was rejected; rerun with --from bench")
 for r in json.load(open("results/halt_grace_12302019.json"))["runs"]:
     if r["meta"]["commit"] != head:
         bad.append(f"halt_grace: {r['meta']['commit']}")
@@ -262,6 +298,10 @@ not_regenerated
 # results/fuzz.json (300 s each requested; the Docker build is not recorded). "halt_grace" is three
 # runs of the 51.8 s replay; "replay_max_compare" one of the 27.8 s replay.
 job build              none    "configure and build the release and verify presets" -- build_all
+if [ "$SKIP_FUZZ" = 0 ]; then
+  job fuzz_parser      300     "results/fuzz.json, parser entry (Docker)" -- fuzz_parser
+  job fuzz_mold        300     "results/fuzz.json, receiver entry (Docker)" -- fuzz_mold
+fi
 job census             none    "results/census_12302019.json" -- census
 job day_2019           51.8    "results/day_12302019.json, state_12302019.bin" -- day_2019
 job halt_grace         155.4   "results/halt_grace_12302019.json" -- halt_grace
@@ -275,12 +315,8 @@ job loss_table         58.8    "results/loss_table.json" -- loss_table
 job udp_demo           5.0     "results/udp_demo.json" -- udp_demo
 job bench              1247.3  "results/bench_12302019.json" -- bench
 job replay_10x         6122.9  "results/replay_10x.json" -- replay_10x
-job replay_max_compare 27.8    "books at max speed against the 10x run" -- replay_max_compare
+job replay_max_compare 27.8    "results/replay_max_compare.json: exports at max speed and 10x" -- replay_max_compare
 job day_2025           201.3   "results/day_20251208.json, results/recon_20251208.json (from the .gz)" -- day_2025
-if [ "$SKIP_FUZZ" = 0 ]; then
-  job fuzz_parser      300     "results/fuzz.json, parser entry (Docker)" -- fuzz_parser
-  job fuzz_mold        300     "results/fuzz.json, receiver entry (Docker)" -- fuzz_mold
-fi
 job check_stamps       none    "every regenerated stamp equals HEAD" -- check_stamps
 # gen_docs runs before the export because the dashboard copies docs/METHODOLOGY.md.
 job gen_docs           none    "scripts/gen_docs.py" -- python3 -I scripts/gen_docs.py
@@ -288,6 +324,10 @@ job export_dashboard   none    "scripts/export_dashboard.py results/ dashboard/d
 job gen_demo_assets    none    "scripts/gen_demo_assets.py: real commands to docs/images" -- python3 scripts/gen_demo_assets.py
 job gen_docs_check     none    "scripts/gen_docs.py --check" -- python3 -I scripts/gen_docs.py --check
 
+cat <<'NOTE'
+Re-check by hand, these are typed: DESIGN.md "no p99.9 regression" and include/book/book.hpp "+8%"
+against docs/OPTIMIZATION-LOG.md's generated figures; other figures in docs/DISCREPANCIES.md.
+NOTE
 printf 'Expected time: %s s (%s h) from recorded wall times only.\n' "$TOTAL" \
   "$(python3 -c "print(round($TOTAL / 3600, 2))")"
 echo "No recorded wall time, so not in that total:$UNRECORDED"

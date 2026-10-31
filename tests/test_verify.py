@@ -1,6 +1,6 @@
 """Tests for the independent Python reference and the comparison tool.
 
-The stream here is hand-built with struct from the field tables in docs/spec, and the expected
+The stream here is hand-built with struct from the field tables in the spec (docs/spec/README.md), and the expected
 values were worked out by hand in the comments, so no C++ is involved in any expectation.
 """
 import copy

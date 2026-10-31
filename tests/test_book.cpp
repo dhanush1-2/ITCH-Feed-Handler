@@ -137,7 +137,7 @@ TEST(Book, ReduceUpdatesLevelTotalAndKeepsPosition) {
     const Slot a = f.add(Side::Buy, 100, 100);
     f.add(Side::Buy, 100, 50);
     f.b.reduce(f.pool, a, 40);
-    const auto& lv = f.b.bids().front();
+    const auto& lv = f.b.best_level(Side::Buy);
     EXPECT_EQ(lv.total, 110u);
     EXPECT_EQ(lv.count, 2u);
     EXPECT_EQ(lv.head, a);
@@ -177,4 +177,63 @@ TEST(Book, EqualPriceChurnKeepsRefOrder) {
     const auto& lv = *f.b.asks().begin();
     EXPECT_EQ(queue(f.pool, lv), (std::vector<std::uint64_t>{12, 15, 30, 50}));
     EXPECT_EQ(lv.total, 20u);
+}
+
+TEST(Book, BestLevelIsTheTouchOnEachSide) {
+    Fixture f;
+    f.add(Side::Buy, 100, 1);
+    f.add(Side::Buy, 102, 7);
+    f.add(Side::Sell, 105, 3);
+    f.add(Side::Sell, 103, 9);
+    EXPECT_EQ(f.b.best_level(Side::Buy).price, 102);
+    EXPECT_EQ(f.b.best_level(Side::Buy).total, 7u);
+    EXPECT_EQ(f.b.best_level(Side::Sell).price, 103);
+    EXPECT_EQ(f.b.best_level(Side::Sell).total, 9u);
+}
+
+// A lookup scans kScan levels from the touch, then binary-searches. Hit an existing level on both
+// sides of that boundary, and insert new ones there: a mistake at the join would duplicate a level
+// or break the order.
+TEST(Book, LookupAcrossTheScanBoundary) {
+    for (const Side side : {Side::Buy, Side::Sell}) {
+        constexpr std::size_t  kLevels = Book::kScan + 40;
+        constexpr std::int32_t kMid    = 100000;
+        // Depth d (0 = touch) has price kMid - 2d for bids, kMid + 2d for asks.
+        const auto price = [&](std::size_t d, std::int32_t extra = 0) {
+            const auto off = static_cast<std::int32_t>(2 * d) + extra;
+            return side == Side::Buy ? kMid - off : kMid + off;
+        };
+        Fixture f;
+        for (std::size_t d = 0; d < kLevels; ++d) {
+            f.add(side, price(d), 10);
+        }
+        ASSERT_EQ(f.b.level_count(side), kLevels);
+        for (const std::size_t d :
+             {Book::kScan - 2, Book::kScan - 1, Book::kScan, Book::kScan + 1}) {
+            f.add(side, price(d), 5);  // an existing level: must join it
+            EXPECT_EQ(f.b.level_count(side), kLevels) << "depth " << d;
+        }
+        std::size_t added = 0;
+        for (const std::size_t d :
+             {Book::kScan - 2, Book::kScan - 1, Book::kScan, Book::kScan + 1}) {
+            f.add(side, price(d, 1), 1);  // between two levels: must insert in order
+            EXPECT_EQ(f.b.level_count(side), kLevels + ++added) << "depth " << d;
+        }
+        std::int32_t last  = 0;
+        bool         first = true;
+        const auto   check = [&](auto levels) {
+            for (const auto& lv : levels) {
+                if (!first) {
+                    EXPECT_TRUE(side == Side::Buy ? lv.price < last : lv.price > last);
+                }
+                last  = lv.price;
+                first = false;
+            }
+        };
+        if (side == Side::Buy) {
+            check(f.b.bids());
+        } else {
+            check(f.b.asks());
+        }
+    }
 }

@@ -69,14 +69,13 @@ public:
                     std::uint64_t ts_ns, bool continuous, bool is_e) {
         ++counts_.exec_checked;
         counts_.exec_checked_continuous += continuous;
-        const bool buy   = o.side == ob::Side::Buy;
         const bool empty = bk.level_count(o.side) == 0;
         if (empty) {
             record(OracleKind::NotBest, counts_.exec_not_best, ts_ns, o.pad, o.id);
             counts_.exec_not_best_continuous += continuous;
             return;
         }
-        const Level& best = buy ? bk.bids().front() : bk.asks().front();
+        const Level& best = bk.best_level(o.side);
         if (best.price != o.price) {
             record(OracleKind::NotBest, counts_.exec_not_best, ts_ns, o.pad, o.id);
             counts_.exec_not_best_continuous += continuous;

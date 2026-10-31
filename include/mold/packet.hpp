@@ -1,7 +1,7 @@
 // include/mold/packet.hpp
 #pragma once
 
-// MoldUDP64 packet framing (docs/spec/moldudp64.pdf, V 1.00).
+// MoldUDP64 packet framing (see docs/spec/README.md, V 1.00).
 //
 //   offset  len  field
 //        0   10  session          ANUM

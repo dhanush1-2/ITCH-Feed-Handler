@@ -4,7 +4,7 @@
 // Zero-copy views over ITCH 5.0 messages. A view owns nothing: it holds a pointer to
 // the first byte of the message (the type byte) and reads a field on demand.
 //
-// Layouts are from the Nasdaq TotalView-ITCH 5.0 specification (docs/spec/). Every
+// Layouts are from the Nasdaq TotalView-ITCH 5.0 specification (docs/spec/README.md). Every
 // message starts with the same 11-byte header:
 //   type 0 (1), stock locate 1 (2), tracking number 3 (2), timestamp 5 (6).
 //

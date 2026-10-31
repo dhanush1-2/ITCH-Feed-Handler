@@ -169,6 +169,24 @@ def build_blocks(r: Results) -> dict:
     def loss_row(label):
         return next(x for x in tbl()["rows"] if x["label"] == label)
 
+    def paced_export():
+        rec = r["replay_max_compare"]
+        verdict = "equals" if rec["matches"] else "DIFFERS FROM"
+        return (f"Its export {verdict} a max-speed run's: the per-symbol share ledger, and top of "
+                f"book each second for {len(rec['watched_symbols'])} symbols.")
+
+    def crossed_scope():
+        g = recon()["crossed"]["halt_grace"]
+        return (f"with a {day()['verify']['halt_grace_s']} s grace after a resume "
+                f"({n(g['crossed_touches_after_resume_before_cross'])} crossed touches at 0 s of "
+                f"grace, all within {g['max_s_after_resume'] * 1000:.3f} ms of a resume)")
+
+    def latency_caveat():
+        t = bench()["latency"]
+        return (f"From a separately timed run at {mps(t['msgs_per_sec']['median'])} msgs/s, "
+                f"{t['ns_per_msg_median']:.1f} ns per message, with two clock reads per message; "
+                "throughput comes from runs with no per-message clock")
+
     def proof_table():
         ka = known_answer()
         ok, total = closes()
@@ -178,7 +196,7 @@ def build_blocks(r: Results) -> dict:
              f"{n(day()['totals']['messages'])} messages, `unknown_ref` "
              f"{day()['anomalies']['unknown_ref']}, conservation holds, "
              f"{n(day()['verify']['full_checks'])} whole-state checks, no book crossed in "
-             "continuous trading",
+             "continuous trading " + crossed_scope(),
              link("day_12302019.json"),
              "`itch_replay data/12302019.NASDAQ_ITCH50 --verify`"],
             ["Second day, six years later",
@@ -187,9 +205,11 @@ def build_blocks(r: Results) -> dict:
              "orders; no new message types",
              link("day_20251208.json"),
              "`itch_replay data/S120825-v50.txt --verify`"],
-            ["Agrees with an independent Python reference",
+            ["Agrees with a separate Python reference",
              f"{ka['symbols']} symbols, {'identical' if ka['same'] else 'DIFFERENT'} field for "
-             f"field, {n(known_orders())} resting orders compared at noon",
+             f"field, {n(known_orders())} resting orders at noon, "
+             f"{known_orders() / f['dump']['resting_orders'] * 100:.1f}% of noon orders, 2019 only. "
+             "No shared code, same author; shares the queue rule",
              link("cpp_subset_12302019.json") + ", " + link("ref_12302019.json"),
              "`verify/compare.py results/cpp_subset_12302019.json results/ref_12302019.json`"],
             ["Bit-identical books after injected loss",
@@ -208,13 +228,15 @@ def build_blocks(r: Results) -> dict:
              link("bench_12302019.json"), "`scripts/run_bench.py --day 12302019`"],
             ["Per-message latency shape",
              f"p50 {lat('p50_ns')} ns, p99 {lat('p99_ns')} ns, p99.9 {lat('p99_9_ns')} ns, "
-             f"quantized at {bench()['latency']['clock']['granularity_median_ns']} ns",
+             f"quantized at {bench()['latency']['clock']['granularity_median_ns']} ns. "
+             + latency_caveat(),
              link("bench_12302019.json"), "`scripts/run_bench.py --day 12302019`"],
-            ["Paced replay reproduces the max-speed books",
-             f"{replay()['speed']}x, {replay()['paced_wall_s'] / 3600:.2f} h of wall time",
-             link("replay_10x.json"),
+            ["Paced replay gives the same export as a max-speed run",
+             f"{replay()['speed']}x, {replay()['paced_wall_s'] / 3600:.2f} h of wall time. "
+             + paced_export() + " The 10x run takes no state dump",
+             link("replay_10x.json") + ", " + link("replay_max_compare.json"),
              "`itch_replay <day> --speed 10 --symbols QQQ,SPY,AAPL,AMD,MSFT --export out.json`, "
-             "then `scripts/compare_export.py`"],
+             "then `scripts/record_replay_compare.py`"],
             ["Recovery over real sockets, loopback only",
              f"First {n(udp()['source']['messages'])} messages at "
              f"{n(udp()['config']['rate_mps'])} msgs/s, stream and state identical",
@@ -229,7 +251,9 @@ def build_blocks(r: Results) -> dict:
             ["Closing prices against public closes",
              f"{ok} of {total} equal on the raw 2019 basis. Rests mostly on Yahoo; the CMCSA "
              "split factor is unconfirmed",
-             link("recon_12302019.json"), "`verify/recon_summary.py`"],
+             link("recon_12302019.json"), "`verify/recon_summary.py build/r_day.pickle build/recon_match.json "
+             "verify/closing_sources.json results/halt_grace_12302019.json "
+             "--out results/recon_12302019.json`"],
         ])
 
     def bench_table():
@@ -244,6 +268,7 @@ def build_blocks(r: Results) -> dict:
              f"{mps(median('apply'))} (spread {b['apply']['msgs_per_sec']['spread'] * 100:.1f}%)"],
             ["p50 / p99 / p99.9 per-message apply latency",
              f"{lat('p50_ns')} / {lat('p99_ns')} / {lat('p99_9_ns')} ns"],
+            ["How the latency was timed", latency_caveat()],
             ["Peak live orders", n(b["apply"]["peak_live_orders"])],
             ["Handler tables (order pool, id index, books array)",
              f"{mb(tables)} at setup, at a benchmark capacity of "
@@ -311,13 +336,18 @@ def build_blocks(r: Results) -> dict:
         return table(["Target", "Requested time", "Executions", "Crashes", "Commit"], rows)
 
     def provenance():
-        names = ["census_12302019", "day_12302019", "day_20251208", "cpp_subset_12302019",
-                 "recon_12302019", "recon_20251208", "loss_table", "loss_full_day",
-                 "loss_full_day_lossless", "udp_demo", "bench_12302019", "replay_10x"]
-        commits = {r[x]["meta"]["commit"][:7] for x in names}
+        published = ["census_12302019", "day_12302019", "day_20251208", "cpp_subset_12302019",
+                     "recon_12302019", "recon_20251208", "loss_table", "loss_full_day",
+                     "loss_full_day_lossless", "udp_demo", "bench_12302019", "replay_10x",
+                     "replay_max_compare", "recon_12302019_arrival_queue",
+                     "recon_20251208_arrival_queue", "bench_12302019_before_optimization"]
+        commits = {r[x]["meta"]["commit"][:7] for x in published}
+        commits |= {x["meta"]["commit"][:7] for x in r["fuzz"]["runs"]}
+        commits |= {x["meta"]["commit"][:7] for x in r["halt_grace_12302019"]["runs"]}
         return (f"The current result files come from {len(commits)} commit"
                 f"{'' if len(commits) == 1 else 's'}: "
-                + ", ".join(f"`{c}`" for c in sorted(commits)) + ".")
+                + ", ".join(f"`{c}`" for c in sorted(commits)) + ". The kScan screening and the "
+                "profile come from patched builds and say so in their own files.")
 
     def episode_sentence():
         e = recon()["crossed"]["episodes_listed"][0]
@@ -332,8 +362,9 @@ def build_blocks(r: Results) -> dict:
         return ("\n\n"
                 f"- Built a C++20 NASDAQ ITCH 5.0 feed handler reconstructing full-depth books for "
                 f"{n(bench()['apply']['book_storage']['books_with_levels'])} symbols at "
-                f"{median('apply') / 1e6:.2f} M msgs/sec ({lat('p99_ns')} ns p99 per message) on "
-                f"{meta['cpu']}, replaying one recorded day of {n(day()['totals']['messages'])} "
+                f"{median('apply') / 1e6:.2f} M msgs/sec on {meta['cpu']} (separately timed run: "
+                f"{lat('p99_ns')} ns p99, {bench()['latency']['clock']['granularity_median_ns']} ns "
+                "clock tick), replaying one recorded day of {n(day()['totals']['messages'])} "
                 "messages from a file on one thread.\n"
                 "- Implemented MoldUDP64 sequence-gap detection and retransmission recovery; "
                 f"under injected loss, reordering and duplication "
@@ -360,6 +391,9 @@ def build_blocks(r: Results) -> dict:
         "resume_bullets": resume_bullets,
         # Sentences.
         "lag_text": lambda: lag_text(replay()),
+        "paced_export": paced_export,
+        "crossed_scope": crossed_scope,
+        "latency_caveat": latency_caveat,
         "provenance": provenance,
         # Day.
         "messages": lambda: n(day()["totals"]["messages"]),
@@ -386,6 +420,10 @@ def build_blocks(r: Results) -> dict:
         "not_head_e": lambda: n(day()["oracle"]["exec_not_head_e"]),
         "not_head_e_before": lambda: n(
             r["recon_12302019_arrival_queue"]["exec_not_head"]["E"]["not_arrival_head"]),
+        "c_through": lambda: n(recon()["exec_not_head"]["C"]["away_from_display_price"]["direction"]["inside_the_spread_side"]),
+        "c_other": lambda: n(recon()["exec_not_head"]["C"]["away_from_display_price"]["direction"]["away_from_the_spread"]),
+        "c_at_display": lambda: n(day()["oracle"]["exec_not_head"] - day()["oracle"]["exec_not_head_e"]
+                                  - recon()["exec_not_head"]["C"]["away_from_display_price"]["not_head"]),
         "c_away": lambda: n(recon()["exec_not_head"]["C"]["away_from_display_price"]["not_head"]),
         "symbol_episode_sentence": episode_sentence,
         "closes_ok": lambda: f"{closes()[0]} of {closes()[1]}",
@@ -423,6 +461,11 @@ def build_blocks(r: Results) -> dict:
         "map_tables_mb": lambda: mb(bench()["apply_unordered_map"]["memory"]["tables_added_after_setup_bytes_median"]),
         "max_rss_gb": lambda: gb(bench()["apply"]["memory"]["max_rss_bytes_median"]),
         "latency_rss_gb": lambda: gb(bench()["latency"]["memory"]["max_rss_bytes_median"]),
+        "timed_mps": lambda: mps(bench()["latency"]["msgs_per_sec"]["median"]),
+        "timed_ns": lambda: f"{bench()['latency']['ns_per_msg_median']:.1f}",
+        "floor_mean": lambda: f"{bench()['latency']['latency_timer_floor_ns']['mean_ns']['median']:.1f}",
+        "floor_p50": lambda: str(bench()["latency"]["latency_timer_floor_ns"]["p50_ns"]["median"]),
+        "floor_p99": lambda: str(bench()["latency"]["latency_timer_floor_ns"]["p99_ns"]["median"]),
         "clock_granularity": lambda: str(bench()["latency"]["clock"]["granularity_median_ns"]),
         "clock_serialized": lambda: f"{bench()['latency']['clock']['overhead_serialized_ns']:.1f}",
         "clock_unserialized": lambda: f"{bench()['latency']['clock']['overhead_unserialized_ns']:.2f}",

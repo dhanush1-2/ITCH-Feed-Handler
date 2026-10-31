@@ -20,6 +20,7 @@ Run it under `caffeinate -i` so the machine does not idle-sleep mid-set.
 import argparse
 import hashlib
 import json
+import os
 import platform
 import re
 import statistics
@@ -29,6 +30,11 @@ import tempfile
 import time
 from pathlib import Path
 
+# A set does not start with the 1-minute load average above this. The machine has 12 cores and the
+# benchmark uses one; a normal idle desktop here sits at 2 to 4. It is there to catch a second job
+# or a busy Docker VM, not to demand silence. Waits LOAD_WAIT_S for it to fall, then refuses.
+LOAD_LIMIT = 4.0
+LOAD_WAIT_S = 300
 SPREAD_LIMIT = 0.10
 COOLDOWN_S = 5
 TOP_N_SYMBOLS = 10
@@ -215,6 +221,31 @@ def check_deterministic(name: str, runs: list[dict]) -> None:
                              f"{[k(r) for r in runs]}")
 
 
+def wait_for_load(limit: float, wait_s: float, getload=os.getloadavg, sleep=time.sleep) -> list:
+    """The load averages once the 1-minute one is at or under `limit`. Exits if it stays above."""
+    waited = 0.0
+    while True:
+        load = list(getload())
+        if load[0] <= limit:
+            return load
+        if waited >= wait_s:
+            raise SystemExit(f"refusing to time a set: 1-minute load {load[0]:.2f} is above "
+                             f"{limit} after waiting {waited:.0f} s")
+        sleep(10)
+        waited += 10
+
+
+def is_complete(final: bool, results: dict, chosen: list, rejected: dict) -> bool:
+    """True only for the finished file, with every set published and none ever rejected."""
+    return final and all(n in results for n in chosen) and not rejected
+
+
+def write_atomic(path: Path, text: str) -> None:
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text)
+    os.replace(tmp, path)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--day", required=True, help="e.g. 12302019")
@@ -223,6 +254,7 @@ def main() -> int:
     ap.add_argument("--only", default="", help="comma separated suite names")
     ap.add_argument("--out", type=Path, default=None)
     ap.add_argument("--allow-dirty", action="store_true")
+    ap.add_argument("--max-load", type=float, default=LOAD_LIMIT)
     ap.add_argument("--label", default="", help="free text stored in the output, e.g. a candidate name")
     args = ap.parse_args()
 
@@ -245,18 +277,21 @@ def main() -> int:
     rejected: dict[str, dict] = {}
     stamp = None
 
+    partial_path = out_path.with_name(out_path.name + ".partial")
+
     def write(final: bool) -> None:
         m["thermal_after"] = sh(["pmset", "-g", "therm"])
         doc = {
             "meta": {**(stamp or {}), "os": m["os"], "power_source": m["power_source"],
                      "low_power_mode": m["low_power_mode"], "pinning": m["pinning"],
                      "data_sha256": sha, "data_bytes": data.stat().st_size,
-                     "label": args.label, "complete": final},
+                     "label": args.label,
+                     "complete": is_complete(final, results, chosen, rejected)},
             "machine": m,
             "protocol": {
                 "processes_per_measurement": args.runs, "published": "median",
                 "spread_definition": "(max - min) / median of msgs_per_sec",
-                "spread_limit": SPREAD_LIMIT, "cooldown_seconds_between_runs": COOLDOWN_S,
+                "spread_limit": SPREAD_LIMIT, "load_limit_1m": args.max_load, "cooldown_seconds_between_runs": COOLDOWN_S,
                 "timer": "mach counter via ob::bench::Clock; granularity in each result's clock block",
                 "ten_symbols": symbols,
             },
@@ -264,12 +299,14 @@ def main() -> int:
             "rejected_sets": rejected,
         }
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(json.dumps(doc, indent=2) + "\n")
+        # Progress goes beside the published file. It is replaced only by a finished run.
+        write_atomic(out_path if final else partial_path, json.dumps(doc, indent=2) + "\n")
 
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         for name in chosen:
             for attempt in (1, 2):
+                load = wait_for_load(args.max_load, LOAD_WAIT_S)
                 runs = []
                 for i in range(args.runs):
                     print(f"[{name}] attempt {attempt} run {i + 1}/{args.runs}", flush=True)
@@ -283,6 +320,7 @@ def main() -> int:
                     raise SystemExit(f"{name}: runs carry different stamps")
                 stamp = runs[0]["meta"]
                 s = summarize(name, runs)
+                s["load_avg_before_set"] = load
                 rate = s["msgs_per_sec"]
                 print(f"[{name}] median {rate['median']:.4g} msgs/s spread "
                       f"{rate['spread'] * 100:.1f}%", flush=True)
@@ -308,9 +346,15 @@ def main() -> int:
         raise SystemExit(f"the binary's stamp is '{commit}': rebuild from a clean commit "
                          "(or pass --allow-dirty for an experiment)")
 
+    missing = [n for n in chosen if n not in results]
+    if missing:
+        print(f"nothing published for {', '.join(missing)}; {out_path} left as it was, "
+              f"see {partial_path}", file=sys.stderr)
+        return 4
     write(True)
-    print(f"wrote {out_path}")
-    return 4 if any(n not in results for n in chosen) else 0
+    partial_path.unlink(missing_ok=True)
+    print(f"wrote {out_path}" + ("" if not rejected else "; complete is false, a set was rejected"))
+    return 0
 
 
 if __name__ == "__main__":

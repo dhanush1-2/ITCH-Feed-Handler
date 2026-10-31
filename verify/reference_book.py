@@ -4,7 +4,7 @@
     reference_book.py <file> (--symbols A,B | --symbols-file path) --json out.json
                       [--checkpoint-s 43200]
 
-Written from the field tables in docs/spec/NQTVITCHspecification.pdf, sharing no code with the
+Written from the field tables in the ITCH spec (docs/spec/README.md), sharing no code with the
 C++ handler. Its value is that it is built differently: orders live in one dict keyed by
 reference number, there are no price levels and no queues during the replay, and the book only
 comes into being when a checkpoint sorts the live orders. A book bug in the C++ structure

@@ -75,7 +75,7 @@ TEST(Builder, PartialExecuteKeepsPriority) {
     r.add(1, 1, 'B', 100, 5000);
     r.add(1, 2, 'B', 100, 5000);
     r.feed(itch::test::make_executed(H1, 1, 40, 77));
-    const auto& lv = r.b.book(1).bids().front();
+    const auto& lv = r.b.book(1).best_level(ob::Side::Buy);
     EXPECT_EQ(lv.total, 160u);
     EXPECT_EQ(lv.count, 2u);
     EXPECT_EQ(r.b.live_orders(), 2u);

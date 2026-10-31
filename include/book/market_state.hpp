@@ -13,8 +13,8 @@
 //        - a symbol that resumes to 'T' from any other state awaits a halt or IPO cross
 //          (cross type 'H' or 'I'), or a grace period of feed time after the resume.
 //
-// Feed time is the timestamp of the latest message seen. The grace default is 5 s; it is a
-// constructor parameter and is NOT yet set from a measurement (Task 5 measures it).
+// Feed time is the timestamp of the latest message seen. The grace default is 5 s, a
+// constructor parameter, kept after a sensitivity run (results/halt_grace_12302019.json).
 //
 // A trading action may arrive before the stock directory for its locate; the state is kept
 // per locate and nothing here assumes a directory entry exists.
