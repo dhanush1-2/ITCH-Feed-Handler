@@ -99,7 +99,7 @@ struct Rig {
     Requests                       req;
     mold::Receiver<Sink, Requests> rx;
     explicit Rig(mold::RecoveryConfig c = {}) : cfg(c), rx(cfg, sink, req) {}
-    void feed(const Bytes& p) { rx.on_packet(p); }
+    void feed(const Bytes& p, bool retransmit = false) { rx.on_packet(p, retransmit); }
 };
 
 mold::RecoveryConfig quick() {
@@ -164,11 +164,12 @@ TEST(Receiver, BufferedDuringRecoveryThenDrainedInOrder) {
     r.feed(data(7, 2));
     EXPECT_EQ(r.sink.got.size(), 2u);
     EXPECT_EQ(r.rx.buffered_packets(), 2u);
-    r.feed(data(3, 2));  // the retransmit
+    r.feed(data(3, 2), true);  // the retransmit
     EXPECT_TRUE(delivered_1_to(r.sink, 8));
+    EXPECT_EQ(r.rx.counts().messages_from_retransmit, 2u);  // 5..8 came from the original packets
     EXPECT_EQ(r.rx.state(), RxState::Live);
     EXPECT_EQ(r.rx.buffered_packets(), 0u);
-    EXPECT_EQ(r.rx.counts().messages_recovered, 2u);
+    EXPECT_EQ(r.rx.counts().messages_delivered_late, 2u);
     EXPECT_EQ(r.rx.counts().messages_buffered_peak, 4u);
     EXPECT_EQ(r.req.asked.size(), 1u);  // the second packet extends no hole
 }
@@ -235,10 +236,11 @@ TEST(Receiver, TailLossFoundByHeartbeat) {
     ASSERT_EQ(r.req.asked.size(), 1u);
     EXPECT_EQ(r.req.asked[0], (std::pair<std::uint64_t, std::uint16_t>{4, 4}));
     EXPECT_EQ(r.rx.state(), RxState::Recovering);
-    r.feed(data(4, 4));
+    r.feed(data(4, 4), true);
     EXPECT_TRUE(delivered_1_to(r.sink, 7));
+    EXPECT_EQ(r.rx.counts().messages_from_retransmit, 4u);
     EXPECT_EQ(r.rx.state(), RxState::Live);
-    EXPECT_EQ(r.rx.counts().messages_recovered, 4u);
+    EXPECT_EQ(r.rx.counts().messages_delivered_late, 4u);
 }
 
 TEST(Receiver, EndOfSessionWithGapWaitsForRecovery) {
@@ -518,4 +520,36 @@ TEST(Receiver, ConfigIsValidated) {
     c              = {};
     c.max_attempts = 0;
     EXPECT_THROW((mold::Receiver<Sink, Requests>(c, s, q)), std::invalid_argument);
+}
+
+TEST(Receiver, BufferedPacketStraddlingExpectedDeliversOnlyItsTail) {
+    Rig r;
+    r.feed(data(3, 3));  // 3..5 buffered; 1 and 2 missing
+    ASSERT_EQ(r.req.asked.size(), 1u);
+    EXPECT_EQ(r.req.asked[0], (std::pair<std::uint64_t, std::uint16_t>{1, 2}));
+    // The answer overshoots: 1..4, so the buffered packet now straddles expected (5).
+    r.feed(data(1, 4), true);
+    EXPECT_TRUE(delivered_1_to(r.sink, 5));
+    EXPECT_EQ(r.rx.counts().partial_overlaps, 1u);
+    EXPECT_EQ(r.rx.counts().dup_packets, 0u);
+    EXPECT_EQ(r.rx.state(), RxState::Live);
+    EXPECT_EQ(r.rx.counts().messages_from_retransmit, 4u);
+}
+
+TEST(Receiver, PartialRetransmitThenExactRemainderIsRequested) {
+    Rig r(quick());  // timeout 2 ticks, 3 attempts
+    r.feed(data(1, 1));
+    r.feed(data(8, 1));  // 2..7 missing
+    ASSERT_EQ(r.req.asked.size(), 1u);
+    EXPECT_EQ(r.req.asked[0], (std::pair<std::uint64_t, std::uint16_t>{2, 6}));
+    r.feed(data(2, 3), true);  // the server answers only 2..4 (the rest was lost on the way)
+    EXPECT_EQ(r.sink.got.size(), 4u);
+    r.rx.on_tick();
+    r.rx.on_tick();  // no further progress: ask again, for what is still missing and no more
+    ASSERT_EQ(r.req.asked.size(), 2u);
+    EXPECT_EQ(r.req.asked[1], (std::pair<std::uint64_t, std::uint16_t>{5, 3}));
+    r.feed(data(5, 3), true);
+    EXPECT_TRUE(delivered_1_to(r.sink, 8));
+    EXPECT_EQ(r.rx.state(), RxState::Live);
+    EXPECT_EQ(r.rx.counts().messages_from_retransmit, 6u);
 }

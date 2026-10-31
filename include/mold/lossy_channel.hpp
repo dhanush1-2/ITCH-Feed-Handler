@@ -22,7 +22,8 @@
 //
 // The channel owns copies of everything in flight, so callers may reuse their buffers.
 // `reordered` counts deliveries of a packet that was sent before one already delivered.
-// After finish() and a full drain: sent - dropped + duplicated == delivered.
+// Always: sent - dropped + duplicated == delivered + in_flight (in_flight is 0 after finish() and
+// a full drain).
 
 #include <cstddef>
 #include <cstdint>
@@ -45,11 +46,17 @@ struct ChannelConfig {
 };
 
 struct ChannelCounts {
-    std::uint64_t sent       = 0;
-    std::uint64_t dropped    = 0;
-    std::uint64_t duplicated = 0;
-    std::uint64_t reordered  = 0;
-    std::uint64_t delivered  = 0;
+    std::uint64_t sent               = 0;
+    std::uint64_t dropped            = 0;  // downstream_dropped + retransmit_dropped
+    std::uint64_t duplicated         = 0;
+    std::uint64_t reordered          = 0;
+    std::uint64_t delivered          = 0;
+    std::uint64_t in_flight          = 0;  // copies held in the channel, not yet polled
+    std::uint64_t downstream_dropped = 0;
+    std::uint64_t retransmit_dropped = 0;
+    // Messages announced by the headers of the downstream packets that were dropped: what the
+    // receiver actually has to recover (control packets carry none).
+    std::uint64_t messages_lost_downstream = 0;
 };
 
 class LossyChannel final : public PacketSink {
@@ -66,7 +73,8 @@ public:
     [[nodiscard]] PacketSink& retransmit_path() noexcept { return retx_; }
 
     // Moves the next deliverable packet into `out`. False when nothing is ready yet.
-    [[nodiscard]] bool poll(std::vector<std::byte>& out) {
+    // `from_retransmit`, if given, says whether the packet came in on the retransmit path.
+    [[nodiscard]] bool poll(std::vector<std::byte>& out, bool* from_retransmit = nullptr) {
         if (ready_.empty()) {
             return false;
         }
@@ -77,8 +85,12 @@ public:
             max_delivered_ = h.idx;
         }
         out.swap(h.bytes);
+        if (from_retransmit != nullptr) {
+            *from_retransmit = h.retx;
+        }
         ready_.pop_front();
         ++counts_.delivered;
+        --counts_.in_flight;
         return true;
     }
 
@@ -95,6 +107,7 @@ private:
     struct Held {
         std::uint64_t          idx;  // send order
         std::vector<std::byte> bytes;
+        bool                   retx = false;
     };
 
     class RetxPath final : public PacketSink {
@@ -130,17 +143,34 @@ private:
         ++counts_.sent;
         if (drops(retransmit)) {
             ++counts_.dropped;
+            if (retransmit) {
+                ++counts_.retransmit_dropped;
+            } else {
+                ++counts_.downstream_dropped;
+                counts_.messages_lost_downstream += announced_messages(packet);
+            }
             return;
         }
-        enqueue(idx, packet);
+        enqueue(idx, packet, retransmit);
         if (chance(cfg_.dup)) {
             ++counts_.duplicated;
-            enqueue(idx, packet);
+            enqueue(idx, packet, retransmit);
         }
     }
 
-    void enqueue(std::uint64_t idx, std::span<const std::byte> packet) {
-        Held h{idx, std::vector<std::byte>(packet.begin(), packet.end())};
+    // The message count in a data packet's header; 0 for heartbeat, end of session, or junk.
+    static std::uint64_t announced_messages(std::span<const std::byte> packet) {
+        if (packet.size() < kHeaderSize) {
+            return 0;
+        }
+        const auto count = static_cast<std::uint16_t>((std::to_integer<unsigned>(packet[18]) << 8) |
+                                                      std::to_integer<unsigned>(packet[19]));
+        return count == kEndOfSession ? 0 : count;
+    }
+
+    void enqueue(std::uint64_t idx, std::span<const std::byte> packet, bool retransmit) {
+        ++counts_.in_flight;
+        Held h{idx, std::vector<std::byte>(packet.begin(), packet.end()), retransmit};
         if (cfg_.reorder_window == 0) {
             ready_.push_back(std::move(h));
             return;

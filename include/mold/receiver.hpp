@@ -101,16 +101,20 @@ inline const char* to_string(StaleReason r) noexcept {
 }
 
 struct RxCounts {
-    std::uint64_t gaps_detected          = 0;  // holes found (each is requested once at once)
-    std::uint64_t dup_packets            = 0;  // data packets wholly below `expected`
-    std::uint64_t partial_overlaps       = 0;  // data packets that straddled `expected`
-    std::uint64_t wrong_session          = 0;
-    std::uint64_t malformed              = 0;
-    std::uint64_t retransmit_requests    = 0;  // request packets handed to the Requester
-    std::uint64_t messages_recovered     = 0;  // delivered late: while a later message was known
-    std::uint64_t messages_buffered_peak = 0;  // most messages held in the buffer at once
-    std::uint64_t buffer_overflow_drops  = 0;
-    std::uint64_t max_gap_len            = 0;  // longest single hole found, in messages
+    std::uint64_t gaps_detected       = 0;  // holes found (each is requested once at once)
+    std::uint64_t dup_packets         = 0;  // data packets wholly below `expected`
+    std::uint64_t partial_overlaps    = 0;  // data packets that straddled `expected`
+    std::uint64_t wrong_session       = 0;
+    std::uint64_t malformed           = 0;
+    std::uint64_t retransmit_requests = 0;  // request packets handed to the Requester
+    // Delivered late: by a packet that arrived while a later message was already known. Reordered
+    // packets count here as well as retransmitted ones; it does not measure loss.
+    std::uint64_t messages_delivered_late = 0;
+    // Messages whose first delivery came from a packet marked as a retransmit answer.
+    std::uint64_t messages_from_retransmit = 0;
+    std::uint64_t messages_buffered_peak   = 0;  // most messages held in the buffer at once
+    std::uint64_t buffer_overflow_drops    = 0;
+    std::uint64_t max_gap_len              = 0;  // longest single hole found, in messages
 };
 
 template <class Sink, class Requester>
@@ -124,7 +128,9 @@ public:
         }
     }
 
-    void on_packet(std::span<const std::byte> pkt) {
+    // `retransmit` says the packet is an answer to a re-request (the transport knows which
+    // socket it came in on); it only feeds messages_from_retransmit.
+    void on_packet(std::span<const std::byte> pkt, bool retransmit = false) {
         if (state_ == RxState::Stale || state_ == RxState::Finished) {
             return;
         }
@@ -169,7 +175,7 @@ public:
             return;
         }
         lock(h.session);
-        on_data(pkt, h, blocks);
+        on_data(pkt, h, blocks, retransmit);
     }
 
     void on_tick() {
@@ -201,6 +207,7 @@ private:
     struct Held {
         std::vector<std::byte> bytes;  // the whole packet
         std::uint16_t          count;
+        bool                   retx;
     };
 
     // True when every block has a nonzero length and seq + count fits in 64 bits.
@@ -230,7 +237,7 @@ private:
     // Delivers the messages of a validated payload whose first message is `first`, skipping
     // those below expected_. Returns the number delivered.
     std::uint64_t deliver(std::span<const std::byte> blocks, std::uint64_t first,
-                          std::uint16_t count) {
+                          std::uint16_t count, bool retransmit) {
         std::size_t   off       = 0;
         std::uint64_t delivered = 0;
         for (std::uint16_t i = 0; i < count; ++i) {
@@ -241,6 +248,9 @@ private:
                 sink_.on_message(seq, blocks.subspan(off, len));
                 ++expected_;
                 ++delivered;
+                if (retransmit) {
+                    ++counts_.messages_from_retransmit;
+                }
             }
             off += len;
         }
@@ -310,7 +320,7 @@ private:
     }
 
     void on_data(std::span<const std::byte> pkt, const PacketHeader& h,
-                 std::span<const std::byte> blocks) {
+                 std::span<const std::byte> blocks, bool retransmit) {
         const std::uint64_t end = h.seq + h.count;
         if (end <= expected_) {
             ++counts_.dup_packets;
@@ -326,9 +336,9 @@ private:
             if (h.seq < expected_) {
                 ++counts_.partial_overlaps;
             }
-            const std::uint64_t n = deliver(blocks, h.seq, h.count);
+            const std::uint64_t n = deliver(blocks, h.seq, h.count, retransmit);
             if (late) {
-                counts_.messages_recovered += n;
+                counts_.messages_delivered_late += n;
             }
             hi_ = std::max(hi_, end);
             drain();
@@ -336,7 +346,7 @@ private:
             if (!note_ahead(end, h.seq)) {
                 return;
             }
-            buffer(pkt, h);
+            buffer(pkt, h, retransmit);
         }
         if (expected_ != before) {  // progress restarts the retry clock
             attempts_    = 1;
@@ -345,7 +355,7 @@ private:
         settle();
     }
 
-    void buffer(std::span<const std::byte> pkt, const PacketHeader& h) {
+    void buffer(std::span<const std::byte> pkt, const PacketHeader& h, bool retransmit) {
         const auto it = buf_.find(h.seq);
         if (it != buf_.end()) {
             if (h.count <= it->second.count) {
@@ -353,13 +363,13 @@ private:
                 return;
             }
             buffered_msgs_ -= it->second.count;  // a longer packet from the same start wins
-            it->second = Held{{pkt.begin(), pkt.end()}, h.count};
+            it->second = Held{{pkt.begin(), pkt.end()}, h.count, retransmit};
         } else {
             if (buf_.size() >= cfg_.max_buffered_packets) {
                 ++counts_.buffer_overflow_drops;
                 return;  // hi_ stays at h.seq: the next packet or heartbeat re-reveals it
             }
-            buf_.emplace(h.seq, Held{{pkt.begin(), pkt.end()}, h.count});
+            buf_.emplace(h.seq, Held{{pkt.begin(), pkt.end()}, h.count, retransmit});
         }
         buffered_msgs_ += h.count;
         counts_.messages_buffered_peak = std::max(counts_.messages_buffered_peak, buffered_msgs_);
@@ -380,7 +390,8 @@ private:
             if (start < expected_) {
                 ++counts_.partial_overlaps;
             }
-            deliver(std::span<const std::byte>(held.bytes).subspan(kHeaderSize), start, held.count);
+            deliver(std::span<const std::byte>(held.bytes).subspan(kHeaderSize), start, held.count,
+                    held.retx);
         }
     }
 

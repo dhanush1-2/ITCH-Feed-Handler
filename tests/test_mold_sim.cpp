@@ -165,3 +165,36 @@ TEST(LossyChannel, BurstsDropRunsAndReorderingHappens) {
     }
     EXPECT_GE(longest, 8u);
 }
+
+TEST(LossyChannel, CountsSplitByPathAndBalanceWithInFlight) {
+    mold::ChannelConfig cfg = hostile(7);
+    cfg.reorder_window      = 8;
+    mold::LossyChannel ch(cfg);
+    // Data packets announcing 3 messages each; every fifth goes on the retransmit path.
+    for (std::uint64_t i = 0; i < 5000; ++i) {
+        Bytes p(20, std::byte{0});
+        p[19] = std::byte{3};
+        if (i % 5 == 0) {
+            ch.retransmit_path().send(p);
+        } else {
+            ch.send(p);
+        }
+    }
+    {  // Mid-stream, with packets still held: the identity holds with in_flight.
+        const auto& n = ch.counts();
+        EXPECT_GT(n.in_flight, 0u);
+        EXPECT_EQ(n.sent - n.dropped + n.duplicated, n.delivered + n.in_flight);
+    }
+    ch.finish();
+    Bytes got;
+    bool  retx = false;
+    while (ch.poll(got, &retx)) {
+    }
+    const auto& n = ch.counts();
+    EXPECT_EQ(n.in_flight, 0u);
+    EXPECT_EQ(n.sent - n.dropped + n.duplicated, n.delivered);
+    EXPECT_EQ(n.dropped, n.downstream_dropped + n.retransmit_dropped);
+    EXPECT_GT(n.downstream_dropped, 0u);
+    EXPECT_GT(n.retransmit_dropped, 0u);
+    EXPECT_EQ(n.messages_lost_downstream, 3 * n.downstream_dropped);
+}

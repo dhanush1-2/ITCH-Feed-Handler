@@ -8,7 +8,7 @@
 //   run_sim(source, cfg)          the whole path, with a retransmit server retaining from
 //                                 `source` (so `source` must stay mapped for the call)
 //   direct_replay(source, ...)    the same sink fed in file order with no network at all
-//   source_stream_sha256(source)  the stream hash of the file itself, no book
+//   summarize_source(source)      the file's own stream hash, message count and framing status
 //
 // "Stream hash" is SHA-256 over the record [seq u64 BE][length u16 BE][message bytes] of every
 // message in delivery order. Two runs delivered the same messages in the same order, once
@@ -175,15 +175,26 @@ private:
     return sink.finish(true);
 }
 
-[[nodiscard]] inline std::string source_stream_sha256(std::span<const std::byte> source) {
+// What the file itself says: the stream hash and message count of its frames, and why the walk
+// stopped (End for a clean file).
+struct SourceSummary {
+    std::string       sha256;
+    std::uint64_t     messages = 0;
+    itch::FrameStatus status   = itch::FrameStatus::End;
+    std::size_t       offset   = 0;  // where the walk stopped
+};
+
+[[nodiscard]] inline SourceSummary summarize_source(std::span<const std::byte> source) {
     StreamHash                 h;
+    SourceSummary              out;
     itch::Framer               framer(source);
     std::span<const std::byte> msg;
-    std::uint64_t              seq = 1;
-    while (framer.next(msg) == itch::FrameStatus::Ok) {
-        h.add(seq++, msg);
+    while ((out.status = framer.next(msg)) == itch::FrameStatus::Ok) {
+        h.add(++out.messages, msg);
     }
-    return h.hex();
+    out.offset = framer.offset();
+    out.sha256 = h.hex();
+    return out;
 }
 
 // The byte length of the first `max_messages` frames (all of them if the file has fewer).
@@ -247,8 +258,9 @@ struct ServerRequester {
 
     std::vector<std::byte> buf;
     const auto             drain = [&] {
-        while (channel.poll(buf)) {
-            rx.on_packet(buf);
+        bool retx = false;
+        while (channel.poll(buf, &retx)) {
+            rx.on_packet(buf, retx);
         }
     };
 
@@ -286,6 +298,11 @@ struct ServerRequester {
             ++res.end_ticks;
         }
     }
+
+    // Nothing may stay in the channel: what is left is released and handed to the receiver
+    // (which ignores it once Finished or Stale), so the channel counts balance exactly.
+    channel.finish();
+    drain();
 
     res.state         = rx.state();
     res.stale         = rx.stale_reason();

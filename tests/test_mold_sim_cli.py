@@ -43,13 +43,19 @@ def test_hostile_run_matches_a_direct_file_replay(tmp_path):
     assert j["result"]["delivered_messages"] == j["source"]["messages"] == 44692
     assert j["dump"]["non_empty"] is True and j["dump"]["complete"] is True
     assert j["dump"]["resting_orders"] == state.stat().st_size // 19
-    assert j["rx"]["gaps_detected"] > 0 and j["rx"]["messages_recovered"] > 0
-    assert j["channel"]["dropped"] > 0
+    assert j["rx"]["gaps_detected"] > 0 and j["rx"]["messages_from_retransmit"] > 0
+    assert j["channel"]["downstream_dropped"] > 0
     # Every counter and the whole configuration are recorded.
     assert set(j["rx"]) == {"gaps_detected", "dup_packets", "partial_overlaps", "wrong_session",
-                            "malformed", "retransmit_requests", "messages_recovered",
+                            "malformed", "retransmit_requests", "messages_delivered_late",
+                            "messages_from_retransmit",
                             "messages_buffered_peak", "buffer_overflow_drops", "max_gap_len"}
-    assert set(j["channel"]) == {"sent", "dropped", "duplicated", "reordered", "delivered"}
+    assert set(j["channel"]) == {"sent", "dropped", "duplicated", "reordered", "delivered",
+                                 "in_flight", "downstream_dropped", "retransmit_dropped",
+                                 "messages_lost_downstream"}
+    c = j["channel"]
+    assert c["sent"] - c["dropped"] + c["duplicated"] == c["delivered"] + c["in_flight"]
+    assert c["dropped"] == c["downstream_dropped"] + c["retransmit_dropped"]
     assert j["config"]["seed"] == 1 and j["config"]["loss"] == 0.01
     assert j["config"]["reorder_window"] == 16 and j["config"]["burst_len"] == 64
     assert {"commit", "data_file", "cpu", "compiler", "flags"} <= set(j["meta"])
@@ -115,3 +121,32 @@ def test_missing_file_and_unreached_second_exit_2(tmp_path):
     r = run(SLICE, "--dump-state", tmp_path / "s.bin", "--dump-at-s", 99999)
     assert r.returncode == 2
     assert "never reaches" in r.stderr
+
+
+def test_loss_only_run_recovers_exactly_what_was_lost(tmp_path):
+    out = tmp_path / "j.json"
+    r = run(SLICE, "--loss", "0.05", "--seed", 2, "--retransmit-loss", "0", "--json", out)
+    assert r.returncode == 0, r.stderr
+    j = json.loads(out.read_text())
+    lost = j["channel"]["messages_lost_downstream"]
+    assert lost > 0
+    assert j["rx"]["messages_from_retransmit"] == lost == j["rx"]["messages_delivered_late"]
+
+
+def test_check_direct_on_an_empty_state_fails(tmp_path):
+    # Feed second 1 is before the slice's first message: the books are empty, so the comparison
+    # proves nothing and must not pass.
+    r = run(SLICE, "--dump-state", tmp_path / "s.bin", "--dump-at-s", 1, "--check-direct")
+    assert r.returncode == 3, (r.stdout, r.stderr)
+    assert "empty" in r.stderr
+
+
+def test_a_failed_run_removes_the_earlier_dump(tmp_path):
+    state = tmp_path / "state.bin"
+    ok = run(SLICE, "--dump-state", state, "--dump-at-s", 43200)
+    assert ok.returncode == 0 and state.exists()
+    bad = run(SLICE, "--seed", 1, "--burst", "0.01,1000", "--retention", 100,
+              "--dump-state", state, "--dump-at-s", 43200)
+    assert bad.returncode == 3
+    assert not state.exists(), "the previous run's file must not survive a failed run"
+    assert Path(str(state) + ".incomplete").exists()

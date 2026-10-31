@@ -220,7 +220,7 @@ struct Verdict {
     bool finished              = false;
     bool stream_matches_source = false;
     int  state_matches_direct  = -1;  // -1 not checked
-    bool direct_nonempty       = false;
+    bool comparison_empty      = false;
     int  exit_code             = kExitOk;
 };
 
@@ -281,13 +281,17 @@ void write_json(const Options& o, const itch::MappedFile& mf, std::size_t used_b
        << ", \"partial_overlaps\": " << rx.partial_overlaps
        << ", \"wrong_session\": " << rx.wrong_session << ", \"malformed\": " << rx.malformed
        << ", \"retransmit_requests\": " << rx.retransmit_requests
-       << ", \"messages_recovered\": " << rx.messages_recovered
+       << ", \"messages_delivered_late\": " << rx.messages_delivered_late
+       << ", \"messages_from_retransmit\": " << rx.messages_from_retransmit
        << ", \"messages_buffered_peak\": " << rx.messages_buffered_peak
        << ", \"buffer_overflow_drops\": " << rx.buffer_overflow_drops
        << ", \"max_gap_len\": " << rx.max_gap_len << "},\n";
     js << "  \"channel\": {\"sent\": " << cc.sent << ", \"dropped\": " << cc.dropped
        << ", \"duplicated\": " << cc.duplicated << ", \"reordered\": " << cc.reordered
-       << ", \"delivered\": " << cc.delivered << "},\n";
+       << ", \"delivered\": " << cc.delivered << ", \"in_flight\": " << cc.in_flight
+       << ", \"downstream_dropped\": " << cc.downstream_dropped
+       << ", \"retransmit_dropped\": " << cc.retransmit_dropped
+       << ", \"messages_lost_downstream\": " << cc.messages_lost_downstream << "},\n";
     js << "  \"dump\": ";
     if (!o.sim.dump.enabled) {
         js << "null";
@@ -297,6 +301,7 @@ void write_json(const Options& o, const itch::MappedFile& mf, std::size_t used_b
            << ", \"at_second\": " << d.at_second << ", \"at_message\": " << d.at_message
            << ", \"bytes\": " << d.bytes << ", \"resting_orders\": " << d.orders()
            << ", \"non_empty\": " << tf(d.bytes > 0) << ", \"complete\": " << tf(d.complete)
+           << ", \"valid\": " << tf(v.exit_code == kExitOk)
            << ", \"sha256\": " << json_str(d.sha256);
         if (direct != nullptr) {
             js << ", \"direct_sha256\": " << json_str(direct->dump.sha256)
@@ -321,22 +326,14 @@ int run(const Options& o) {
     }
 
     // The file's own stream hash and message count, with no network and no book.
-    mold::StreamHash src_hash;
-    std::uint64_t    source_messages = 0;
-    {
-        itch::Framer               framer(source);
-        std::span<const std::byte> msg;
-        itch::FrameStatus          st;
-        while ((st = framer.next(msg)) == itch::FrameStatus::Ok) {
-            src_hash.add(++source_messages, msg);
-        }
-        if (st != itch::FrameStatus::End) {
-            throw InputError("framing error at offset " + std::to_string(framer.offset()) + " of " +
-                             std::to_string(source.size()) +
-                             " bytes; the file is truncated or corrupt");
-        }
+    const mold::SourceSummary summary = mold::summarize_source(source);
+    if (summary.status != itch::FrameStatus::End) {
+        throw InputError("framing error at offset " + std::to_string(summary.offset) + " of " +
+                         std::to_string(source.size()) +
+                         " bytes; the file is truncated or corrupt");
     }
-    const std::string source_sha = src_hash.hex();
+    const std::uint64_t source_messages = summary.messages;
+    const std::string&  source_sha      = summary.sha256;
 
     std::unique_ptr<mold::ReplayOutcome> direct;
     if (o.check_direct) {
@@ -361,8 +358,9 @@ int run(const Options& o) {
     v.stream_matches_source =
         v.finished && r.out.stream_sha256 == source_sha && r.out.delivered == source_messages;
     if (direct) {
-        v.direct_nonempty      = direct->dump.bytes > 0;
-        v.state_matches_direct = r.out.dump.taken && direct->dump.taken &&
+        // A comparison of two empty books proves nothing, so it fails.
+        v.comparison_empty     = direct->dump.bytes == 0 || r.out.dump.bytes == 0;
+        v.state_matches_direct = !v.comparison_empty && r.out.dump.taken && direct->dump.taken &&
                                          r.out.dump.sha256 == direct->dump.sha256 &&
                                          r.out.dump.data == direct->dump.data
                                      ? 1
@@ -373,8 +371,12 @@ int run(const Options& o) {
 
     std::string dump_file = o.dump_path;
     if (o.sim.dump.enabled) {
-        if (!v.finished) {
-            dump_file += ".incomplete";  // a partial book must never pass for the real one
+        if (!ok) {
+            // A book from a run that did not pass must never pass for the real one: it goes to
+            // path.incomplete, and an earlier file at path (a previous good run) is removed.
+            dump_file += ".incomplete";
+            std::error_code ec;
+            std::filesystem::remove(o.dump_path, ec);
         }
         std::filesystem::path dp(dump_file);
         if (dp.has_parent_path()) {
@@ -398,19 +400,25 @@ int run(const Options& o) {
     const auto& rx = r.rx;
     std::printf(
         "%s: %llu messages in %llu packets, %.1f s\n"
-        "channel: sent %llu dropped %llu duplicated %llu reordered %llu\n"
-        "receiver: %s (%s), gaps %llu, requests %llu, recovered %llu, dup %llu, overlap %llu, "
+        "channel: sent %llu dropped %llu (downstream %llu = %llu messages, retransmit %llu) "
+        "duplicated %llu reordered %llu\n"
+        "receiver: %s (%s), gaps %llu, requests %llu, delivered late %llu, from retransmit %llu, "
+        "dup %llu, overlap %llu, "
         "buffer peak %llu msgs, overflow drops %llu, max gap %llu\n"
         "stream: %s (%llu delivered)\n",
         o.file.c_str(), static_cast<unsigned long long>(source_messages),
         static_cast<unsigned long long>(r.source_packets), secs,
         static_cast<unsigned long long>(r.channel.sent),
         static_cast<unsigned long long>(r.channel.dropped),
+        static_cast<unsigned long long>(r.channel.downstream_dropped),
+        static_cast<unsigned long long>(r.channel.messages_lost_downstream),
+        static_cast<unsigned long long>(r.channel.retransmit_dropped),
         static_cast<unsigned long long>(r.channel.duplicated),
         static_cast<unsigned long long>(r.channel.reordered), mold::to_string(r.state),
         mold::to_string(r.stale), static_cast<unsigned long long>(rx.gaps_detected),
         static_cast<unsigned long long>(rx.retransmit_requests),
-        static_cast<unsigned long long>(rx.messages_recovered),
+        static_cast<unsigned long long>(rx.messages_delivered_late),
+        static_cast<unsigned long long>(rx.messages_from_retransmit),
         static_cast<unsigned long long>(rx.dup_packets),
         static_cast<unsigned long long>(rx.partial_overlaps),
         static_cast<unsigned long long>(rx.messages_buffered_peak),
@@ -437,6 +445,10 @@ int run(const Options& o) {
                      mold::to_string(r.state), mold::to_string(r.stale));
     } else if (!v.stream_matches_source) {
         std::fprintf(stderr, "mold_sim: FAILED: delivered stream differs from the file's\n");
+    } else if (v.comparison_empty) {
+        std::fprintf(stderr,
+                     "mold_sim: FAILED: the comparison state is empty, which proves "
+                     "nothing; pick a --dump-at-s where the books hold orders\n");
     } else if (v.state_matches_direct == 0) {
         std::fprintf(stderr, "mold_sim: FAILED: state differs from the direct replay\n");
     }

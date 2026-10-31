@@ -4,9 +4,10 @@
     loss_table.py --sim build/release/tools/mold_sim --data data/12302019.NASDAQ_ITCH50 \
                   [--messages 50000000] [--out results/loss_table.json]
 
-Runs mold_sim once with no faults at all (the baseline) and once per loss level with duplication,
-reordering, bursts and a lossy retransmit path on top, each with --check-direct so the
-books at the end of the prefix are compared with a direct replay of the same prefix, and each
+Runs mold_sim with --check-direct on: no faults at all (the baseline); loss only at 0.1%, 1%
+and 5% of downstream packets (plus 1% loss on the retransmit path, no reordering, duplication
+or bursts), where the recovery counters measure loss exactly; and one combined stress row
+(1% loss with duplication, reordering 16, bursts and the lossy retransmit path). The books at the end of the prefix are compared with a direct replay of the same prefix, and each
 writing its own JSON. The table is those JSON objects copied verbatim, no number recomputed,
 plus a summary of whether every row's stream hash equals the baseline's. A row that did not
 pass fails the script. The meta stamp is the one the runs share; runs that disagree on it
@@ -20,9 +21,13 @@ import tempfile
 from pathlib import Path
 
 LOSSES = [0.001, 0.01, 0.05]
-FAULTS = ["--dup", "0.005", "--reorder", "16", "--burst", "0.0005,64", "--retransmit-loss", "0.01"]
-# (label, args): the baseline has no faults, so its books and stream are the file's own.
-RUNS = [("baseline", [])] + [(f"loss_{loss}", ["--loss", str(loss), *FAULTS]) for loss in LOSSES]
+STRESS = ["--loss", "0.01", "--dup", "0.005", "--reorder", "16", "--burst", "0.0005,64",
+          "--retransmit-loss", "0.01"]
+# (label, kind, args). The baseline has no faults, so its books and stream are the file's own.
+RUNS = ([("baseline", "baseline", [])]
+        + [(f"loss_only_{loss}", "loss_only", ["--loss", str(loss), "--retransmit-loss", "0.01"])
+           for loss in LOSSES]
+        + [("combined_stress", "combined", STRESS)])
 
 
 def main() -> int:
@@ -36,7 +41,7 @@ def main() -> int:
 
     rows = []
     with tempfile.TemporaryDirectory() as tmp:
-        for label, faults in RUNS:
+        for label, _kind, faults in RUNS:
             one = Path(tmp) / f"{label}.json"
             cmd = [str(args.sim), str(args.data), "--max-messages", str(args.messages),
                    *faults, "--seed", "1", "--retention", str(args.retention),
@@ -60,13 +65,22 @@ def main() -> int:
     for row in rows:
         d = row["dump"]
         assert row["verdict"]["passed"] and d["non_empty"] and d["matches_direct"]
+        assert row["channel"]["in_flight"] == 0
+        d.pop("path")  # a temp-dir path means nothing in a committed file
         out_rows.append({k: row[k] for k in ("config", "result", "rx", "channel", "dump")})
+    for (label, kind, _), row in zip(RUNS, out_rows):
+        row["label"] = label
+        row["kind"] = kind
+        if kind == "loss_only":  # every lost message came back by retransmit, and only those
+            assert row["rx"]["messages_from_retransmit"] == row["channel"]["messages_lost_downstream"]
+            assert row["channel"]["reordered"] == 0 and row["channel"]["duplicated"] == 0
     table = {
         "meta": meta,
         "source": base["source"],
         "summary": {
-            "loss_levels": LOSSES,
+            "loss_only_levels": LOSSES,
             "baseline_row": 0,
+            "loss_only_every_lost_message_recovered_by_retransmit": True,
             "all_rows_passed": True,
             "all_streams_equal_baseline": all(
                 r["result"]["stream_sha256"] == base["result"]["stream_sha256"] for r in rows),
