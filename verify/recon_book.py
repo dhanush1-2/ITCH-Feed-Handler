@@ -19,7 +19,6 @@ from pathlib import Path
 from struct import Struct
 
 ADD = Struct(">QcI8sI")
-MPID = Struct(">4s")
 EXEC = Struct(">QIQ")
 EXEC_PRICE = Struct(">QIQcI")
 CANCEL = Struct(">QI")
@@ -73,7 +72,7 @@ def run(args):
     in_hours = False
     seq = 0
     now = 0
-    not_head, not_best, episodes, pairs, crosses, zero_q, closes = [], [], [], [], [], [], []
+    not_head, not_best, episodes, pairs, crosses, zero_q = [], [], [], [], [], []
     counts = dict(checked=0, checked_cont=0, not_best=0, not_best_cont=0, not_head=0,
                   not_head_cont=0, crossed_cont=0, crossed_other=0, ep_cont=0, ep_other=0,
                   touches_cont=0, touches_other=0)
@@ -81,7 +80,6 @@ def run(args):
     # Key is (kind, printed-at-display, arrival-head, ref-head).
     models = {}
   
-    late = {}
     max_ref = 0
     # Highest reference number seen by each feed second, to date a reference number.
     ref_by_second = {}
@@ -250,14 +248,13 @@ def run(args):
                                crossed=was)
                     not_head.append(row)
                     fates.setdefault(head, []).append(row)
-            if xprice is not None or flag == "N" or True:
-                prev = s.matches.get(match)
-                rec = (chr(kind), flag, ref, o.side, o.price, shares, xprice, t, status,
-                       o.shares, o.t)
-                if prev is None:
-                    s.matches[match] = rec
-                else:
-                    pairs.append(dict(symbol=s.name, match=match, a=prev, b=rec))
+            prev = s.matches.get(match)
+            rec = (chr(kind), flag, ref, o.side, o.price, shares, xprice, t, status,
+                   o.shares, o.t)
+            if prev is None:
+                s.matches[match] = rec
+            else:
+                pairs.append(dict(symbol=s.name, match=match, a=prev, b=rec))
             s.recent.append((t, chr(kind), flag, shares, o.price, xprice))
             if flag == "N":
                 nonprintable.append((s.name, t, match, shares, o.side, o.price, xprice, status))

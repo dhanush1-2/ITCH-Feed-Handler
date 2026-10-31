@@ -1,0 +1,120 @@
+{
+ "note": "Public historical closes for 2019-12-30. Yahoo's close field is split-adjusted, not dividend-adjusted, so it is converted back to the raw 2019 basis using Yahoo's own split events. No figure here is the exchange's official record.",
+ "retrieved": "2026-10-30",
+ "rounding": "raw basis = yahoo_close x product(split num/den), rounded to whole cents, compared with the Q cross price / 10000",
+ "sources": [
+  {
+   "symbol": "AAPL",
+   "url": "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?period1=1577664000&period2=1577750400&interval=1d",
+   "splits_url": "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?period1=1577664000&period2=1793404800&interval=1mo&events=splits",
+   "timestamp": 1577716200,
+   "date": "2019-12-30",
+   "yahoo_close": 72.87999725341797,
+   "yahoo_adjclose": 70.1468276977539,
+   "splits": [
+    {
+     "date": "2020-08-31",
+     "num": 4.0,
+     "den": 1.0
+    }
+   ]
+  },
+  {
+   "symbol": "MSFT",
+   "url": "https://query1.finance.yahoo.com/v8/finance/chart/MSFT?period1=1577664000&period2=1577750400&interval=1d",
+   "splits_url": "https://query1.finance.yahoo.com/v8/finance/chart/MSFT?period1=1577664000&period2=1793404800&interval=1mo&events=splits",
+   "timestamp": 1577716200,
+   "date": "2019-12-30",
+   "yahoo_close": 157.58999633789062,
+   "yahoo_adjclose": 148.68548583984375,
+   "splits": []
+  },
+  {
+   "symbol": "INTC",
+   "url": "https://query1.finance.yahoo.com/v8/finance/chart/INTC?period1=1577664000&period2=1577750400&interval=1d",
+   "splits_url": "https://query1.finance.yahoo.com/v8/finance/chart/INTC?period1=1577664000&period2=1793404800&interval=1mo&events=splits",
+   "timestamp": 1577716200,
+   "date": "2019-12-30",
+   "yahoo_close": 59.619998931884766,
+   "yahoo_adjclose": 52.5903205871582,
+   "splits": []
+  },
+  {
+   "symbol": "CSCO",
+   "url": "https://query1.finance.yahoo.com/v8/finance/chart/CSCO?period1=1577664000&period2=1577750400&interval=1d",
+   "splits_url": "https://query1.finance.yahoo.com/v8/finance/chart/CSCO?period1=1577664000&period2=1793404800&interval=1mo&events=splits",
+   "timestamp": 1577716200,
+   "date": "2019-12-30",
+   "yahoo_close": 47.59000015258789,
+   "yahoo_adjclose": 38.97798156738281,
+   "splits": []
+  },
+  {
+   "symbol": "CMCSA",
+   "url": "https://query1.finance.yahoo.com/v8/finance/chart/CMCSA?period1=1577664000&period2=1577750400&interval=1d",
+   "splits_url": "https://query1.finance.yahoo.com/v8/finance/chart/CMCSA?period1=1577664000&period2=1793404800&interval=1mo&events=splits",
+   "timestamp": 1577716200,
+   "date": "2019-12-30",
+   "yahoo_close": 42.343017578125,
+   "yahoo_adjclose": 34.18634033203125,
+   "splits": [
+    {
+     "date": "2026-01-05",
+     "num": 1067.0,
+     "den": 1000.0
+    }
+   ]
+  },
+  {
+   "symbol": "AMZN",
+   "url": "https://query1.finance.yahoo.com/v8/finance/chart/AMZN?period1=1577664000&period2=1577750400&interval=1d",
+   "splits_url": "https://query1.finance.yahoo.com/v8/finance/chart/AMZN?period1=1577664000&period2=1793404800&interval=1mo&events=splits",
+   "timestamp": 1577716200,
+   "date": "2019-12-30",
+   "yahoo_close": 92.34449768066406,
+   "yahoo_adjclose": 92.34449768066406,
+   "splits": [
+    {
+     "date": "2022-06-06",
+     "num": 20.0,
+     "den": 1.0
+    }
+   ]
+  },
+  {
+   "symbol": "TSLA",
+   "url": "https://query1.finance.yahoo.com/v8/finance/chart/TSLA?period1=1577664000&period2=1577750400&interval=1d",
+   "splits_url": "https://query1.finance.yahoo.com/v8/finance/chart/TSLA?period1=1577664000&period2=1793404800&interval=1mo&events=splits",
+   "timestamp": 1577716200,
+   "date": "2019-12-30",
+   "yahoo_close": 27.64666748046875,
+   "yahoo_adjclose": 27.64666748046875,
+   "splits": [
+    {
+     "date": "2020-08-31",
+     "num": 5.0,
+     "den": 1.0
+    },
+    {
+     "date": "2022-08-25",
+     "num": 3.0,
+     "den": 1.0
+    }
+   ]
+  }
+ ],
+ "secondary": [
+  {
+   "symbol": "AAPL",
+   "url": "https://macdailynews.com/2019/12/30/apple-hits-new-all-time-closing-high-191230/",
+   "close": 291.52,
+   "basis": "raw, reported on the day"
+  }
+ ],
+ "unreachable": [
+  {
+   "source": "stooq.com CSV",
+   "reason": "returned a JavaScript browser check, no data"
+  }
+ ]
+}
