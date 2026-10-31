@@ -84,7 +84,7 @@ if(ITCH_BUILD_TOOLS AND Python3_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/testdata/sy
     set_tests_properties(slice_golden PROPERTIES FIXTURES_REQUIRED slice)
 endif()
 
-# Loss injection on the real slice: the in-process rig (itch_loss_tests) and the mold_sim CLI.
+# Loss injection on the synthetic day: the in-process rig (itch_loss_tests) and the mold_sim CLI.
 # Both need the expanded slice, so they run after slice_prepare.
 add_executable(itch_loss_tests test_loss_injection.cpp)
 target_link_libraries(itch_loss_tests PRIVATE itch GTest::gtest_main)

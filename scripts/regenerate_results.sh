@@ -131,6 +131,7 @@ job() {
     return 0
   fi
   echo "=== [$name] $what"
+  case "$RAW_JOBS" in *" $name "*) RAW_WRITTEN=1 ;; esac
   # In a subshell with -e on, and not under || or if, so a failure inside a step stops that step.
   local t0=$SECONDS rc=0
   set +e
@@ -290,7 +291,42 @@ PY
 
 export_dash() { python3 -I scripts/export_dashboard.py results/ dashboard/data/; }
 
+# Every job name, in order. --from must name one that will run.
+JOB_NAMES="build fuzz_parser fuzz_mold census day_2019 halt_grace cpp_subset reference compare recon_2019
+loss_stress loss_lossless loss_table udp_demo bench replay_10x replay_max_compare day_2025 redact
+check_stamps gen_docs export_dashboard gen_demo_assets gen_docs_check"
+# These jobs write raw exports holding sample records into tracked files.
+RAW_JOBS=" day_2019 recon_2019 day_2025 "
+RAW_WRITTEN=0
+
+if [ -n "$FROM" ]; then
+  case " $(echo $JOB_NAMES) " in
+    *" $FROM "*) ;;
+    *) echo "--from: unknown job '$FROM'. Jobs: $(echo $JOB_NAMES)" >&2; exit 2 ;;
+  esac
+  if [ "$SKIP_FUZZ" = 1 ]; then
+    case "$FROM" in
+      fuzz_parser|fuzz_mold) echo "--from: job '$FROM' is skipped by --skip-fuzz" >&2; exit 2 ;;
+    esac
+  fi
+fi
+
+# A run that stops early must not leave raw records in tracked files. The ordered redact job stays,
+# for a run that gets that far. Keeps the run's exit status.
+redact_on_exit() {
+  local rc=$?
+  if [ "$RAW_WRITTEN" = 1 ]; then
+    python3 -I scripts/redact_results.py || rc=1
+  fi
+  exit "$rc"
+}
+
 mkdir -p "$WORK"
+if [ "$DRY" = 1 ]; then
+  echo "On exit, however the run ends: redact_results.py, if any of$RAW_JOBS has started."
+else
+  trap redact_on_exit EXIT
+fi
 preflight
 not_regenerated
 [ "$DRY" = 1 ] || printf '# run started %s at %s\n' "$(date -u +%FT%TZ)" "$(git rev-parse HEAD)" >> "$LOG"

@@ -22,7 +22,7 @@ itch_replay build/testdata/synthetic.itch --verify --full-check-every 1 --symbol
 
 ## A real slice, for local use
 
-`itch_slice` cuts whole order lives for chosen symbols from a real file you have downloaded. Real data does not belong in this repository, so write it under the gitignored `testdata/local/`:
+`itch_slice` cuts whole order lives for chosen symbols from a real file you have downloaded. A real slice does not belong in this repository, so write it under the gitignored `testdata/local/`:
 
 ```
 mkdir -p testdata/local

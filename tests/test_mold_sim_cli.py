@@ -1,4 +1,4 @@
-"""mold_sim as a command: exit codes, the dump files and the JSON, on the real-data slice.
+"""mold_sim as a command: exit codes, the dump files and the JSON, on the synthetic day.
 
 Environment (set by ctest): MOLD_SIM, ITCH_REPLAY, ITCH_SLICE.
 """

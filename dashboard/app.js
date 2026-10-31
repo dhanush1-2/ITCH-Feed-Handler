@@ -209,7 +209,7 @@
   var symbol = null;
   function bookSection(day) {
     var b = day.book, names = Object.keys(b.symbols).sort();
-    $("book-lede").textContent = "Best bid and best ask for five liquid symbols, 09:30 to 16:00, sampled every " + b.step_s +
+    $("book-lede").textContent = "Real recorded data: best bid and best ask for five liquid symbols, 09:30 to 16:00, sampled every " + b.step_s +
       " seconds as the state after the last change. A side with no resting orders is a gap, not zero, and the spread across a one-sided book is a gap too.";
     var xs = []; for (var t = b.start_s; t <= b.end_s; t += b.step_s) xs.push(t);
     var group = $("symbols");

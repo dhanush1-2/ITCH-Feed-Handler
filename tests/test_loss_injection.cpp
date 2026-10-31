@@ -32,7 +32,7 @@ const itch::MappedFile& slice() {
         if (p == nullptr || *p == '\0') {
             throw std::runtime_error(
                 "ITCH_SLICE is not set: run through ctest, which expands the "
-                "slice first (fixture slice_prepare)");
+                "synthetic day first (fixture slice_prepare)");
         }
         return itch::MappedFile::open(p);
     }();

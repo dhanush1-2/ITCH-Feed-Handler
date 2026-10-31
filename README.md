@@ -8,7 +8,7 @@ This is a replay of recorded files. CI and the two-minute demo use synthetic dat
 
 ![Live replay around the 09:30 open](docs/images/demo-replay.gif)
 
-`itch_replay data/12302019.NASDAQ_ITCH50 --speed 1 --from 09:29:50 --tui AAPL,MSFT,SPY,QQQ,AMD`
+Real data for real symbols, aggregated by price level, 30 s around the open. `itch_replay data/12302019.NASDAQ_ITCH50 --speed 1 --from 09:29:50 --tui AAPL,MSFT,SPY,QQQ,AMD`
 
 ## Proof
 
@@ -211,4 +211,4 @@ Verification layers and what each one does not cover: [docs/VERIFICATION.md](doc
 
 ## Licence and data
 
-The code is MIT, see [LICENSE](LICENSE). The synthetic data in `testdata/` and `fuzz/corpus/` is generated here and is covered too. The licence excludes anything derived from NASDAQ's files: the aggregate results in `results/`, `dashboard/data/` and `docs/images/`, including top of book per second for five symbols and a short recording of depth around the open. The source data is Nasdaq's and is not in this repository; `scripts/fetch_itch.py` downloads it. Order-level output stays local and is reproducible. The protocol specifications are linked from [docs/spec/README.md](docs/spec/README.md).
+The code is MIT, see [LICENSE](LICENSE). The synthetic data in `testdata/` and `fuzz/corpus/` is generated here and is covered too. The licence excludes anything derived from NASDAQ's files: the aggregate results in `results/`, `dashboard/data/` and `docs/images/`, including top of book per second for five symbols and a short recording of depth around the open. The source data is Nasdaq's and is not in this repository; `scripts/fetch_itch.py` downloads it. Order-level output and sample message records stay local and are reproducible, apart from the few messages quoted as evidence in `docs/DISCREPANCIES.md`. The protocol specifications are linked from [docs/spec/README.md](docs/spec/README.md).

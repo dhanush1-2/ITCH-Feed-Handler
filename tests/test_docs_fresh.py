@@ -421,3 +421,39 @@ def test_regenerate_reexecs_under_caffeinate_and_checks_bench_completeness():
 
 def test_ci_format_check_covers_bench():
     assert "find include tests tools fuzz bench" in text(".github/workflows/ci.yml")
+
+
+def test_from_rejects_an_unknown_job():
+    r = subprocess.run(["bash", str(REGEN), "--dry-run", "--from", "no_such_job"], capture_output=True,
+                       text=True, cwd=ROOT)
+    assert r.returncode == 2 and "unknown job" in r.stderr
+
+
+def test_from_rejects_a_skipped_job():
+    r = subprocess.run(["bash", str(REGEN), "--dry-run", "--skip-fuzz", "--from", "fuzz_mold"],
+                       capture_output=True, text=True, cwd=ROOT)
+    assert r.returncode == 2 and "skipped" in r.stderr
+
+
+def test_from_accepts_every_job_the_script_runs():
+    jobs = re.findall(r"^\[(\w+)\] recorded", _dry(), re.M)
+    assert len(jobs) > 20
+    for job in jobs:
+        r = subprocess.run(["bash", str(REGEN), "--dry-run", "--from", job], capture_output=True,
+                           text=True, cwd=ROOT)
+        assert r.returncode == 0, job + r.stderr
+
+
+def test_redact_runs_on_exit_and_also_as_a_step():
+    out = _dry()
+    assert "On exit, however the run ends: redact_results.py" in out
+    assert "[redact]" in out and out.index("[redact]") < out.index("[check_stamps]")
+
+
+def test_exit_handler_redacts_only_after_raw_output_and_keeps_the_status():
+    # The committed files are already redacted, so this run of the tool changes nothing.
+    body = "eval \"$(sed -n '/^redact_on_exit()/,/^}/p' scripts/regenerate_results.sh)\"; "
+    for raw, expect in (("1", "nothing to do"), ("0", "")):
+        r = subprocess.run(["bash", "-c", body + f"RAW_WRITTEN={raw}; trap redact_on_exit EXIT; exit 7"],
+                           capture_output=True, text=True, cwd=ROOT)
+        assert r.returncode == 7 and (expect in r.stdout if expect else r.stdout == "")
