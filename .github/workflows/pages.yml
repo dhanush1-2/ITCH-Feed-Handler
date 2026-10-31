@@ -1,0 +1,36 @@
+name: Pages
+on:
+  push:
+    branches: [main]
+    paths: [dashboard/**, results/**, scripts/export_dashboard.py, docs/METHODOLOGY.md, .github/workflows/pages.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dashboard data is current with results/
+        # dashboard/data is generated from the committed results files. Fail rather than publish
+        # numbers that no longer match them.
+        run: |
+          python3 scripts/export_dashboard.py results /tmp/dashboard_data
+          diff -r /tmp/dashboard_data dashboard/data
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dashboard
+      - id: deployment
+        uses: actions/deploy-pages@v4

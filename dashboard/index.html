@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ITCH feed handler replay</title>
+<meta name="description" content="A replay of one NASDAQ TotalView-ITCH 5.0 trading day through a C++20 order-book builder: throughput, loss recovery, verification and benchmarks, all from committed results files.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="vendor/uPlot.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-row">
+    <div>
+      <h1>ITCH 5.0 feed handler</h1>
+      <p class="sub">Replay of NASDAQ TotalView-ITCH 5.0, trading day 2019-12-30, through a C++20 full-depth order-book builder.</p>
+    </div>
+    <button id="theme" type="button" class="btn" aria-label="Switch colour theme">Theme: auto</button>
+  </div>
+  <div class="wrap">
+    <p class="caveat">This is a replay of a recorded file on one laptop. It makes no claim about network latency, tick-to-trade time or production use.</p>
+  </div>
+</header>
+
+<main class="wrap" id="app">
+  <p id="status" class="note" role="status">Loading results&hellip;</p>
+
+  <section aria-label="Key figures">
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section class="panel" id="p-day" aria-labelledby="h-day">
+    <h2 id="h-day">Messages per second, whole day</h2>
+    <p class="lede">Per-minute average and peak second of the 268 million messages. Pre-market is quiet; the open and the 16:00 closing cross are the bursts.</p>
+    <div class="chart" id="c-day" role="img" aria-label="Line chart of messages per second across the day"></div>
+    <details class="table-view"><summary>Table view</summary><div id="t-day"></div></details>
+    <p class="src" data-src="day"></p>
+  </section>
+
+  <section class="panel" id="p-open" aria-labelledby="h-open">
+    <h2 id="h-open">Open to close, 09:30 to 16:00</h2>
+    <p class="lede">Messages in each feed second of the regular session.</p>
+    <div class="chart" id="c-open" role="img" aria-label="Line chart of messages per second from 09:30 to 16:00"></div>
+    <p class="src" data-src="day"></p>
+  </section>
+
+  <section class="panel" id="p-book" aria-labelledby="h-book">
+    <h2 id="h-book">Top of book and spread</h2>
+    <p class="lede" id="book-lede"></p>
+    <div class="filters" role="radiogroup" aria-label="Symbol" id="symbols"></div>
+    <div class="chart" id="c-px" role="img" aria-label="Best bid and best ask"></div>
+    <div class="chart short" id="c-spread" role="img" aria-label="Quoted spread in cents"></div>
+    <p class="note" id="book-gaps"></p>
+    <details class="table-view"><summary>Table view</summary><div id="t-book"></div></details>
+    <p class="src" data-src="top_of_book"></p>
+  </section>
+
+  <section class="panel" id="p-mix" aria-labelledby="h-mix">
+    <h2 id="h-mix">Message type mix</h2>
+    <p class="lede">Count of each ITCH message type in the file. Orders are added, replaced and deleted far more often than they trade.</p>
+    <div id="mix" class="bars" role="list"></div>
+    <p class="src" data-src="day"></p>
+  </section>
+
+  <section class="panel" id="p-loss" aria-labelledby="h-loss">
+    <h2 id="h-loss">Loss injection and recovery</h2>
+    <p class="lede">The feed is cut into MoldUDP64 packets, damaged on a simulated channel, and rebuilt by the receiver with retransmit requests. Lost is the number of messages the receiver never got on the first pass.</p>
+    <div class="scroll"><table id="loss-table"></table></div>
+    <p class="note" id="loss-note"></p>
+    <p class="src" data-src="loss"></p>
+  </section>
+
+  <section class="panel" id="p-verify" aria-labelledby="h-verify">
+    <h2 id="h-verify">Verification and discrepancies</h2>
+    <ul class="checks" id="checks"></ul>
+    <p class="note" id="bit-note"></p>
+    <h3>What the real data shows that was not expected</h3>
+    <div class="scroll"><table id="disc-table"></table></div>
+    <p class="src" data-src="verify"></p>
+  </section>
+
+  <section class="panel" id="p-bench" aria-labelledby="h-bench">
+    <h2 id="h-bench">Benchmark</h2>
+    <p class="lede" id="bench-lede"></p>
+    <div class="scroll"><table id="bench-table"></table></div>
+    <div class="callout" id="ladder"></div>
+    <h3>Handler memory</h3>
+    <div class="scroll"><table id="mem-table"></table></div>
+    <p class="note" id="paced"></p>
+    <p class="note"><a id="method" href="data/METHODOLOGY.txt">Methodology</a>: machine, clock, protocol, errors addressed and limits.</p>
+    <p class="src" data-src="bench"></p>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  <p>Every number on this page is loaded from a file under <code>results/</code> that carries the commit, data file, CPU, compiler and flags it was produced with. Nothing is typed by hand.</p>
+</footer>
+
+<div id="tip" class="tip" hidden></div>
+<script src="vendor/uPlot.iife.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

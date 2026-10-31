@@ -41,6 +41,8 @@ if(ITCH_BUILD_TOOLS AND Python3_FOUND)
             COMMAND ${Python3_EXECUTABLE} -m pytest -q ${CMAKE_CURRENT_SOURCE_DIR}/test_replay_cli.py)
         set_tests_properties(replay_cli PROPERTIES
             ENVIRONMENT "ITCH_REPLAY=$<TARGET_FILE:itch_replay>")
+        add_test(NAME dashboard_data
+            COMMAND ${Python3_EXECUTABLE} -m pytest -q ${CMAKE_CURRENT_SOURCE_DIR}/test_dashboard_data.py)
         add_test(NAME reference_verify
             COMMAND ${Python3_EXECUTABLE} -m pytest -q ${CMAKE_CURRENT_SOURCE_DIR}/test_verify.py)
         set_tests_properties(reference_verify PROPERTIES
