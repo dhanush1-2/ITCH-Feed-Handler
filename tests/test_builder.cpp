@@ -3,14 +3,16 @@
 // BookBuilder: ITCH apply semantics and counted anomalies, driven through itch::decode so
 // the same entry point the CLI uses is what is tested.
 
+#include <gtest/gtest.h>
+
 #include <book/builder.hpp>
 #include <book/state_dump.hpp>
 #include <cstdint>
-#include <gtest/gtest.h>
 #include <itch/dispatch.hpp>
 #include <sstream>
-#include "support/itch_builder.hpp"
 #include <string>
+
+#include "support/itch_builder.hpp"
 
 namespace {
 
@@ -22,8 +24,8 @@ using itch::test::Bytes;
 using itch::test::Hdr;
 
 struct Rig {
-    NullObserver                 obs;
-    BookBuilder<NullObserver>    b;
+    NullObserver              obs;
+    BookBuilder<NullObserver> b;
     explicit Rig(std::size_t cap = 1024) : b(cap, obs) {}
 
     void feed(const Bytes& m) {
@@ -78,8 +80,8 @@ TEST(Builder, PartialExecuteKeepsPriority) {
     EXPECT_EQ(lv.count, 2u);
     EXPECT_EQ(r.b.live_orders(), 2u);
     const std::string d = r.dump();
-    EXPECT_EQ(static_cast<unsigned char>(d[14]), 1u);  // ref 1 is still first
-    EXPECT_EQ(static_cast<unsigned char>(d[18]), 60u); // 60 shares left
+    EXPECT_EQ(static_cast<unsigned char>(d[14]), 1u);   // ref 1 is still first
+    EXPECT_EQ(static_cast<unsigned char>(d[18]), 60u);  // 60 shares left
 }
 
 TEST(Builder, FullExecuteImplicitDelete) {
@@ -242,10 +244,10 @@ TEST(Builder, ReplaceAtFullCapacityDoesNotThrow) {
 
 namespace {
 struct CountingObserver {
-    int      passes  = 0;
-    int      before  = 0;
-    int      after   = 0;
-    std::uint32_t last_shares = 0;
+    int           passes          = 0;
+    int           before          = 0;
+    int           after           = 0;
+    std::uint32_t last_shares     = 0;
     std::uint32_t last_book_total = 0;
     template <class V>
     void pass(const V&) noexcept {
@@ -262,7 +264,7 @@ struct CountingObserver {
 }  // namespace
 
 TEST(Builder, ObserverHooks) {
-    CountingObserver          obs;
+    CountingObserver              obs;
     BookBuilder<CountingObserver> b(16, obs);
     auto go = [&](const Bytes& m) { (void)itch::decode(std::span<const std::byte>(m), b); };
     go(itch::test::make_add(H1, 1, 'B', 100, "TEST", 5000));

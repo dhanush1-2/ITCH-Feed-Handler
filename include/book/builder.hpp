@@ -33,12 +33,12 @@
 namespace book {
 
 struct Anomalies {
-    std::uint64_t unknown_ref      = 0;
-    std::uint64_t duplicate_add    = 0;
-    std::uint64_t locate_mismatch  = 0;
-    std::uint64_t over_execute     = 0;
-    std::uint64_t over_cancel      = 0;
-    std::uint64_t zero_shares      = 0;
+    std::uint64_t unknown_ref     = 0;
+    std::uint64_t duplicate_add   = 0;
+    std::uint64_t locate_mismatch = 0;
+    std::uint64_t over_execute    = 0;
+    std::uint64_t over_cancel     = 0;
+    std::uint64_t zero_shares     = 0;
 };
 
 struct CapacityExceeded : std::runtime_error {
@@ -110,8 +110,8 @@ public:
 
     [[nodiscard]] const Book& book(std::uint16_t locate) const noexcept { return books_[locate]; }
     [[nodiscard]] const Anomalies& anomalies() const noexcept { return anomalies_; }
-    [[nodiscard]] std::size_t live_orders() const noexcept { return pool_.size(); }
-    [[nodiscard]] std::size_t peak_live_orders() const noexcept { return peak_; }
+    [[nodiscard]] std::size_t      live_orders() const noexcept { return pool_.size(); }
+    [[nodiscard]] std::size_t      peak_live_orders() const noexcept { return peak_; }
     // For state_dump: order data by slot.
     [[nodiscard]] const ob::OrderPool& pool() const noexcept { return pool_; }
     // For the invariant checker: the id index must agree with the pool.
@@ -147,14 +147,14 @@ private:
         if (pool_.full() || index_.full()) {
             throw CapacityExceeded(pool_.size());
         }
-        const ob::Slot s = pool_.alloc();
-        ob::Order&     o = pool_.at(s);
-        o.id             = ref;
-        o.price          = static_cast<ob::Ticks>(price);
-        o.remaining      = shares;
-        o.side           = side_ch == 'B' ? ob::Side::Buy : ob::Side::Sell;
-        o.flags          = 0;
-        o.pad            = locate;  // stock_locate of the owning book
+        const ob::Slot s                     = pool_.alloc();
+        ob::Order&     o                     = pool_.at(s);
+        o.id                                 = ref;
+        o.price                              = static_cast<ob::Ticks>(price);
+        o.remaining                          = shares;
+        o.side                               = side_ch == 'B' ? ob::Side::Buy : ob::Side::Sell;
+        o.flags                              = 0;
+        o.pad                                = locate;  // stock_locate of the owning book
         [[maybe_unused]] const bool inserted = index_.insert(ref, s);
         ITCH_ASSERT(inserted);
         books_[locate].add(pool_, s);
@@ -274,9 +274,9 @@ private:
         note_removed(loc, RemoveKind::ReplacedOut, o.remaining);
         books_[loc].remove(pool_, s);
         index_.erase(old_ref);
-        o.id        = new_ref;
-        o.price     = static_cast<ob::Ticks>(price);
-        o.remaining = shares;
+        o.id                                 = new_ref;
+        o.price                              = static_cast<ob::Ticks>(price);
+        o.remaining                          = shares;
         [[maybe_unused]] const bool inserted = index_.insert(new_ref, s);
         ITCH_ASSERT(inserted);
         books_[loc].add(pool_, s);

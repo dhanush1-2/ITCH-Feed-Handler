@@ -3,17 +3,19 @@
 
 // A BookBuilder wired to a VerifyObserver, fed through itch::decode.
 
+#include <gtest/gtest.h>
+
 #include <book/invariants.hpp>
 #include <cstdint>
-#include <gtest/gtest.h>
 #include <itch/dispatch.hpp>
+
 #include "support/itch_builder.hpp"
 
 namespace itch::test {
 
 struct VerifyRig {
-    book::VerifyObserver                       obs;
-    book::BookBuilder<book::VerifyObserver>    b;
+    book::VerifyObserver                    obs;
+    book::BookBuilder<book::VerifyObserver> b;
 
     explicit VerifyRig(std::size_t cap = 1024, book::VerifyObserver::Options o = {})
         : obs(o), b(cap, obs) {

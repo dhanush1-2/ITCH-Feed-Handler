@@ -2,10 +2,12 @@
 //
 // Hard structural checks (check_touched, check_full) and the crossed-book counters.
 
+#include <gtest/gtest.h>
+
 #include <book/invariants.hpp>
 #include <functional>
-#include <gtest/gtest.h>
 #include <string>
+
 #include "support/verify_rig.hpp"
 
 namespace {
@@ -26,7 +28,9 @@ void populate(VerifyRig& r) {
 book::Level& bid(VerifyRig& r, std::size_t i) {
     return const_cast<book::Level&>(*std::next(r.b.book(1).bids().begin(), static_cast<long>(i)));
 }
-ob::OrderPool& pool(VerifyRig& r) { return const_cast<ob::OrderPool&>(r.b.pool()); }
+ob::OrderPool& pool(VerifyRig& r) {
+    return const_cast<ob::OrderPool&>(r.b.pool());
+}
 
 }  // namespace
 
@@ -43,8 +47,8 @@ TEST(Invariants, CleanBookPassesBothChecks) {
 
 TEST(Invariants, CheckerCatchesEveryCorruption) {
     struct Case {
-        const char*                           name;
-        std::function<void(VerifyRig&)>       corrupt;
+        const char*                     name;
+        std::function<void(VerifyRig&)> corrupt;
     };
     const Case cases[] = {
         {"level total", [](VerifyRig& r) { bid(r, 0).total += 1; }},
@@ -54,7 +58,8 @@ TEST(Invariants, CheckerCatchesEveryCorruption) {
         {"order price", [](VerifyRig& r) { pool(r).at(bid(r, 1).head).price = 4800; }},
         {"order remaining", [](VerifyRig& r) { pool(r).at(bid(r, 0).head).remaining += 1; }},
         {"fifo link", [](VerifyRig& r) { pool(r).at(bid(r, 0).head).next = ob::kInvalidSlot; }},
-        {"fifo back link", [](VerifyRig& r) { pool(r).at(bid(r, 0).tail).prev = ob::kInvalidSlot; }},
+        {"fifo back link",
+         [](VerifyRig& r) { pool(r).at(bid(r, 0).tail).prev = ob::kInvalidSlot; }},
         {"level tail", [](VerifyRig& r) { bid(r, 0).tail = bid(r, 0).head; }},
         {"level order", [](VerifyRig& r) { bid(r, 0).price = 4800; }},
         {"pool size", [](VerifyRig& r) { (void)pool(r).alloc(); }},
@@ -76,7 +81,7 @@ TEST(Invariants, TouchedCatchesBestLevelAndAggregateCorruption) {
         populate(r);
         book::OrderTally t;
         pool(r).at(bid(r, 0).head).pad = 99;
-        const auto v = book::check_touched(r.b, t, 1, 7);
+        const auto v                   = book::check_touched(r.b, t, 1, 7);
         ASSERT_TRUE(v.has_value());
         EXPECT_EQ(v->locate, 1u);
     }
@@ -102,7 +107,7 @@ TEST(Invariants, VerifyObserverThrowsFromTheAddWithIndexAndLocate) {
     populate(r);  // messages 1..6
     ASSERT_EQ(r.obs.messages(), 6u);
     pool(r).at(bid(r, 0).head).pad = 99;  // the best bid's head now claims another book
-    const auto m = itch::test::make_add(Hdr{1}, 7, 'S', 10, "TEST", 5300);
+    const auto m                   = itch::test::make_add(Hdr{1}, 7, 'S', 10, "TEST", 5300);
     try {
         (void)itch::decode(std::span<const std::byte>(m), r.b);
         FAIL() << "add did not throw";

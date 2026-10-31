@@ -3,6 +3,7 @@
 // The feed oracle: an execution must hit the best level and the head of its queue.
 
 #include <gtest/gtest.h>
+
 #include "support/verify_rig.hpp"
 
 namespace {

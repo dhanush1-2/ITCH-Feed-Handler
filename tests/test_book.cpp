@@ -3,9 +3,10 @@
 // Book alone: price-level storage, ordering, and the lookup path. The apply logic is
 // covered in test_builder.cpp.
 
+#include <gtest/gtest.h>
+
 #include <book/book.hpp>
 #include <cstdint>
-#include <gtest/gtest.h>
 #include <ob/order_pool.hpp>
 #include <optional>
 #include <vector>
@@ -106,7 +107,7 @@ TEST(Book, LookupBeyondEightLevelsUsesBinarySearch) {
 }
 
 TEST(Book, EmptyLevelIsErased) {
-    Fixture f;
+    Fixture    f;
     const Slot a = f.add(Side::Buy, 100, 5);
     f.add(Side::Buy, 99, 5);
     f.b.remove(f.pool, a);
@@ -115,7 +116,7 @@ TEST(Book, EmptyLevelIsErased) {
 }
 
 TEST(Book, ReduceUpdatesLevelTotalAndKeepsPosition) {
-    Fixture f;
+    Fixture    f;
     const Slot a = f.add(Side::Buy, 100, 100);
     f.add(Side::Buy, 100, 50);
     f.b.reduce(f.pool, a, 40);

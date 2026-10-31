@@ -54,7 +54,7 @@ template <class View, class H>
 
 template <class H>
 [[nodiscard]] inline DecodeStatus decode(std::span<const std::byte> msg,
-                                         H&                         h) noexcept(detail::kHandlerNothrow<H>) {
+                                         H& h) noexcept(detail::kHandlerNothrow<H>) {
     if (msg.empty()) {
         return DecodeStatus::Skipped;
     }

@@ -58,9 +58,9 @@ public:
 
     void on(const itch::StockDirectoryView& v) {
         advance(v.timestamp_ns());
-        const char c       = v.market_category();
-        Sym&       s       = sym_[v.locate()];
-        s.nasdaq_listed    = (c == 'Q' || c == 'G' || c == 'S');
+        const char c    = v.market_category();
+        Sym&       s    = sym_[v.locate()];
+        s.nasdaq_listed = (c == 'Q' || c == 'G' || c == 'S');
     }
 
     void on(const itch::TradingActionView& v) {
@@ -104,11 +104,11 @@ public:
 
 private:
     struct Sym {
-        char          state                = 'T';
-        bool          nasdaq_listed        = false;
-        bool          open_cross_seen      = false;
-        bool          awaiting_halt_cross  = false;
-        std::uint64_t grace_until_ns       = 0;
+        char          state               = 'T';
+        bool          nasdaq_listed       = false;
+        bool          open_cross_seen     = false;
+        bool          awaiting_halt_cross = false;
+        std::uint64_t grace_until_ns      = 0;
     };
 
     std::uint64_t    grace_ns_;

@@ -65,8 +65,8 @@ public:
                     std::uint64_t ts_ns, bool continuous) {
         ++counts_.exec_checked;
         counts_.exec_checked_continuous += continuous;
-        const bool   buy   = o.side == ob::Side::Buy;
-        const bool   empty = bk.level_count(o.side) == 0;
+        const bool buy   = o.side == ob::Side::Buy;
+        const bool empty = bk.level_count(o.side) == 0;
         if (empty) {
             record(OracleKind::NotBest, counts_.exec_not_best, ts_ns, o.pad, o.id);
             counts_.exec_not_best_continuous += continuous;
@@ -103,7 +103,7 @@ public:
         }
     }
 
-    [[nodiscard]] const OracleCounts& counts() const noexcept { return counts_; }
+    [[nodiscard]] const OracleCounts&                 counts() const noexcept { return counts_; }
     [[nodiscard]] const std::vector<OracleException>& exceptions(OracleKind k) const noexcept {
         return kept_[static_cast<std::size_t>(k)];
     }

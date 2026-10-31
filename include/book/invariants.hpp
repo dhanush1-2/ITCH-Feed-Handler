@@ -49,7 +49,7 @@ public:
     OrderTally() : cached_(65536, 0) {}
     // Re-reads one book's count; returns the new grand sum.
     std::uint64_t refresh(std::uint16_t locate, std::size_t now) noexcept {
-        sum_ = sum_ - cached_[locate] + now;
+        sum_            = sum_ - cached_[locate] + now;
         cached_[locate] = static_cast<std::uint32_t>(now);
         return sum_;
     }
@@ -139,7 +139,7 @@ template <class Range>
     ++it;
     if (it != levels.end()) {
         const Level& next = *it;
-        const bool   ok   = side == ob::Side::Buy ? best.price > next.price : best.price < next.price;
+        const bool   ok = side == ob::Side::Buy ? best.price > next.price : best.price < next.price;
         if (!ok) {
             return "best two levels are not strictly ordered";
         }
@@ -204,10 +204,10 @@ template <class Range>
 
 template <class Obs>
 [[nodiscard]] std::optional<InvariantViolation> check_touched(const BookBuilder<Obs>& b,
-                                                              OrderTally& tally,
-                                                              std::uint16_t locate,
-                                                              std::uint64_t msg_index) {
-    const Book&         bk   = b.book(locate);
+                                                              OrderTally&             tally,
+                                                              std::uint16_t           locate,
+                                                              std::uint64_t           msg_index) {
+    const Book&          bk   = b.book(locate);
     const ob::OrderPool& pool = b.pool();
     if (const char* w = detail::check_side_touched(pool, bk.bids(), ob::Side::Buy, locate)) {
         return InvariantViolation{msg_index, locate, w};
@@ -227,7 +227,7 @@ template <class Obs>
 
 template <class Obs>
 [[nodiscard]] std::optional<InvariantViolation> check_full(const BookBuilder<Obs>& b,
-                                                           std::uint64_t msg_index = 0) {
+                                                           std::uint64_t           msg_index = 0) {
     const ob::OrderPool& pool  = b.pool();
     std::uint64_t        total = 0;
     for (std::size_t i = 0; i < BookBuilder<Obs>::kLocates; ++i) {
@@ -331,10 +331,10 @@ public:
         if (auto v = check_touched(*builder_, tally_, locate, idx_)) {
             throw VerificationFailure(*v);
         }
-        const Book& bk = builder_->book(locate);
-        const auto  bb = bk.best_bid();
-        const auto  ba = bk.best_ask();
-        const bool crossed = bb && ba && *bb > *ba;
+        const Book& bk      = builder_->book(locate);
+        const auto  bb      = bk.best_bid();
+        const auto  ba      = bk.best_ask();
+        const bool  crossed = bb && ba && *bb > *ba;
         oracle_.on_touch(market_.continuous(locate), crossed_[locate] != 0, crossed, ts_, locate,
                          ref_);
         crossed_[locate] = crossed;
@@ -344,13 +344,13 @@ public:
     // Runs check_full once more on the final state.
     void finish() { full_check(); }
 
-    [[nodiscard]] std::uint64_t         messages() const noexcept { return idx_; }
-    [[nodiscard]] const OracleCounts&   counts() const noexcept { return oracle_.counts(); }
-    [[nodiscard]] const Oracle&         oracle() const noexcept { return oracle_; }
-    [[nodiscard]] const MarketState&    market() const noexcept { return market_; }
-    [[nodiscard]] std::uint64_t         full_checks() const noexcept { return full_checks_; }
-    [[nodiscard]] Extra&                extra() noexcept { return extra_; }
-    [[nodiscard]] const Extra&          extra() const noexcept { return extra_; }
+    [[nodiscard]] std::uint64_t       messages() const noexcept { return idx_; }
+    [[nodiscard]] const OracleCounts& counts() const noexcept { return oracle_.counts(); }
+    [[nodiscard]] const Oracle&       oracle() const noexcept { return oracle_; }
+    [[nodiscard]] const MarketState&  market() const noexcept { return market_; }
+    [[nodiscard]] std::uint64_t       full_checks() const noexcept { return full_checks_; }
+    [[nodiscard]] Extra&              extra() noexcept { return extra_; }
+    [[nodiscard]] const Extra&        extra() const noexcept { return extra_; }
 
 private:
     void full_check() {
@@ -360,17 +360,17 @@ private:
         }
     }
 
-    Options          opt_;
-    MarketState      market_;
-    Extra            extra_;
-    Oracle           oracle_;
-    OrderTally       tally_;
-    std::vector<std::uint8_t> crossed_ = std::vector<std::uint8_t>(65536, 0);
-    const Builder*   builder_     = nullptr;
-    std::uint64_t    idx_         = 0;
-    std::uint64_t    ts_          = 0;
-    std::uint64_t    ref_         = 0;
-    std::uint64_t    full_checks_ = 0;
+    Options                   opt_;
+    MarketState               market_;
+    Extra                     extra_;
+    Oracle                    oracle_;
+    OrderTally                tally_;
+    std::vector<std::uint8_t> crossed_     = std::vector<std::uint8_t>(65536, 0);
+    const Builder*            builder_     = nullptr;
+    std::uint64_t             idx_         = 0;
+    std::uint64_t             ts_          = 0;
+    std::uint64_t             ref_         = 0;
+    std::uint64_t             full_checks_ = 0;
 };
 
 using VerifyObserver = BasicVerifyObserver<NullObserver>;

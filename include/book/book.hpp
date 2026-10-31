@@ -27,9 +27,9 @@
 namespace book {
 
 struct Level {
-    std::int32_t price = 0;
-    ob::Slot     head  = ob::kInvalidSlot;
-    ob::Slot     tail  = ob::kInvalidSlot;
+    std::int32_t  price = 0;
+    ob::Slot      head  = ob::kInvalidSlot;
+    ob::Slot      tail  = ob::kInvalidSlot;
     std::uint32_t count = 0;
     std::uint64_t total = 0;  // sum of `remaining` over the level's orders
 };
@@ -50,8 +50,8 @@ public:
         }
         const std::size_t i = lower_bound(v, o.side, o.price);
         if (i == v.size() || v[i].price != o.price) {
-            v.insert(v.begin() + static_cast<std::ptrdiff_t>(i), Level{o.price, ob::kInvalidSlot,
-                                                                       ob::kInvalidSlot, 0, 0});
+            v.insert(v.begin() + static_cast<std::ptrdiff_t>(i),
+                     Level{o.price, ob::kInvalidSlot, ob::kInvalidSlot, 0, 0});
         }
         Level& lv = v[i];
         o.next    = ob::kInvalidSlot;

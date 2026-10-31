@@ -2,9 +2,11 @@
 //
 // MarketState: when is a symbol in continuous trading?
 
+#include <gtest/gtest.h>
+
 #include <book/market_state.hpp>
 #include <cstdint>
-#include <gtest/gtest.h>
+
 #include "support/itch_builder.hpp"
 
 namespace {
@@ -20,7 +22,8 @@ void sys(MarketState& ms, char code, std::uint64_t ts = 0) {
     ms.on(itch::SystemEventView(m.data()));
 }
 void dir(MarketState& ms, std::uint16_t loc, char category, std::uint64_t ts = 0) {
-    const Bytes m = itch::test::make_stock_directory(Hdr{loc, 0, ts}, "TEST", category, ' ', 100, {});
+    const Bytes m =
+        itch::test::make_stock_directory(Hdr{loc, 0, ts}, "TEST", category, ' ', 100, {});
     ms.on(itch::StockDirectoryView(m.data()));
 }
 void action(MarketState& ms, std::uint16_t loc, char state, std::uint64_t ts = 0) {
