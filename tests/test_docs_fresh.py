@@ -361,7 +361,10 @@ def test_reference_row_states_how_independent_it_is():
 
 def test_provenance_counts_every_stamped_commit():
     line = re.search(r"<!-- gen:provenance -->(.*?)<!-- /gen -->", text("README.md")).group(1)
-    assert "82e91fc" in line and "43d1e2f" in line
+    runs = json.loads(text("results/fuzz.json"))["runs"] + \
+        json.loads(text("results/halt_grace_12302019.json"))["runs"]
+    for run in runs:
+        assert run["meta"]["commit"][:7] in line
 
 
 def test_spec_pdfs_are_links_not_files():
