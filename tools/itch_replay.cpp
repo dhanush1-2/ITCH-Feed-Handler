@@ -23,8 +23,10 @@
 //                        resting orders, so its end-of-file dump is empty
 //   --dump-at-s S        dump just before the first message at or after feed second S
 //   --export             write the JSON export (results/day_<date>.json for a full day)
-//   --pins               with --verify, a JSON file of allowed oracle counts per data file
-//                        (results/expected_anomalies.json); any count above its pin fails
+//   --pins               the JSON file of allowed oracle counts per data file. --verify uses
+//                        results/expected_anomalies.json in the source tree unless this names
+//                        another; if the input's file name has an entry, any count above its
+//                        pin fails, and a counter missing from the entry is an input error
 //   --export-orders      write the canonical per-symbol result for these symbols, which
 //                        verify/compare.py holds against the independent Python reference:
 //                        message counts by type, share totals, printed volume, and levels
@@ -56,6 +58,7 @@
 #include <itch/scan.hpp>
 #include <itch/sha256.hpp>
 #include <map>
+#include <optional>
 #include <set>
 #include <span>
 #include <sstream>
@@ -279,9 +282,11 @@ book::StatsObserver& stats_of(book::BasicVerifyObserver<book::StatsObserver>& o)
 const char* kOracleNames[] = {"exec_not_best", "exec_not_head", "crossed_continuous",
                               "crossed_other"};
 
-// The pins for one data file, from {"pins": {"<file name>": {"<count>": N, ...}, ...}}. This is a
-// small reader for that one committed shape, not a JSON parser.
-std::map<std::string, std::uint64_t> read_pins(const std::string& path, const std::string& file) {
+// The pins for one data file, from {"pins": {"<file name>": {"<count>": N, ...}, ...}}, or nothing
+// if the file has no entry. This is a small reader for that one committed shape, not a JSON
+// parser.
+std::optional<std::map<std::string, std::uint64_t>> read_pins(const std::string& path,
+                                                              const std::string& file) {
     std::ifstream in(path);
     if (!in) {
         throw InputError("cannot read pins file '" + path + "'");
@@ -289,12 +294,18 @@ std::map<std::string, std::uint64_t> read_pins(const std::string& path, const st
     std::stringstream ss;
     ss << in.rdbuf();
     const std::string text = ss.str();
-    const std::string key  = "\"" + file + "\"";
-    const std::size_t at   = text.find(key, text.find("\"pins\""));
-    const std::size_t open = at == std::string::npos ? at : text.find('{', at);
+    const std::size_t top  = text.find("\"pins\"");
+    if (top == std::string::npos) {
+        throw InputError("malformed pins file '" + path + "': no \"pins\" object");
+    }
+    const std::size_t at = text.find("\"" + file + "\"", top);
+    if (at == std::string::npos) {
+        return std::nullopt;
+    }
+    const std::size_t open = text.find('{', at);
     const std::size_t end  = open == std::string::npos ? open : text.find('}', open);
     if (end == std::string::npos) {
-        throw InputError("no pins for '" + file + "' in '" + path + "'");
+        throw InputError("malformed pins for '" + file + "' in '" + path + "'");
     }
     std::map<std::string, std::uint64_t> pins;
     for (std::size_t i = text.find('"', open); i < end; i = text.find('"', i)) {
@@ -318,12 +329,19 @@ std::vector<std::string> check_pins(const std::map<std::string, std::uint64_t>& 
         {"exec_not_best_continuous", c.exec_not_best_continuous},
         {"exec_not_head", c.exec_not_head},
         {"exec_not_head_continuous", c.exec_not_head_continuous},
+        {"exec_not_head_e", c.exec_not_head_e},
         {"crossed_continuous", c.crossed_continuous},
         {"crossed_other", c.crossed_other},
         {"episodes_continuous", c.episodes_continuous},
         {"episodes_other", c.episodes_other},
         {"match_number_collisions", collisions},
     };
+    // A counter nobody pinned would be unconstrained without anyone having decided that.
+    for (const auto& [name, value] : counts) {
+        if (!pins.contains(name)) {
+            throw InputError("pins entry has no value for '" + name + "'");
+        }
+    }
     std::vector<std::string> failures;
     for (const auto& [name, pin] : pins) {
         const auto it = counts.find(name);
@@ -579,6 +597,7 @@ void write_export(const Options& o, const itch::MappedFile& mf, const Builder& b
         js << "    \"exec_not_best_continuous\": " << c.exec_not_best_continuous << ",\n";
         js << "    \"exec_not_head\": " << c.exec_not_head << ",\n";
         js << "    \"exec_not_head_continuous\": " << c.exec_not_head_continuous << ",\n";
+        js << "    \"exec_not_head_e\": " << c.exec_not_head_e << ",\n";
         js << "    \"touches_continuous\": " << c.touches_continuous << ",\n";
         js << "    \"touches_other\": " << c.touches_other << ",\n";
         js << "    \"crossed_continuous\": " << c.crossed_continuous << ",\n";
@@ -773,11 +792,24 @@ int run(const Options& o, const itch::MappedFile& mf, const itch::Resolved& reso
                 (st.last_system_event() == 0 ? "none" : std::string(1, st.last_system_event())) +
                 ")");
         }
-        if (!o.pins_path.empty()) {
-            const auto over = check_pins(
-                read_pins(o.pins_path, std::filesystem::path(o.file).filename().string()),
-                obs.counts(), st.match_collisions());
+        // The committed pins apply by default; a default file that is absent (an installed
+        // binary, say) means no pins, but a file named on the command line must exist.
+        const std::string name = std::filesystem::path(o.file).filename().string();
+        const std::string default_pins =
+            (std::filesystem::path(ITCH_SOURCE_DIR) / "results" / "expected_anomalies.json")
+                .string();
+        const std::string pins_path = o.pins_path.empty() ? default_pins : o.pins_path;
+        std::optional<std::map<std::string, std::uint64_t>> pins;
+        if (!o.pins_path.empty() || std::filesystem::exists(pins_path)) {
+            pins = read_pins(pins_path, name);
+        }
+        if (pins) {
+            const auto over = check_pins(*pins, obs.counts(), st.match_collisions());
             failures.insert(failures.end(), over.begin(), over.end());
+            std::printf("pins: %zu applied for %s from %s\n", pins->size(), name.c_str(),
+                        pins_path.c_str());
+        } else {
+            std::printf("pins: none for %s in %s\n", name.c_str(), pins_path.c_str());
         }
     }
     if (exporting_orders) {

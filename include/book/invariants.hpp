@@ -23,6 +23,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -299,8 +300,9 @@ public:
             full_check();  // state after the previous message
         }
         ++idx_;
-        ts_  = v.timestamp_ns();
-        ref_ = 0;
+        ts_     = v.timestamp_ns();
+        exec_e_ = std::is_same_v<View, itch::ExecutedView>;
+        ref_    = 0;
         if constexpr (requires { v.ref(); }) {
             ref_ = v.ref();
         } else if constexpr (requires { v.new_ref(); }) {
@@ -315,7 +317,7 @@ public:
 
     void before_execute(const Book& bk, const ob::Order& o, ob::Side side, std::uint32_t shares,
                         std::uint64_t match, std::uint32_t price) {
-        oracle_.on_execute(bk, builder_->pool(), o, ts_, market_.continuous(o.pad));
+        oracle_.on_execute(bk, builder_->pool(), o, ts_, market_.continuous(o.pad), exec_e_);
         extra_.before_execute(bk, o, side, shares, match, price);
     }
 
@@ -372,6 +374,7 @@ private:
     const Builder*            builder_     = nullptr;
     std::uint64_t             idx_         = 0;
     std::uint64_t             ts_          = 0;
+    bool                      exec_e_      = false;  // the current message is an E, not a C
     std::uint64_t             ref_         = 0;
     std::uint64_t             full_checks_ = 0;
 };

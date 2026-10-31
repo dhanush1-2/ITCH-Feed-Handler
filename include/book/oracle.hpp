@@ -38,6 +38,10 @@ struct OracleCounts {
     std::uint64_t exec_checked_continuous  = 0;
     std::uint64_t exec_not_best_continuous = 0;
     std::uint64_t exec_not_head_continuous = 0;
+    // E messages only, a subset of exec_not_head. A C can trade at a price away from its level
+    // and so miss the head legitimately; an E trades at its display price, so one here is a
+    // queue-order fault that would otherwise hide among the C messages.
+    std::uint64_t exec_not_head_e    = 0;
     std::uint64_t touches_continuous = 0;  // book-changing messages seen in continuous trading
     std::uint64_t touches_other      = 0;
     // A crossed episode starts when a book goes from not crossed to crossed (and ends when it
@@ -62,7 +66,7 @@ public:
 
     // Call before the fill is applied.
     void on_execute(const Book& bk, const ob::OrderPool& pool, const ob::Order& o,
-                    std::uint64_t ts_ns, bool continuous) {
+                    std::uint64_t ts_ns, bool continuous, bool is_e) {
         ++counts_.exec_checked;
         counts_.exec_checked_continuous += continuous;
         const bool buy   = o.side == ob::Side::Buy;
@@ -79,6 +83,7 @@ public:
         } else if (best.head == ob::kInvalidSlot || pool.at(best.head).id != o.id) {
             record(OracleKind::NotHead, counts_.exec_not_head, ts_ns, o.pad, o.id);
             counts_.exec_not_head_continuous += continuous;
+            counts_.exec_not_head_e += is_e;
         }
     }
 

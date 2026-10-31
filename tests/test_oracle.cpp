@@ -84,3 +84,20 @@ TEST(Oracle, ExceptionsAreSplitByContinuous) {
     EXPECT_EQ(c.exec_not_best_continuous, 1u);
     EXPECT_EQ(c.exec_not_head_continuous, 0u);
 }
+
+// A queue regression must not hide among C messages, which can legitimately miss the head.
+TEST(Oracle, NotHeadCountsEOnlySeparately) {
+    VerifyRig r;
+    r.add(1, 1, 'B', 100, 5000);
+    r.add(1, 2, 'B', 100, 5000);
+    r.add(1, 3, 'B', 100, 5000);
+    r.feed(itch::test::make_executed_price(H1, 2, 10, 9, 'Y', 5005));
+    EXPECT_EQ(r.obs.counts().exec_not_head, 1u);
+    EXPECT_EQ(r.obs.counts().exec_not_head_e, 0u);
+    r.feed(itch::test::make_executed(H1, 3, 10, 10));
+    EXPECT_EQ(r.obs.counts().exec_not_head, 2u);
+    EXPECT_EQ(r.obs.counts().exec_not_head_e, 1u);
+    r.feed(itch::test::make_executed(H1, 1, 10, 11));  // at the head: neither count moves
+    EXPECT_EQ(r.obs.counts().exec_not_head, 2u);
+    EXPECT_EQ(r.obs.counts().exec_not_head_e, 1u);
+}

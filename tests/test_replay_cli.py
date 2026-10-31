@@ -212,9 +212,14 @@ def test_dump_at_second_captures_midday_state(day, tmp_path):
     assert run(day, "--dump-at-s", "2").returncode == 2
 
 
-def pinned_day(tmp_path, pins):
-    """A book whose second order trades first: exec_not_head is 1 on this file."""
-    path = tmp_path / "pin.itch"
+ALL_PINS = {"exec_not_best": 0, "exec_not_best_continuous": 0, "exec_not_head": 1,
+            "exec_not_head_continuous": 0, "exec_not_head_e": 1, "crossed_continuous": 0,
+            "crossed_other": 0, "episodes_continuous": 0, "episodes_other": 0,
+            "match_number_collisions": 0}
+
+
+def not_head_day(path):
+    """A book whose second order trades first: exec_not_head and its E count are 1 on this file."""
     path.write_bytes(frame([
         system_event(b"O"),
         directory(1, "AAA"),
@@ -224,38 +229,75 @@ def pinned_day(tmp_path, pins):
         delete(1, 1),
         system_event(b"C", ts=5_000_000_000),
     ]))
+    return path
+
+
+def pinned_day(tmp_path, pins):
+    path = not_head_day(tmp_path / "pin.itch")
     pin_file = tmp_path / "pins.json"
     pin_file.write_text(json.dumps({"note": "test", "pins": {"pin.itch": pins}}))
     return path, pin_file
 
 
 def test_pin_at_the_count_passes(tmp_path):
-    path, pins = pinned_day(tmp_path, {"exec_not_head": 1, "exec_not_best": 0})
+    path, pins = pinned_day(tmp_path, ALL_PINS)
     r = run(path, "--verify", "--pins", str(pins))
     assert r.returncode == 0, r.stderr
+    assert f"pins: {len(ALL_PINS)} applied" in r.stdout
 
 
-def test_count_above_its_pin_fails_verify(tmp_path):
-    path, pins = pinned_day(tmp_path, {"exec_not_head": 0})
+@pytest.mark.parametrize("name", ["exec_not_head", "exec_not_head_e"])
+def test_count_above_its_pin_fails_verify(tmp_path, name):
+    path, pins = pinned_day(tmp_path, {**ALL_PINS, name: 0})
     r = run(path, "--verify", "--pins", str(pins))
     assert r.returncode == 3
-    assert "exec_not_head" in r.stderr
+    assert f"{name} = 1" in r.stderr
 
 
 def test_unknown_pin_name_is_an_input_error(tmp_path):
-    path, pins = pinned_day(tmp_path, {"exec_not_heads": 1})
+    path, pins = pinned_day(tmp_path, {**ALL_PINS, "exec_not_heads": 1})
     assert run(path, "--verify", "--pins", str(pins)).returncode == 2
 
 
-def test_file_without_pins_is_an_input_error(tmp_path):
-    path, pins = pinned_day(tmp_path, {"exec_not_head": 1})
+@pytest.mark.parametrize("missing", sorted(ALL_PINS))
+def test_counter_missing_from_a_pin_object_is_an_error(tmp_path, missing):
+    path, pins = pinned_day(tmp_path, {k: v for k, v in ALL_PINS.items() if k != missing})
+    r = run(path, "--verify", "--pins", str(pins))
+    assert r.returncode == 2
+    assert missing in r.stderr
+
+
+def test_file_without_pins_says_so_and_passes(tmp_path):
+    path, pins = pinned_day(tmp_path, ALL_PINS)
     other = tmp_path / "other.itch"
     other.write_bytes(path.read_bytes())
-    assert run(other, "--verify", "--pins", str(pins)).returncode == 2
+    r = run(other, "--verify", "--pins", str(pins))
+    assert r.returncode == 0, r.stderr
+    assert "pins: none for other.itch" in r.stdout
+
+
+def test_explicit_pins_file_must_exist(tmp_path):
+    path, _ = pinned_day(tmp_path, ALL_PINS)
+    assert run(path, "--verify", "--pins", str(tmp_path / "absent.json")).returncode == 2
+
+
+def test_verify_applies_the_repo_pins_by_default(tmp_path):
+    """No --pins: a file carrying a pinned name is held to results/expected_anomalies.json."""
+    path = not_head_day(tmp_path / "12302019.NASDAQ_ITCH50")
+    r = run(path, "--verify")
+    assert r.returncode == 3      # exec_not_head_e is pinned at 0 for this name
+    assert "exec_not_head_e = 1" in r.stderr
+    assert "pins:" in r.stdout and "applied" in r.stdout
+
+
+def test_verify_without_an_entry_runs_unpinned_by_default(day):
+    r = run(day, "--verify")
+    assert r.returncode == 0, r.stderr
+    assert f"pins: none for {day.name}" in r.stdout
 
 
 def test_pins_need_verify(tmp_path):
-    path, pins = pinned_day(tmp_path, {"exec_not_head": 1})
+    path, pins = pinned_day(tmp_path, ALL_PINS)
     assert run(path, "--pins", str(pins)).returncode == 2
 
 
