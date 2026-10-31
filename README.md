@@ -12,7 +12,7 @@ This is a replay of recorded files. Nothing here is a network latency, tick-to-t
 
 ## Proof
 
-Each number below is generated from the stamped file named beside it by `scripts/gen_docs.py`, and CI fails if a block goes stale. <!-- gen:provenance -->The current result files come from 13 commits: `0db1b32`, `0ec51a7`, `1c9f43a`, `2aabbec`, `43d1e2f`, `82e91fc`, `8523e7f`, `a3857fc`, `ae87c50`, `cb6d700`, `ea06f30`, `ee12565`, `f0d3f3d`. The kScan screening and the profile come from patched builds and say so in their own files.<!-- /gen -->
+Each number below is generated from the stamped file named beside it by `scripts/gen_docs.py`, and CI fails if a block goes stale. <!-- gen:provenance -->The current result files come from 13 commits: `07c3627`, `0db1b32`, `0ec51a7`, `1c9f43a`, `2aabbec`, `43d1e2f`, `82e91fc`, `8523e7f`, `a3857fc`, `ae87c50`, `cb6d700`, `ea06f30`, `ee12565`. The kScan screening and the profile come from patched builds and say so in their own files.<!-- /gen -->
 
 <!-- gen:proof_table -->
 
