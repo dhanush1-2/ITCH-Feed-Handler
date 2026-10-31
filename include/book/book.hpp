@@ -5,7 +5,7 @@
 //
 // Each side is a vector of Level sorted worst-to-best, so the best price is at the BACK.
 // Bids ascend, asks descend. The touch is where all the traffic is, so a lookup scans up to
-// eight levels from the back and only then binary-searches. A new level inserts by shifting
+// kScan levels from the back and only then binary-searches. A new level inserts by shifting
 // the (usually short) tail; an empty level is erased.
 //
 // Orders live in the shared ob::OrderPool; a Level only holds the head and tail of its queue,
@@ -38,7 +38,9 @@ static_assert(sizeof(Level) == 24);
 class Book {
 public:
     static constexpr std::size_t kInitialLevels = 64;
-    static constexpr std::size_t kScan          = 8;
+    // Levels scanned from the back before binary search. 64 not 8: measured +8% throughput on
+    // the full day (docs/OPTIMIZATION-LOG.md); most lookups end within a few levels of the touch.
+    static constexpr std::size_t kScan = 64;
 
     // Places the order in its price level by reference number: the exchange's queue order, not
     // message arrival. Orders received before the open can be displayed after later ones and
