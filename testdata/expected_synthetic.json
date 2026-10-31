@@ -1,6 +1,6 @@
 {
   "meta": {
-    "commit": "07c3627b75bab7fdbdcfe3c79c79d4ee60395b4c-stale-build-dirty",
+    "commit": "0a64f96adec6af586bf3e920e6b3d7b99cf63852",
     "data_file": "build/testdata/synthetic.itch",
     "cpu": "Apple M4 Pro",
     "compiler": "AppleClang 21.0.0.21000334",
@@ -10,7 +10,7 @@
   "file": "synthetic.itch",
   "file_bytes": 1496729,
   "price_scale": 10000,
-  "replay": {"speed": "max", "from_feed_s": null, "paced_feed_s": null, "paced_wall_s": null, "max_lag_ns": null, "max_lag_at_feed_s": null, "pacer_waits": null, "wall_s": 2.56488},
+  "replay": {"speed": "max", "from_feed_s": null, "paced_feed_s": null, "paced_wall_s": null, "max_lag_ns": null, "max_lag_at_feed_s": null, "pacer_waits": null, "wall_s": 2.54976},
   "verify": {"enabled": true, "passed": true, "full_check_every": 1, "full_checks": 46930, "halt_grace_s": 5, "failures": []},
   "totals": {
     "messages": 46930,
@@ -148,7 +148,7 @@
   },
   "conservation": {"failures": 0, "first": []},
   "peak_live_orders": 2082,
-  "max_rss_bytes": 1070284800,
+  "max_rss_bytes": 1070022656,
   "symbols_with_orders": 8,
   "state_dump": null,
   "per_symbol": {
