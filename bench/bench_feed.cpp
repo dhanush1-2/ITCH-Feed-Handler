@@ -515,10 +515,6 @@ std::vector<std::pair<std::uint16_t, std::int32_t>> ladder_bases(const Input& in
     return out;
 }
 
-std::uint64_t count_type(const std::vector<std::uint64_t>& counts, char c) {
-    return counts[static_cast<unsigned char>(c)];
-}
-
 struct Report {
     const Options&          o;
     const Input&            in;
@@ -529,7 +525,6 @@ struct Report {
     std::string             extra;  // mode-specific members, already formatted
     std::uint64_t           peak_live = 0, live_end = 0;
     std::string             anomalies_json;
-    std::uint64_t           prefault_ns = 0;
 };
 
 void write_report(const Report& rp) {
@@ -595,7 +590,7 @@ void write_report(const Report& rp) {
 // Runs one throughput or latency pass with a concrete Index and BookT.
 template <class Index, class BookT>
 int run_builder(const Options& o, const itch::MappedFile& mf, Input& in) {
-    Report rp{o, in, &mf, {}, {}, {}, 0, 0, 0, {}, {}, 0, 0, {}, 0};
+    Report rp{o, in, &mf, {}, {}, {}, 0, 0, 0, {}, {}, 0, 0, {}};
     rp.fp_before_tables = footprint_now();
 
     book::NullObserver                                  obs;
@@ -652,8 +647,7 @@ int run_builder(const Options& o, const itch::MappedFile& mf, Input& in) {
 
         itch::Framer               fr(in.data);
         std::span<const std::byte> msg;
-        const Clock&               clk = Clock::instance();
-        const Usage                u0  = usage_now();
+        const Usage                u0 = usage_now();
         std::uint64_t              n = 0, hd = 0, sk = 0, wl = 0, by = 0, sum_ticks = 0;
         std::uint64_t              h = 0;
         while (n < total && fr.next(msg) == itch::FrameStatus::Ok) {
@@ -690,7 +684,6 @@ int run_builder(const Options& o, const itch::MappedFile& mf, Input& in) {
         rp.r.checksum     = fold(b, h);
         rp.r.use_delta    = {u1.minflt - u0.minflt, u1.majflt - u0.majflt, u1.nvcsw - u0.nvcsw,
                              u1.nivcsw - u0.nivcsw};
-        (void)clk;
 
         std::ostringstream ex;
         const Percentiles  pa = summarize(all);
@@ -713,7 +706,6 @@ int run_builder(const Options& o, const itch::MappedFile& mf, Input& in) {
         }
         ex << "\n    }\n  }";
         rp.extra = ex.str();
-        (void)count_type;
     }
 
     rp.fp_end    = footprint_now();
@@ -807,7 +799,7 @@ int run(const Options& o) {
     }
 
     if (o.mode == "frame" || o.mode == "parse") {
-        Report rp{o, in, &mf, {}, {}, {}, 0, 0, 0, {}, {}, 0, 0, {}, 0};
+        Report rp{o, in, &mf, {}, {}, {}, 0, 0, 0, {}, {}, 0, 0, {}};
         rp.fp_before_tables = rp.fp_after_setup = footprint_now();
         ParseSink sink;
         rp.r          = run_throughput(in.data, o.max_messages, sink, o.mode == "parse",

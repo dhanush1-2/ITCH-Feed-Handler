@@ -12,7 +12,7 @@ Apple M4 Pro (arm64, 12 cores), 24 GB, macOS 27.2, AppleClang 21.0.0, `-O3 -DNDE
 
 ## Clock
 
-`ob::bench::Clock`, `CNTVCT_EL0`. Measured on this run: granularity (median consecutive-read delta) **42 ns** (41.67 ns tick; the minimum is 17 ns and is not quoted as resolution), serialized read cost 8.8 ns, unserialized 0.22 ns. `CNTFRQ_EL0` reports 1 GHz, which is not the real rate; the counter advances every 41.67 ns, as Project 1 measured. Latency uses `raw_serialized()` (`isb` + `mrs`); throughput reads the clock twice per chunk.
+`ob::bench::Clock`, `CNTVCT_EL0`. Measured on this run: granularity (median consecutive-read delta) **42 ns** (41.67 ns tick; the minimum is 17 ns and is not quoted as resolution), serialized read cost 8.8 ns, unserialized 0.22 ns. `CNTFRQ_EL0` reports 1 GHz, which is not the real rate (the `clock` block of each result therefore shows `counter_hz` 1,000,000,000 and `ns_per_tick` 1; read `granularity_median_ns` instead. `run_bench.py` now adds a `clock_note` field saying so; the committed results predate it); the counter advances every 41.67 ns, as Project 1 measured. Latency uses `raw_serialized()` (`isb` + `mrs`); throughput reads the clock twice per chunk.
 
 ## Modes (`bench/bench_feed.cpp`)
 
@@ -37,7 +37,7 @@ Excluded from timing: opening, mapping, locking and (for the ten-symbol runs) fi
 
 | Error | Handling |
 |---|---|
-| Page faults on the 8.25 GB input | `mlock` of the mapping; major faults in each timed span are recorded (0 in all published runs). Without it spread was 75% to 97% |
+| Page faults on the 8.25 GB input | `mlock` of the mapping; major faults in each timed span are recorded and `run_bench.py` fails a set if the input is not locked or any timed span has a major fault (0 in all published runs). Without it, early uncommitted runs showed 75% to 97% spread |
 | Clock granularity 42 ns | per-message percentiles are quoted only as multiples of the tick; 8.7% of apply samples read zero ticks (published); the empty-region timer floor is published (p50 0, p99 42 ns) |
 | Timer overhead | measured and published, not subtracted: subtracting 9 ns from a distribution quantized at 42 ns is false precision |
 | Compiler removing work | parse sink and the state fold are read; fold checksums are compared across variants |
@@ -48,7 +48,7 @@ Excluded from timing: opening, mapping, locking and (for the ten-symbol runs) fi
 
 ## Memory
 
-Reported three ways and never as one number. `max_rss` (about 8.57 GB) includes the mapped input and is not handler memory. The anonymous figure is the footprint delta over the point after the input was locked (the kernel counts locked pages as internal, so the absolute footprint would include the file). Table sizes (pool 128 MB, index 134 MB, books array 3.7 MB at a 4,000,000-order capacity, peak live 1,924,078) are computed exactly.
+Reported three ways and never as one number. `max_rss` (about 8.57 GB) includes the mapped input and is not handler memory. The anonymous figure is the footprint delta over the point after the input was locked (the kernel counts locked pages as internal, so the absolute footprint would include the file). Table sizes (pool 128 MB, index 134 MB, books array 3.7 MB at a 4,000,000-order capacity, peak live 1,924,078) are computed exactly. The latency set's max RSS (about 10.5 GB) includes about 2.2 GB of raw histogram samples and is harness memory, not handler memory. `latency.all` pools every message type including the skipped ones; use the per-type table.
 
 ## Profiling
 
@@ -59,7 +59,7 @@ No hardware counters. `xctrace` needs full Xcode (not installed), so profiles ar
 - 42 ns quantization; latency is of `decode`+apply only, framing is outside the window.
 - One machine, one day, no x86 cross-check, no hard affinity.
 - The unordered_map and ladder arms are baselines I wrote or wrapped; the ladder's base heuristic is mine.
-- Instrumented and screening binaries came from uncommitted patches; only published results are from a clean commit.
+- Instrumented and screening binaries came from uncommitted patches (the counters patch is committed as `scripts/profile_counters.patch`); only published results are from a clean commit.
 
 ## Reproduce
 

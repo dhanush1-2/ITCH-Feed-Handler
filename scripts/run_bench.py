@@ -184,8 +184,25 @@ def summarize(name: str, runs: list[dict]) -> dict:
                    for k in ["p50_ns", "p99_ns", "p99_9_ns", "max_ns", "mean_ns"]}}
             for t in types}
     out["clock"] = runs[0]["clock"]
+    ck = runs[0]["clock"]
+    if ck["counter_hz"] != 24_000_000 and ck["granularity_median_ns"] > 10 * ck["ns_per_tick"]:
+        out["clock_note"] = (
+            f"counter_hz={ck['counter_hz']} and ns_per_tick={ck['ns_per_tick']} are what "
+            "CNTFRQ_EL0 claims on macOS, not the rate the counter advances. The counter is scaled "
+            f"to nanoseconds but ticks every ~41.67 ns; the measured median granularity is "
+            f"{ck['granularity_median_ns']} ns. Use granularity_median_ns, never ns_per_tick, as "
+            "the resolution.")
     out["raw_wall_seconds_including_setup"] = [r["wall_seconds_including_setup"] for r in runs]
     return out
+
+
+def check_faults(name: str, runs: list[dict]) -> None:
+    """The timed span must be fault-free: an unlocked input or a major fault means page-ins
+    (measured: 20% slower and 75% to 97% spread) and the set is not a measurement."""
+    for i, r in enumerate(runs):
+        if not r["prefault"]["mlocked"] or r["timed_span"]["major_faults"] != 0:
+            raise SystemExit(f"{name}: run {i + 1} is invalid: mlocked={r['prefault']['mlocked']}, "
+                             f"major faults in the timed span={r['timed_span']['major_faults']}")
 
 
 def check_deterministic(name: str, runs: list[dict]) -> None:
@@ -260,6 +277,7 @@ def main() -> int:
                     if i + 1 < args.runs:
                         time.sleep(COOLDOWN_S)
                 check_deterministic(name, runs)
+                check_faults(name, runs)
                 stamps = {json.dumps(r["meta"], sort_keys=True) for r in runs}
                 if len(stamps) != 1:
                     raise SystemExit(f"{name}: runs carry different stamps")

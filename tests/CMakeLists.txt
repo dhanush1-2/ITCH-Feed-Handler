@@ -56,6 +56,7 @@ add_executable(itch_ladder_tests test_ladder_book.cpp)
 target_include_directories(itch_ladder_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                                      ${CMAKE_SOURCE_DIR}/bench)
 target_link_libraries(itch_ladder_tests PRIVATE itch GTest::gtest_main)
+add_test(NAME ladder_book COMMAND itch_ladder_tests)
 
 # Real-data slice (testdata/slice.itch.gz): expanded into the build tree, replayed with every
 # check on, and its export compared with testdata/expected_slice.json.
@@ -81,7 +82,6 @@ if(ITCH_BUILD_TOOLS AND Python3_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/testdata/sl
     set_tests_properties(loss_injection PROPERTIES
         FIXTURES_REQUIRED slice
         ENVIRONMENT "ITCH_SLICE=${_slice_dir}/slice.itch")
-    add_test(NAME ladder_book COMMAND itch_ladder_tests)
     set_tests_properties(ladder_book PROPERTIES
         FIXTURES_REQUIRED slice
         ENVIRONMENT "ITCH_SLICE=${_slice_dir}/slice.itch")

@@ -1,0 +1,78 @@
+diff --git a/bench/bench_feed.cpp b/bench/bench_feed.cpp
+index 86d631f..d807a83 100644
+--- a/bench/bench_feed.cpp
++++ b/bench/bench_feed.cpp
+@@ -770,6 +770,15 @@ int run_builder(const Options& o, const itch::MappedFile& mf, Input& in) {
+     rp.extra = rp.extra.empty() ? st.str() : rp.extra + ",\n  " + st.str();
+ 
+     write_report(rp);
++    {
++        const auto& g = book::g_lb;
++        std::fprintf(stderr, "LB calls=%llu pp_calls=%llu adds=%llu walk_calls=%llu walk_steps=%llu\n",
++                     (unsigned long long)g.calls, (unsigned long long)g.pp_calls, (unsigned long long)g.adds,
++                     (unsigned long long)g.walk_calls, (unsigned long long)g.walk_steps);
++        for (int k = 0; k < 10; ++k) std::fprintf(stderr, "steps[%d]=%llu\n", k, (unsigned long long)g.steps[k]);
++        for (int k = 0; k < 24; ++k) if (g.pp_len_log2[k]) std::fprintf(stderr, "pp_len_log2[%d]=%llu\n", k, (unsigned long long)g.pp_len_log2[k]);
++        for (int k = 0; k < 24; ++k) if (g.sizes_log2[k]) std::fprintf(stderr, "vecsize_log2[%d]=%llu\n", k, (unsigned long long)g.sizes_log2[k]);
++    }
+     do_not_optimize(rp.r.checksum);
+     return 0;
+ }
+diff --git a/include/book/book.hpp b/include/book/book.hpp
+index 9f3e7d2..242e9cd 100644
+--- a/include/book/book.hpp
++++ b/include/book/book.hpp
+@@ -25,6 +25,11 @@
+ #include <vector>
+ 
+ namespace book {
++struct LbStats {
++    std::uint64_t calls = 0, steps[10] = {}, pp_calls = 0, pp_len_log2[24] = {}, walk_calls = 0,
++                  walk_steps = 0, adds = 0, sizes_log2[24] = {};
++};
++inline LbStats g_lb;
+ 
+ struct Level {
+     std::int32_t  price = 0;
+@@ -40,7 +45,7 @@ public:
+     static constexpr std::size_t kInitialLevels = 64;
+     // Levels scanned from the back before binary search. 64 not 8: measured +8% throughput on
+     // the full day (docs/OPTIMIZATION-LOG.md); most lookups end within a few levels of the touch.
+-    static constexpr std::size_t kScan = 64;
++    static constexpr std::size_t kScan = 8;
+ 
+     // Places the order in its price level by reference number: the exchange's queue order, not
+     // message arrival. Orders received before the open can be displayed after later ones and
+@@ -60,9 +65,11 @@ public:
+         }
+         Level&   lv    = v[i];
+         ob::Slot after = lv.tail;
++        ++g_lb.adds; bool walked=false;
+         while (after != ob::kInvalidSlot && pool.at(after).id > o.id) {
+-            after = pool.at(after).prev;
++            after = pool.at(after).prev; ++g_lb.walk_steps; walked=true;
+         }
++        g_lb.walk_calls += walked;
+         const ob::Slot before = after == ob::kInvalidSlot ? lv.head : pool.at(after).next;
+         o.prev                = after;
+         o.next                = before;
+@@ -160,15 +167,19 @@ private:
+     [[nodiscard]] static std::size_t lower_bound(const std::vector<Level>& v, ob::Side side,
+                                                  std::int32_t price) noexcept {
+         std::size_t i = v.size();
++        ++g_lb.calls;
++        { std::size_t l=0; for(std::size_t z=v.size(); z; z>>=1) ++l; ++g_lb.sizes_log2[l]; }
+         for (std::size_t steps = 0; i > 0 && !worse(side, v[i - 1].price, price);) {
+             --i;
+             if (++steps == kScan) {
++                ++g_lb.pp_calls; { std::size_t l=0; for(std::size_t z=i; z; z>>=1) ++l; ++g_lb.pp_len_log2[l]; }
+                 const auto it = std::partition_point(
+                     v.begin(), v.begin() + static_cast<std::ptrdiff_t>(i),
+                     [&](const Level& l) { return worse(side, l.price, price); });
+                 return static_cast<std::size_t>(it - v.begin());
+             }
+         }
++        ++g_lb.steps[std::min<std::size_t>(v.size() - i, 9)];
+         return i;
+     }
+ 
