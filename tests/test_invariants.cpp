@@ -58,6 +58,7 @@ TEST(Invariants, CheckerCatchesEveryCorruption) {
         {"order price", [](VerifyRig& r) { pool(r).at(bid(r, 1).head).price = 4800; }},
         {"order remaining", [](VerifyRig& r) { pool(r).at(bid(r, 0).head).remaining += 1; }},
         {"fifo link", [](VerifyRig& r) { pool(r).at(bid(r, 0).head).next = ob::kInvalidSlot; }},
+        {"queue order", [](VerifyRig& r) { pool(r).at(bid(r, 0).head).id = 999'999; }},
         {"fifo back link",
          [](VerifyRig& r) { pool(r).at(bid(r, 0).tail).prev = ob::kInvalidSlot; }},
         {"level tail", [](VerifyRig& r) { bid(r, 0).tail = bid(r, 0).head; }},

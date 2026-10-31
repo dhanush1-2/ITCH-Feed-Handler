@@ -60,7 +60,7 @@ def not_head_section(d):
     def dated(ref):
         return secs[min(bisect.bisect_left(highest, ref), len(secs) - 1)]
 
-    delays = sorted(r["o_t"] // 10**9 - dated(r["ref"]) for r in E)
+    delays = sorted(r["o_t"] // 10**9 - dated(r["ref"]) for r in E) or [None]
     table = [{"kind": k[0], "at_display_price": k[1], "arrival_head": k[2], "lowest_ref": k[3],
               "continuous": k[4], "count": v} for k, v in sorted(models.items())]
     e_total = sum(v for k, v in models.items() if k[0] == "E")
@@ -75,11 +75,12 @@ def not_head_section(d):
         "by_kind": tally(nh, lambda r: r["kind"] + r["printable"]),
         "queue_model_table": table,
         "E": {
-            "at_best_level": e_total, "not_arrival_head": len(E),
+            "at_best_level": e_total, "not_queue_head": len(E),
+            "not_first_to_arrive": sum(v for k, v in models.items() if k[0] == "E" and not k[2]),
             "lowest_ref_at_level": e_ref_head,
             "not_lowest_ref_at_level": e_total - e_ref_head,
             "order_displayed_before_open": sum(r["o_t"] < OPEN_NS for r in E),
-            "order_displayed_max_s_after_open": max(r["o_t"] - OPEN_NS for r in E) / 1e9,
+            "order_displayed_max_s_after_open": max((r["o_t"] - OPEN_NS for r in E), default=0) / 1e9,
             "order_ref_dated_before_open": sum(dated(r["ref"]) < 34_200 for r in E),
             "ref_to_display_delay_s": {"min": delays[0], "median": pct(delays, .5),
                                        "max": delays[-1]},
@@ -104,7 +105,7 @@ def not_head_section(d):
         },
         "C": {
             "total_at_best_level": c_total,
-            "not_arrival_head": len(C),
+            "not_queue_head": len(C),
             "away_from_display_price": {
                 "not_head": len(away),
                 "all_at_best_level": sum(v for k, v in models.items() if k[0] == "C" and not k[1]),

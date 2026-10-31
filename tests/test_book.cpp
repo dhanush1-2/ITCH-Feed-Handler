@@ -23,9 +23,13 @@ struct Fixture {
     std::uint64_t next_id = 1;
 
     Slot add(Side side, std::int32_t price, std::uint32_t qty) {
+        return add_ref(next_id++, side, price, qty);
+    }
+
+    Slot add_ref(std::uint64_t ref, Side side, std::int32_t price, std::uint32_t qty) {
         const Slot s = pool.alloc();
         auto&      o = pool.at(s);
-        o.id         = next_id++;
+        o.id         = ref;
         o.price      = price;
         o.remaining  = qty;
         o.side       = side;
@@ -33,6 +37,19 @@ struct Fixture {
         return s;
     }
 };
+
+// The level's references, head to tail, checking both directions of the chain agree.
+std::vector<std::uint64_t> queue(const ob::OrderPool& pool, const book::Level& lv) {
+    std::vector<std::uint64_t> out;
+    Slot                       last = ob::kInvalidSlot;
+    for (Slot s = lv.head; s != ob::kInvalidSlot; s = pool.at(s).next) {
+        EXPECT_EQ(pool.at(s).prev, last);
+        out.push_back(pool.at(s).id);
+        last = s;
+    }
+    EXPECT_EQ(lv.tail, last);
+    return out;
+}
 
 std::vector<std::int32_t> prices(const auto& levels) {
     std::vector<std::int32_t> out;
@@ -128,4 +145,36 @@ TEST(Book, ReduceUpdatesLevelTotalAndKeepsPosition) {
     // Removing afterwards subtracts what is left, not what was added.
     f.b.remove(f.pool, a);
     EXPECT_EQ(f.b.bids().front().total, 50u);
+}
+
+// The exchange's queue runs in reference-number order, not message-arrival order: every E of two
+// full days hits the lowest reference at its level (docs/DISCREPANCIES.md).
+TEST(Book, OutOfOrderRefLandsAheadOfHigherOne) {
+    Fixture f;
+    f.add_ref(20, Side::Buy, 100, 1);
+    f.add_ref(30, Side::Buy, 100, 1);
+    f.add_ref(10, Side::Buy, 100, 1);  // new head
+    f.add_ref(25, Side::Buy, 100, 1);  // middle
+    f.add_ref(40, Side::Buy, 100, 1);  // new tail
+    const auto& lv = *f.b.bids().begin();
+    EXPECT_EQ(queue(f.pool, lv), (std::vector<std::uint64_t>{10, 20, 25, 30, 40}));
+    EXPECT_EQ(lv.count, 5u);
+    EXPECT_EQ(lv.total, 5u);
+}
+
+TEST(Book, EqualPriceChurnKeepsRefOrder) {
+    Fixture    f;
+    const Slot a = f.add_ref(10, Side::Sell, 100, 5);
+    const Slot b = f.add_ref(20, Side::Sell, 100, 5);
+    f.add_ref(30, Side::Sell, 100, 5);
+    f.b.reduce(f.pool, b, 2);  // a partial fill or cancel does not move an order
+    f.add_ref(15, Side::Sell, 100, 5);
+    EXPECT_EQ(queue(f.pool, *f.b.asks().begin()), (std::vector<std::uint64_t>{10, 15, 20, 30}));
+    f.b.remove(f.pool, a);
+    f.b.remove(f.pool, b);
+    f.add_ref(12, Side::Sell, 100, 5);  // into the gap, at the new head
+    f.add_ref(50, Side::Sell, 100, 5);
+    const auto& lv = *f.b.asks().begin();
+    EXPECT_EQ(queue(f.pool, lv), (std::vector<std::uint64_t>{12, 15, 30, 50}));
+    EXPECT_EQ(lv.total, 20u);
 }

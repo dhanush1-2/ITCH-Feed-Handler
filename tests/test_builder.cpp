@@ -312,3 +312,31 @@ TEST(StateDump, RecordLayoutIsBigEndian) {
         EXPECT_EQ(static_cast<unsigned char>(d[i]), expect[i]) << i;
     }
 }
+
+// A replace's new reference is placed by number too, and the dump shows that order whatever the
+// slot history was.
+TEST(StateDump, RefOrderIndependentOfSlotHistory) {
+    const auto feed = [](bool churn) {
+        Rig r;
+        if (churn) {
+            r.feed(make_add(H1, 900, 'B', 1, "TEST", 7000));
+            r.feed(make_add(H1, 901, 'B', 1, "TEST", 7000));
+            r.feed(make_delete(H1, 900));
+            r.feed(make_delete(H1, 901));
+        }
+        r.feed(make_add(H1, 30, 'B', 100, "TEST", 5000));
+        r.feed(make_add(H1, 10, 'B', 100, "TEST", 5000));
+        r.feed(make_add(H1, 50, 'B', 100, "TEST", 4000));
+        r.feed(make_replace(H1, 50, 20, 100, 5000));
+        return r.dump();
+    };
+    const std::string plain = feed(false);
+    EXPECT_EQ(plain, feed(true));
+    ASSERT_EQ(plain.size(), 3u * 19u);
+    const auto ref_at = [&](std::size_t i) {
+        return static_cast<unsigned char>(plain[i * 19 + 14]);  // low byte of the u64 ref
+    };
+    EXPECT_EQ(ref_at(0), 10);
+    EXPECT_EQ(ref_at(1), 20);
+    EXPECT_EQ(ref_at(2), 30);
+}

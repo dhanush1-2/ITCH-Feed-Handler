@@ -6,9 +6,9 @@
 
 Written from the field tables in docs/spec/NQTVITCHspecification.pdf, sharing no code with the
 C++ handler. Its value is that it is built differently: orders live in one dict keyed by
-reference number with an arrival sequence, there are no price levels and no queues during the
-replay, and the book only comes into being when a checkpoint sorts the live orders. A book
-bug in the C++ structure therefore has nothing to hide behind here.
+reference number, there are no price levels and no queues during the replay, and the book only
+comes into being when a checkpoint sorts the live orders. A book bug in the C++ structure
+therefore has nothing to hide behind here.
 
 The file is a sequence of messages, each preceded by a 2-byte big-endian length.
 
@@ -19,11 +19,13 @@ Rules taken from the spec:
   * 1.5.2: a Q carries the bulk cross volume, and may show zero shares when no cross took
     place. Zero shares is no trade, so it does not count as one.
   * 1.5.3: a B undoes the E, C or P with that match number.
-  * 1.4.5: U removes the old order; the new reference number is a new arrival, so it goes to
-    the back of its level. Side and symbol carry over.
+  * 1.3.1: the reference number is assigned at receipt, so it, not message arrival, orders a
+    level (measured, not stated by the spec: docs/DISCREPANCIES.md).
+  * 1.4.5: U removes the old order and the new reference number takes its place by number.
+    Side and symbol carry over.
 
 Levels: [price, total shares, order count], bids high to low, asks low to high.
-FIFO: [price, [[ref, shares], ...]] with the earliest arrival first.
+FIFO: [price, [[ref, shares], ...]] with the lowest reference number first.
 """
 import argparse
 import json
@@ -68,15 +70,15 @@ class Symbol:
 def snapshot(orders, names):
     """Turn the live orders into per-symbol levels and FIFO lists, sorting only here."""
     by_key = {}
-    for ref, (locate, side, price, shares, seq) in orders.items():
-        by_key.setdefault((locate, side, price), []).append((seq, ref, shares))
+    for ref, (locate, side, price, shares) in orders.items():
+        by_key.setdefault((locate, side, price), []).append((ref, shares))
     out = {name: {"bids": [], "asks": [], "fifo": {"B": [], "S": []}} for name in names.values()}
     for (locate, side, price) in sorted(by_key, key=lambda k: (k[0], k[1], -k[2] if k[1] == "B" else k[2])):
         entries = sorted(by_key[(locate, side, price)])
         book = out[names[locate]]
         book["bids" if side == "B" else "asks"].append(
-            [price, sum(e[2] for e in entries), len(entries)])
-        book["fifo"][side].append([price, [[e[1], e[2]] for e in entries]])
+            [price, sum(e[1] for e in entries), len(entries)])
+        book["fifo"][side].append([price, [[e[0], e[1]] for e in entries]])
     return out
 
 
@@ -87,7 +89,6 @@ def build(path, symbols, checkpoint_s=43_200):
     names = {}
     orders = {}
     prints = {}
-    seq = 0
     pending_checkpoint = checkpoint_s * 1_000_000_000
     noon = None
 
@@ -119,8 +120,7 @@ def build(path, symbols, checkpoint_s=43_200):
 
         if kind == "A" or kind == "F":
             ref, side, shares, _, price = ADD.unpack_from(buf, body)
-            orders[ref] = [locate, side.decode(), price, shares, seq]
-            seq += 1
+            orders[ref] = [locate, side.decode(), price, shares]
         elif kind == "E" or kind == "C":
             if kind == "E":
                 ref, shares, match = EXEC.unpack_from(buf, body)
@@ -171,8 +171,7 @@ def build(path, symbols, checkpoint_s=43_200):
                 continue
             s.replaced_out += o[3]
             s.replaced_in += shares
-            orders[new] = [locate, o[1], price, shares, seq]
-            seq += 1
+            orders[new] = [locate, o[1], price, shares]
         elif kind == "P":
             _, _, shares, _, _, match = TRADE.unpack_from(buf, body)
             s.volume += shares

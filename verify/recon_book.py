@@ -204,10 +204,10 @@ def run(args):
                                      crossed=was))
             else:
                 lv = levels[(id(s), o.side, o.price)]
-                head = next(iter(lv))
                 ref_min = min(lv)
-                key = (chr(kind), xprice is None or xprice == o.price, head == ref, ref_min == ref,
-                       cont)
+                head = ref_min   # the C++ queue order; arrival order is kept for comparison
+                key = (chr(kind), xprice is None or xprice == o.price, next(iter(lv)) == ref,
+                       ref_min == ref, cont)
                 models[key] = models.get(key, 0) + 1
                 if head != ref:
                     status = "not_head"
@@ -217,8 +217,8 @@ def run(args):
                     rank, ahead, same_price_lineage_ahead, later_lineage = 0, 0, 0, 0
                     ahead_refs = []
                     for r in lv:
-                        if r == ref:
-                            break
+                        if r >= ref:
+                            continue
                         q = orders[r]
                         rank += 1
                         ahead += q.shares

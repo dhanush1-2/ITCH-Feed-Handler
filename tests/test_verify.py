@@ -145,6 +145,20 @@ def test_reference_matches_handbuilt_stream(tmp_path):
     assert end["fifo"]["S"] == []
 
 
+def test_reference_orders_a_level_by_reference_number(tmp_path):
+    path = tmp_path / "inverted.itch"
+    t = NOON + 1
+    path.write_bytes(b"".join(frame(m) for m in [
+        directory(1, "AAA"),
+        add(1, 30, b"B", 1, "AAA", 100000, t),
+        add(1, 10, b"B", 2, "AAA", 100000, t),   # lower reference, later on the feed
+        add(1, 50, b"B", 3, "AAA", 90000, t),
+        replace(1, 50, 20, 4, 100000, t),        # a replace is placed by number as well
+    ]))
+    end = reference_book.build(str(path), ["AAA"], checkpoint_s=43_200)["symbols"]["AAA"]["checkpoints"]["eod"]
+    assert end["fifo"]["B"] == [[100000, [[10, 2], [20, 4], [30, 1]]]]
+
+
 def test_reference_rejects_a_modify_of_an_unknown_order(tmp_path):
     path = tmp_path / "bad.itch"
     path.write_bytes(frame(directory(1, "AAA")) + frame(execute(1, 77, 1, 1, 5)))

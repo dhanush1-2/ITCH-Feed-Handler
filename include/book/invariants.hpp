@@ -182,6 +182,9 @@ template <class Range>
             if (o.prev != prev) {
                 return "fifo prev link is inconsistent";
             }
+            if (prev != ob::kInvalidSlot && pool.at(prev).id >= o.id) {
+                return "queue is not in reference-number order";
+            }
             total += o.remaining;
             prev = s;
             s    = o.next;

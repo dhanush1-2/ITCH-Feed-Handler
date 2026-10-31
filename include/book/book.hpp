@@ -8,9 +8,9 @@
 // eight levels from the back and only then binary-searches. A new level inserts by shifting
 // the (usually short) tail; an empty level is erased.
 //
-// Orders live in the shared ob::OrderPool; a Level only holds the head and tail of its FIFO
-// chain, linked through Order::next / Order::prev. The Book never allocates or frees a slot.
-// Callers set Order::{price, remaining, side} before add().
+// Orders live in the shared ob::OrderPool; a Level only holds the head and tail of its queue,
+// in reference-number order, linked through Order::next / Order::prev. The Book never allocates or
+// frees a slot. Callers set Order::{price, remaining, side} before add().
 
 #include <algorithm>
 #include <cstddef>
@@ -40,8 +40,11 @@ public:
     static constexpr std::size_t kInitialLevels = 64;
     static constexpr std::size_t kScan          = 8;
 
-    // Appends the order at the back of its price level (loses time priority to everyone
-    // already there).
+    // Places the order in its price level by reference number: the exchange's queue order, not
+    // message arrival. Orders received before the open can be displayed after later ones and
+    // still rank ahead (docs/DISCREPANCIES.md). A new reference is nearly always the highest,
+    // so the walk starts at the tail and is O(1) in the common case. reduce() does not move an
+    // order, and a U's new reference is placed here like any other. Callers set Order::id too.
     void add(ob::OrderPool& pool, ob::Slot s) {
         ob::Order& o = pool.at(s);
         auto&      v = side_vec(o.side);
@@ -53,15 +56,24 @@ public:
             v.insert(v.begin() + static_cast<std::ptrdiff_t>(i),
                      Level{o.price, ob::kInvalidSlot, ob::kInvalidSlot, 0, 0});
         }
-        Level& lv = v[i];
-        o.next    = ob::kInvalidSlot;
-        o.prev    = lv.tail;
-        if (lv.tail != ob::kInvalidSlot) {
-            pool.at(lv.tail).next = s;
+        Level&   lv    = v[i];
+        ob::Slot after = lv.tail;
+        while (after != ob::kInvalidSlot && pool.at(after).id > o.id) {
+            after = pool.at(after).prev;
+        }
+        const ob::Slot before = after == ob::kInvalidSlot ? lv.head : pool.at(after).next;
+        o.prev                = after;
+        o.next                = before;
+        if (after != ob::kInvalidSlot) {
+            pool.at(after).next = s;
         } else {
             lv.head = s;
         }
-        lv.tail = s;
+        if (before != ob::kInvalidSlot) {
+            pool.at(before).prev = s;
+        } else {
+            lv.tail = s;
+        }
         ++lv.count;
         lv.total += o.remaining;
         ++orders_;
