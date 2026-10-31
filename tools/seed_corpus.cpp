@@ -4,13 +4,15 @@
 // type, a mixed stream, and truncated and wrong-length variants. Built from the test
 // builders, which are independent of the views.
 //
-//   itch_seed_corpus <dir>
+//   itch_seed_corpus <dir>          seeds for fuzz_parser
+//   itch_seed_corpus --mold <dir>   seeds for fuzz_mold (record format in fuzz/fuzz_mold.cpp)
 
 #include <array>
 #include <cstdint>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <mold/packet.hpp>
 #include <string>
 #include <support/itch_builder.hpp>
 
@@ -21,11 +23,108 @@ void write(const std::filesystem::path& dir, const std::string& name, const Byte
     std::ofstream f(dir / name, std::ios::binary);
     f.write(reinterpret_cast<const char*>(b.data()), static_cast<std::streamsize>(b.size()));
 }
+
+// fuzz_mold records: 0 L <packet>, 1 tick, 2 sh sl n (data), 3 k sh sl (heartbeat/end).
+Bytes raw_rec(const Bytes& packet) {
+    Bytes r{std::byte{0}, static_cast<std::byte>(packet.size())};
+    r.insert(r.end(), packet.begin(), packet.end());
+    return r;
+}
+
+Bytes tick() {
+    return Bytes{std::byte{1}};
+}
+
+Bytes data_rec(std::uint16_t seq, std::uint8_t n) {
+    return Bytes{std::byte{2}, static_cast<std::byte>(seq >> 8), static_cast<std::byte>(seq & 0xFF),
+                 static_cast<std::byte>(n - 1)};
+}
+
+Bytes control_rec(bool end, std::uint16_t seq) {
+    return Bytes{std::byte{3}, static_cast<std::byte>(end ? 1 : 0),
+                 static_cast<std::byte>(seq >> 8), static_cast<std::byte>(seq & 0xFF)};
+}
+
+// A real MoldUDP64 packet carrying the given ITCH messages starting at `seq`.
+Bytes mold_packet(std::uint64_t seq, const std::vector<Bytes>& msgs, char session_tag = 'F') {
+    constexpr mold::Session base{'F', 'U', 'Z', 'Z', 'S', 'E', 'S', 'S', '0', '1'};
+    mold::Session           s = base;
+    s[0]                      = session_tag;
+    Bytes p(mold::kHeaderSize);
+    mold::write_header(p.data(), s, seq, static_cast<std::uint16_t>(msgs.size()));
+    for (const Bytes& m : msgs) {
+        const Bytes f = frame(m);
+        p.insert(p.end(), f.begin(), f.end());
+    }
+    return p;
+}
+
+Bytes cat(std::initializer_list<Bytes> parts) {
+    Bytes out;
+    for (const Bytes& p : parts) {
+        append(out, p);
+    }
+    return out;
+}
+
+int write_mold_seeds(const std::filesystem::path& dir) {
+    std::filesystem::create_directories(dir);
+    const Hdr   h{7, 1, 34200000000000ULL};
+    const Bytes a = make_add(h, 1, 'B', 100, "AAPL", 1500000);
+    const Bytes e = make_executed(h, 1, 50, 99);
+    const Bytes d = make_delete(h, 1);
+
+    write(dir, "in_order.bin",
+          cat({raw_rec(mold_packet(1, {a, e})), raw_rec(mold_packet(3, {d})), data_rec(4, 2)}));
+    write(dir, "gap_then_fill.bin",
+          cat({raw_rec(mold_packet(1, {a})), raw_rec(mold_packet(4, {d})), tick(), tick(),
+               raw_rec(mold_packet(2, {e, e}))}));
+    write(dir, "duplicate_overlap.bin",
+          cat({raw_rec(mold_packet(1, {a, e})), raw_rec(mold_packet(1, {a, e})),
+               raw_rec(mold_packet(2, {e, d}))}));
+    write(dir, "reorder_overflow.bin",
+          cat({data_rec(1, 1), data_rec(3, 1), data_rec(5, 1), data_rec(7, 1), data_rec(9, 1),
+               data_rec(11, 1), tick(), tick(), tick(), data_rec(2, 1), data_rec(4, 1)}));
+    write(dir, "tail_loss_heartbeat.bin",
+          cat({data_rec(1, 3), control_rec(false, 4), control_rec(false, 9), tick(), tick(),
+               data_rec(4, 5), control_rec(true, 9)}));
+    write(dir, "end_with_gap.bin",
+          cat({data_rec(1, 2), control_rec(true, 8), data_rec(3, 5), tick()}));
+    write(dir, "stale_after_retries.bin",
+          cat({data_rec(1, 1), data_rec(40, 1), tick(), tick(), tick(), tick(), tick(), tick(),
+               tick(), tick(), data_rec(2, 8)}));
+    write(dir, "huge_gap_limit.bin", cat({data_rec(1, 1), control_rec(false, 60000)}));
+    write(dir, "wrong_session.bin",
+          cat({raw_rec(mold_packet(1, {a})), raw_rec(mold_packet(2, {e}, 'X')),
+               raw_rec(mold_packet(2, {e}))}));
+
+    Bytes zero_len = mold_packet(1, {a});
+    zero_len.push_back(std::byte{0});  // an extra empty block, count still 1: bytes left over
+    zero_len.push_back(std::byte{0});
+    Bytes empty_block(mold::kHeaderSize);
+    mold::write_header(empty_block.data(), {'F', 'U', 'Z', 'Z', 'S', 'E', 'S', 'S', '0', '1'}, 1,
+                       2);
+    append(empty_block,
+           bytes_of({0x00, 0x01, 0x41, 0x00, 0x00}));  // a block, then a zero-length one
+    Bytes overflow(mold::kHeaderSize);
+    mold::write_header(overflow.data(), {'F', 'U', 'Z', 'Z', 'S', 'E', 'S', 'S', '0', '1'},
+                       UINT64_MAX, 2);
+    append(overflow, bytes_of({0x00, 0x01, 0x41, 0x00, 0x01, 0x42}));
+    Bytes truncated = mold_packet(1, {a, e});
+    truncated.resize(truncated.size() - 7);
+    write(dir, "malformed.bin",
+          cat({raw_rec(zero_len), raw_rec(empty_block), raw_rec(overflow), raw_rec(truncated),
+               raw_rec(bytes_of({0x00, 0x01})), data_rec(1, 2)}));
+    return 0;
+}
 }  // namespace
 
 int main(int argc, char** argv) {
+    if (argc == 3 && std::string(argv[1]) == "--mold") {
+        return write_mold_seeds(argv[2]);
+    }
     if (argc != 2) {
-        std::fprintf(stderr, "usage: itch_seed_corpus <dir>\n");
+        std::fprintf(stderr, "usage: itch_seed_corpus <dir> | --mold <dir>\n");
         return 2;
     }
     const std::filesystem::path dir = argv[1];

@@ -11,3 +11,6 @@ target_link_libraries(itch_replay PRIVATE itch)
 
 add_executable(itch_slice itch_slice.cpp)
 target_link_libraries(itch_slice PRIVATE itch)
+
+add_executable(mold_sim mold_sim.cpp)
+target_link_libraries(mold_sim PRIVATE itch)

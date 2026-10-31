@@ -80,6 +80,35 @@ jobs:
             --symbols "$(cat testdata/slice_symbols.txt)" --json /tmp/slice_reference.json
           python3 verify/compare.py /tmp/slice_orders.json /tmp/slice_reference.json
 
+  loss-injection:
+    name: loss-injection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ninja and pytest
+        run: |
+          sudo apt-get update && sudo apt-get install -y ninja-build
+          python3 -m pip install --quiet --break-system-packages pytest
+      - name: Build
+        run: |
+          cmake --preset release -G Ninja -DITCH_WARNINGS_AS_ERRORS=ON -DITCH_REQUIRE_PYTEST=ON \
+            -DPython3_EXECUTABLE="$(command -v python3)"
+          cmake --build --preset release
+      - name: Slice loss suite (receiver rig and mold_sim CLI tests)
+        run: ctest --preset release -R 'slice_prepare|loss_injection|mold_sim_cli' --timeout 300
+      - name: Loss sweep through the CLI, books compared with a direct replay
+        # Five seeds at three loss levels. mold_sim exits 3 if the receiver goes Stale, the
+        # delivered stream differs from the file's, or the noon books differ from a direct replay.
+        run: |
+          python3 scripts/prepare_slice.py --out /tmp/slice.itch
+          for seed in 1 2 3 4 5; do
+            for loss in 0.001 0.01 0.05; do
+              build/release/tools/mold_sim /tmp/slice.itch --loss "$loss" --dup 0.005 --reorder 16 \
+                --burst 0.0005,64 --retransmit-loss 0.01 --seed "$seed" \
+                --dump-state /tmp/loss_state.bin --dump-at-s 43200 --check-direct
+            done
+          done
+
   fuzz-smoke:
     name: fuzz-60s
     runs-on: ubuntu-latest
@@ -87,14 +116,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install clang and Ninja
         run: sudo apt-get update && sudo apt-get install -y ninja-build clang
-      - name: Build fuzz_parser
+      - name: Build the fuzz targets
         env:
           CC: clang
           CXX: clang++
         run: |
           cmake -S . -B build/fuzz -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DITCH_BUILD_FUZZ=ON -DITCH_BUILD_TESTS=OFF -DITCH_BUILD_TOOLS=OFF
-          cmake --build build/fuzz --target fuzz_parser
+          cmake --build build/fuzz --target fuzz_parser fuzz_mold
       - name: Fuzz for 60 seconds from the stored corpus
         env:
           ASAN_OPTIONS: detect_leaks=0
@@ -103,6 +132,14 @@ jobs:
           cp fuzz/corpus/* /tmp/work/
           build/fuzz/fuzz/fuzz_parser -max_total_time=60 -print_final_stats=1 \
             -artifact_prefix=/tmp/art/ /tmp/work
+      - name: Fuzz the MoldUDP64 receiver for 60 seconds from its seed corpus
+        env:
+          ASAN_OPTIONS: detect_leaks=0
+        run: |
+          mkdir -p /tmp/work_mold /tmp/art
+          cp fuzz/corpus_mold/* /tmp/work_mold/
+          build/fuzz/fuzz/fuzz_mold -max_total_time=60 -print_final_stats=1 \
+            -artifact_prefix=/tmp/art/ /tmp/work_mold
       - name: Upload crash artifacts
         if: failure()
         uses: actions/upload-artifact@v4

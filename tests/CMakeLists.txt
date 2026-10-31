@@ -21,7 +21,8 @@ add_executable(itch_tests
     test_oracle.cpp
     test_stats.cpp
     test_mold_packet.cpp
-    test_mold_sim.cpp)
+    test_mold_sim.cpp
+    test_mold_receiver.cpp)
 target_include_directories(itch_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(itch_tests PRIVATE itch GTest::gtest_main)
 gtest_discover_tests(itch_tests)
@@ -62,4 +63,22 @@ if(ITCH_BUILD_TOOLS AND Python3_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/testdata/sl
                 --replay $<TARGET_FILE:itch_replay> --slice ${_slice_dir}/slice.itch
                 --work ${_slice_dir})
     set_tests_properties(slice_golden PROPERTIES FIXTURES_REQUIRED slice)
+endif()
+
+# Loss injection on the real slice: the in-process rig (itch_loss_tests) and the mold_sim CLI.
+# Both need the expanded slice, so they run after slice_prepare.
+add_executable(itch_loss_tests test_loss_injection.cpp)
+target_link_libraries(itch_loss_tests PRIVATE itch GTest::gtest_main)
+if(ITCH_BUILD_TOOLS AND Python3_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/testdata/slice.itch.gz)
+    add_test(NAME loss_injection COMMAND itch_loss_tests)
+    set_tests_properties(loss_injection PROPERTIES
+        FIXTURES_REQUIRED slice
+        ENVIRONMENT "ITCH_SLICE=${_slice_dir}/slice.itch")
+    if(_pytest_rc EQUAL 0)
+        add_test(NAME mold_sim_cli
+            COMMAND ${Python3_EXECUTABLE} -m pytest -q ${CMAKE_CURRENT_SOURCE_DIR}/test_mold_sim_cli.py)
+        set_tests_properties(mold_sim_cli PROPERTIES
+            FIXTURES_REQUIRED slice
+            ENVIRONMENT "MOLD_SIM=$<TARGET_FILE:mold_sim>;ITCH_REPLAY=$<TARGET_FILE:itch_replay>;ITCH_SLICE=${_slice_dir}/slice.itch")
+    endif()
 endif()

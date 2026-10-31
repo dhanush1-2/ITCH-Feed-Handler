@@ -14,3 +14,10 @@ target_compile_definitions(fuzz_parser PRIVATE ITCH_VERIFY=1)
 target_compile_options(fuzz_parser PRIVATE
     -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer -g -UNDEBUG)
 target_link_options(fuzz_parser PRIVATE -fsanitize=fuzzer,address,undefined)
+
+add_executable(fuzz_mold fuzz_mold.cpp)
+target_link_libraries(fuzz_mold PRIVATE itch)
+target_compile_definitions(fuzz_mold PRIVATE ITCH_VERIFY=1)
+target_compile_options(fuzz_mold PRIVATE
+    -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer -g -UNDEBUG)
+target_link_options(fuzz_mold PRIVATE -fsanitize=fuzzer,address,undefined)
