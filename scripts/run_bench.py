@@ -136,7 +136,11 @@ def summarize(name: str, runs: list[dict]) -> dict:
         "peak_live_orders": res[0]["peak_live_orders"],
         "anomalies": res[0]["anomalies"],
         "median_of_chunk_median_msgs_per_sec": statistics.median(
-            x["throughput_by_chunk"]["median_msgs_per_sec"] for x in res),
+            x["throughput_by_chunk"]["median_msgs_per_sec"] for x in res
+            if "median_msgs_per_sec" in x["throughput_by_chunk"]) if any(
+            "median_msgs_per_sec" in x["throughput_by_chunk"] for x in res) else None,
+        "input_mlocked": all(r["prefault"]["mlocked"] for r in runs),
+        "timed_span_major_faults_per_run": [r["timed_span"]["major_faults"] for r in runs],
         "timed_span_major_faults_max": max(r["timed_span"]["major_faults"] for r in runs),
         "timed_span_involuntary_ctx_switches_max":
             max(r["timed_span"]["involuntary_ctx_switches"] for r in runs),
@@ -216,6 +220,28 @@ def main() -> int:
     results: dict[str, dict] = {}
     rejected: dict[str, dict] = {}
     stamp = None
+
+    def write(final: bool) -> None:
+        m["thermal_after"] = sh(["pmset", "-g", "therm"])
+        doc = {
+            "meta": {**(stamp or {}), "os": m["os"], "power_source": m["power_source"],
+                     "low_power_mode": m["low_power_mode"], "pinning": m["pinning"],
+                     "data_sha256": sha, "data_bytes": data.stat().st_size,
+                     "label": args.label, "complete": final},
+            "machine": m,
+            "protocol": {
+                "processes_per_measurement": args.runs, "published": "median",
+                "spread_definition": "(max - min) / median of msgs_per_sec",
+                "spread_limit": SPREAD_LIMIT, "cooldown_seconds_between_runs": COOLDOWN_S,
+                "timer": "mach counter via ob::bench::Clock; granularity in each result's clock block",
+                "ten_symbols": symbols,
+            },
+            "results": results,
+            "rejected_sets": rejected,
+        }
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(json.dumps(doc, indent=2) + "\n")
+
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         for name in chosen:
@@ -243,6 +269,7 @@ def main() -> int:
                 time.sleep(COOLDOWN_S * 3)
             else:
                 print(f"[{name}] rejected twice; nothing published for it", file=sys.stderr)
+            write(False)
             time.sleep(COOLDOWN_S)
 
     for names, why in AGREE:
@@ -256,25 +283,7 @@ def main() -> int:
         raise SystemExit(f"the binary's stamp is '{commit}': rebuild from a clean commit "
                          "(or pass --allow-dirty for an experiment)")
 
-    m["thermal_after"] = sh(["pmset", "-g", "therm"])
-    doc = {
-        "meta": {**(stamp or {}), "os": m["os"], "power_source": m["power_source"],
-                 "low_power_mode": m["low_power_mode"], "pinning": m["pinning"],
-                 "data_sha256": sha, "data_bytes": data.stat().st_size,
-                 "label": args.label},
-        "machine": m,
-        "protocol": {
-            "processes_per_measurement": args.runs, "published": "median",
-            "spread_definition": "(max - min) / median of msgs_per_sec",
-            "spread_limit": SPREAD_LIMIT, "cooldown_seconds_between_runs": COOLDOWN_S,
-            "timer": "mach counter via ob::bench::Clock; granularity in each result's clock block",
-            "ten_symbols": symbols,
-        },
-        "results": results,
-        "rejected_sets": rejected,
-    }
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(doc, indent=2) + "\n")
+    write(True)
     print(f"wrote {out_path}")
     return 4 if any(n not in results for n in chosen) else 0
 

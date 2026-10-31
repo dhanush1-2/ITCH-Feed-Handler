@@ -249,6 +249,7 @@ std::uint64_t max_rss_bytes() {
 }
 
 struct Prefault {
+    bool          locked                 = false;
     int           passes                 = 0;
     std::uint64_t last_pass_major_faults = 0;
 };
@@ -561,7 +562,8 @@ void write_report(const Report& rp) {
        << ", \"peak_live_orders\": " << rp.peak_live << ", \"live_orders_end\": " << rp.live_end
        << ", \"anomalies\": " << (rp.anomalies_json.empty() ? "null" : rp.anomalies_json)
        << ", \"throughput_by_chunk\": " << chunks_json(rp.r.chunk_rate) << "},\n";
-    js << "  \"prefault\": {\"passes\": " << g_prefault.passes
+    js << "  \"prefault\": {\"mlocked\": " << (g_prefault.locked ? "true" : "false")
+       << ", \"touch_passes\": " << g_prefault.passes
        << ", \"last_pass_major_faults\": " << g_prefault.last_pass_major_faults << "},\n";
     js << "  \"timed_span\": {\"minor_faults\": " << rp.r.use_delta.minflt
        << ", \"major_faults\": " << rp.r.use_delta.majflt
@@ -781,14 +783,16 @@ int run(const Options& o) {
     in.data = mf.bytes();
 
     // MappedFile::open advises MADV_SEQUENTIAL, which on macOS releases pages behind the read
-    // position, so a pre-fault pass would be undone before the timed span begins (measured: tens
-    // of thousands of major faults inside the timed loop). Reset the advice, then pre-fault, and
-    // report the fault counts of the timed span so the claim can be checked.
+    // position, so a pre-fault pass is undone before the timed span begins. Resetting the advice
+    // and touching every page once was still not enough: with an 8.25 GB file on a 24 GB machine
+    // the kernel kept reclaiming mapped pages, and timed spans saw about 1,300 major faults and
+    // ran 20% slower. mlock() wires the mapping, which makes the timed span fault-free by
+    // construction. If it is refused, fall back to repeated touching. Either way the fault counts
+    // of the timed span are reported, so the claim can be checked.
     (void)::madvise(const_cast<std::byte*>(mf.bytes().data()), mf.bytes().size(), MADV_NORMAL);
-    // One pass is not enough when the file is a large share of RAM: the kernel can evict the head
-    // while the tail is being touched. Repeat until a pass takes few major faults.
     Prefault pf;
-    for (; pf.passes < 8;) {
+    pf.locked = ::mlock(mf.bytes().data(), mf.bytes().size()) == 0;
+    for (; !pf.locked && pf.passes < 8;) {
         const Usage a = usage_now();
         mf.prefault();
         ++pf.passes;
