@@ -1,10 +1,10 @@
 # NASDAQ ITCH 5.0 feed handler
 
-A C++20 feed handler that replays one full recorded trading day (<!-- gen:messages_m -->268.7 M<!-- /gen --> messages) at <!-- gen:apply_mps -->14.25 M<!-- /gen --> msgs/s on one thread of an <!-- gen:cpu -->Apple M4 Pro<!-- /gen -->, rebuilds every symbol's order book, and recovers from injected MoldUDP64 loss to bit-identical state.
+A C++20 feed handler that replays one full recorded NASDAQ trading day (<!-- gen:messages_m -->268.7 M<!-- /gen --> messages) at <!-- gen:apply_mps -->14.25 M<!-- /gen --> msgs/s on one thread of an <!-- gen:cpu -->Apple M4 Pro<!-- /gen -->, rebuilds every symbol's order book, and recovers from injected MoldUDP64 loss to bit-identical state.
 
 <!-- gen:badges --><!-- /gen -->
 
-This is a replay of recorded files. Nothing here is a network latency, tick-to-trade or production claim. "Bit-identical" means two things only: the resting-order state at feed second <!-- gen:noon_second -->43,200<!-- /gen --> (<!-- gen:noon_orders -->1,771,377<!-- /gen --> orders), and the SHA-256 of the whole delivered stream. The end-of-day book is empty, so comparing it would prove nothing.
+This is a replay of recorded files. CI and the two-minute demo use synthetic data committed here. The full-day results come from the real file, which you download from NASDAQ. Nothing here is a network latency, tick-to-trade or production claim. "Bit-identical" means two things only: the resting-order state at feed second <!-- gen:noon_second -->43,200<!-- /gen --> (<!-- gen:noon_orders -->1,771,377<!-- /gen --> orders), and the SHA-256 of the whole delivered stream. The end-of-day book is empty, so comparing it would prove nothing.
 
 ![Live replay around the 09:30 open](docs/images/demo-replay.gif)
 
@@ -20,7 +20,7 @@ Each number below is generated from the stamped file named beside it by `scripts
 |---|---|---|---|
 | Full real day replayed and checked | 268,744,780 messages, `unknown_ref` 0, conservation holds, 265 whole-state checks, no book crossed in continuous trading with a 5 s grace after a resume (634 crossed touches at 0 s of grace, all within 1.214 ms of a resume) | [`day_12302019.json`](results/day_12302019.json) | `itch_replay data/12302019.NASDAQ_ITCH50 --verify` |
 | Second day, six years later | 650,338,709 messages, `unknown_ref` 0, peak 5,271,230 live orders; no new message types | [`day_20251208.json`](results/day_20251208.json) | `itch_replay data/S120825-v50.txt --verify` |
-| Agrees with a separate Python reference | 20 symbols, identical field for field, 121,587 resting orders at noon, 6.9% of noon orders, 2019 only. No shared code, same author; shares the queue rule | [`cpp_subset_12302019.json`](results/cpp_subset_12302019.json), [`ref_12302019.json`](results/ref_12302019.json) | `verify/compare.py results/cpp_subset_12302019.json results/ref_12302019.json` |
+| Agrees with a separate Python reference | 20 symbols, identical field for field, 121,587 resting orders at noon, 6.9% of noon orders, 2019 only. No shared code, same author; shares the queue rule | [`known_answer_summary.json`](results/known_answer_summary.json); its inputs hold resting orders, so they are reproducible and not committed | `itch_replay <day> --export-orders <symbols> results/cpp_subset_12302019.json`, `verify/reference_book.py`, then `verify/compare.py` |
 | Bit-identical books after injected loss | 11,085,799 messages lost (`messages_lost_downstream`) and recovered; state at feed second 43,200 (1,771,377 resting orders) and stream hash both equal the lossless run. The end-of-day book is empty, so it proves nothing | [`loss_full_day.json`](results/loss_full_day.json), [`loss_full_day_lossless.json`](results/loss_full_day_lossless.json) | `mold_sim <day> --loss 0.01 --dup 0.005 --reorder 16 --burst 0.0005,64 --retransmit-loss 0.01 --seed 1 --retention 1048576 --dump-state s.bin --dump-at-s 43200`, then `cmp` |
 | Throughput, single thread, file replay | 14.25 M msgs/s applied, 203.76 M msgs/s parsed, on Apple M4 Pro | [`bench_12302019.json`](results/bench_12302019.json) | `scripts/run_bench.py --day 12302019` |
 | Per-message latency shape | p50 83 ns, p99 375 ns, p99.9 625 ns, quantized at 42 ns. From a separately timed run at 9.92 M msgs/s, 100.8 ns per message, with two clock reads per message; throughput comes from runs with no per-message clock | [`bench_12302019.json`](results/bench_12302019.json) | `scripts/run_bench.py --day 12302019` |
@@ -51,7 +51,7 @@ Each image is the captured output of the command in its caption, made by `script
 
 ![Full-day verify summary](docs/images/proof-verify.png)
 
-**Known-answer comparison.** `python3 -I verify/compare.py results/cpp_subset_12302019.json results/ref_12302019.json`
+**Known-answer comparison, on local output that is not committed.** `python3 -I verify/compare.py results/cpp_subset_12302019.json results/ref_12302019.json`
 
 ![compare.py passing](docs/images/proof-compare.png)
 
@@ -74,22 +74,21 @@ Each image is the captured output of the command in its caption, made by `script
 
 Prerequisites: CMake 3.25 or newer (the apt package on Ubuntu 22.04 is 3.22, too old), a C++20 compiler (AppleClang 21 here, GCC 13 builds with `-Werror`), Python 3 and network access for the first configure.
 
-The committed slice is eight symbols cut from the real day, with every order's whole life in it. See `testdata/README.md`.
+CI and the two-minute demo use synthetic data: one invented day for eight invented symbols, written from a seed by `scripts/gen_synthetic_itch.py`. It shows that the handler works and how to check it. It says nothing about real market behaviour, and none of the figures above come from it. See `testdata/README.md`.
 
 ```
 cmake --preset release && cmake --build --preset release -j
-python3 scripts/prepare_slice.py --out build/testdata/slice.itch
-build/release/tools/itch_replay build/testdata/slice.itch --verify --full-check-every 1 \
-    --symbols "$(cat testdata/slice_symbols.txt)"
-build/release/tools/mold_sim build/testdata/slice.itch --loss 0.01 --dup 0.005 --reorder 16 \
+python3 scripts/prepare_slice.py --out build/testdata/synthetic.itch
+python3 scripts/check_slice.py --replay build/release/tools/itch_replay --slice build/testdata/synthetic.itch
+build/release/tools/mold_sim build/testdata/synthetic.itch --loss 0.01 --dup 0.005 --reorder 16 \
     --burst 0.0005,64 --retransmit-loss 0.01 --seed 1 \
     --dump-state /tmp/s.bin --dump-at-s 43200 --check-direct
 python3 -m http.server -d dashboard 8000
 ```
 
-The first run fetches two dependencies with CMake's FetchContent (GoogleTest and Project 1). You should see `VERIFIED` from the replay and an identical result from `mold_sim`.
+`check_slice.py` replays the file with every check on, compares the export with the golden file, then runs the independent Python reference over all eight symbols and compares them field for field. You should see `VERIFIED` and `IDENTICAL`, then an identical state from `mold_sim`. The first run fetches two dependencies with CMake's FetchContent (GoogleTest and Project 1). The dashboard shows the committed real-day results.
 
-The full day is a <!-- gen:day_gz_bytes -->3.52 GB<!-- /gen --> download that decompresses to <!-- gen:day_bytes -->8.25 GB<!-- /gen -->. Download time depends on Nasdaq's server. One apply pass with setup then took about <!-- gen:apply_wall_s -->24 s<!-- /gen --> here.
+To reproduce the full-day results, download the real file from NASDAQ. It is a <!-- gen:day_gz_bytes -->3.52 GB<!-- /gen --> download that decompresses to <!-- gen:day_bytes -->8.25 GB<!-- /gen -->. Download time depends on Nasdaq's server. One apply pass with setup then took about <!-- gen:apply_wall_s -->24 s<!-- /gen --> here.
 
 ```
 python3 scripts/fetch_itch.py 12302019.NASDAQ_ITCH50.gz
@@ -201,9 +200,9 @@ Rejected optimizations, with numbers, are in the optimization log: other level-s
 ## Limits and future work
 
 - No real multicast, and no live feed.
-- No kernel bypass. [docs/INTERVIEW.md](docs/INTERVIEW.md) covers what would change at the receive boundary.
+- No kernel bypass. [docs/DESIGN-QA.md](docs/DESIGN-QA.md) covers what would change at the receive boundary.
 - No NOII or auction logic. Crosses are read from the feed's `Q` messages.
-- No A/B feed arbitration. The same interview notes describe where it would go.
+- No A/B feed arbitration. The same notes describe where it would go.
 - No broken trades on the 2019 day, so that path has only synthetic tests.
 - Hardware counters were not available, so explanations of why something is fast are hypotheses.
 - A hybrid book, with a ladder for hot symbols, is unexplored.
@@ -212,4 +211,4 @@ Verification layers and what each one does not cover: [docs/VERIFICATION.md](doc
 
 ## Licence and data
 
-The code is MIT, see [LICENSE](LICENSE). That licence covers the code only and excludes the data: `testdata/slice.itch.gz` and `testdata/expected_slice.json`, the files `scripts/fetch_itch.py` downloads, the seeds cut from real data in `fuzz/corpus/`, and data-derived results in `results/`, `dashboard/data/` and `docs/images/`. The source data is Nasdaq's, and `testdata/README.md` states where it came from. The protocol specifications are linked from [docs/spec/README.md](docs/spec/README.md).
+The code is MIT, see [LICENSE](LICENSE). The synthetic data in `testdata/` and `fuzz/corpus/` is generated here and is covered too. The licence excludes anything derived from NASDAQ's files: the aggregate results in `results/`, `dashboard/data/` and `docs/images/`, including top of book per second for five symbols and a short recording of depth around the open. The source data is Nasdaq's and is not in this repository; `scripts/fetch_itch.py` downloads it. Order-level output stays local and is reproducible. The protocol specifications are linked from [docs/spec/README.md](docs/spec/README.md).

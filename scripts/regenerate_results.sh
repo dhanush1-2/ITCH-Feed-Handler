@@ -71,7 +71,7 @@ Not regenerated, by design:
   results/bench_12302019_before_optimization.json the kept baseline before the change (commit ea06f30)
   results/screen_kscan_12302019.json              screening rows from uncommitted patched binaries
   results/profile_12302019.json                   profile of the pre-optimization book, patched scratch tree
-  testdata/expected_slice.json                    golden file; ctest compares against it, regenerated only on a reviewed change
+  testdata/expected_synthetic.json                    synthetic golden file; ctest compares against it, regenerated only on a reviewed change
 LIST
 }
 
@@ -193,8 +193,11 @@ reference() {
     --json results/ref_12302019.json
 }
 
+# Both inputs list resting orders: gitignored, local only. The committed record is the summary.
 compare_subset() {
   python3 -I verify/compare.py results/cpp_subset_12302019.json results/ref_12302019.json
+  python3 -I scripts/known_answer_summary.py results/cpp_subset_12302019.json \
+    results/ref_12302019.json --out results/known_answer_summary.json
 }
 
 recon_2019() {
@@ -262,7 +265,7 @@ check_stamps() {
   python3 -I - "$(git rev-parse HEAD)" "$SKIP_FUZZ" <<'PY'
 import json, sys
 head, skip_fuzz = sys.argv[1], sys.argv[2] == "1"
-names = ["census_12302019", "day_12302019", "day_20251208", "cpp_subset_12302019", "recon_12302019",
+names = ["census_12302019", "day_12302019", "day_20251208", "known_answer_summary", "recon_12302019",
          "recon_20251208", "loss_table", "loss_full_day", "loss_full_day_lossless", "udp_demo",
          "bench_12302019", "replay_10x", "replay_max_compare"]
 bad = []
@@ -305,9 +308,9 @@ fi
 job census             none    "results/census_12302019.json" -- census
 job day_2019           51.8    "results/day_12302019.json, state_12302019.bin" -- day_2019
 job halt_grace         155.4   "results/halt_grace_12302019.json" -- halt_grace
-job cpp_subset         27.8    "results/cpp_subset_12302019.json" -- cpp_subset
-job reference          none    "results/ref_12302019.json" -- reference
-job compare            none    "compare the C++ export with the reference" -- compare_subset
+job cpp_subset         27.8    "results/cpp_subset_12302019.json (local, gitignored)" -- cpp_subset
+job reference          none    "results/ref_12302019.json (local, gitignored)" -- reference
+job compare            none    "compare with the reference; results/known_answer_summary.json" -- compare_subset
 job recon_2019         none    "results/recon_12302019.json" -- recon_2019
 job loss_stress        73.8    "results/loss_full_day.json, then cmp the noon state" -- loss_stress
 job loss_lossless      70.8    "results/loss_full_day_lossless.json, then cmp the noon state" -- loss_lossless
@@ -317,6 +320,7 @@ job bench              1247.3  "results/bench_12302019.json" -- bench
 job replay_10x         6122.9  "results/replay_10x.json" -- replay_10x
 job replay_max_compare 27.8    "results/replay_max_compare.json: exports at max speed and 10x" -- replay_max_compare
 job day_2025           201.3   "results/day_20251208.json, results/recon_20251208.json (from the .gz)" -- day_2025
+job redact             none    "order-level records move from results/ to results/local/" -- python3 -I scripts/redact_results.py
 job check_stamps       none    "every regenerated stamp equals HEAD" -- check_stamps
 # gen_docs runs before the export because the dashboard copies docs/METHODOLOGY.md.
 job gen_docs           none    "scripts/gen_docs.py" -- python3 -I scripts/gen_docs.py

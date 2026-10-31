@@ -25,7 +25,7 @@ Same pool, same books, `unordered_map` reserved for the pool size up front. Stat
 
 ## A/B 2: vector book vs Project 1 ladder, ten busiest symbols
 
-Symbols (by message count): QQQ SPY IWM TQQQ AAPL AMD MSFT URTY TNA XLK; 15,354,044 messages, copied into one buffer in setup. The ladder is `bench/ladder_book.hpp`: `ob::PriceLadder` per side, base set once per symbol (median of the first 1,000 add prices, to give it its best case), `std::map` overflow outside the 65,536-tick window ($6.55 at this price scale). Agreement with the production book is tested (`tests/test_ladder_book.cpp`, random stream with overflow, and the real slice at the populated mid-point) and the two fold to the same state (`state_checksum` equal on the full run).
+Symbols (by message count): QQQ SPY IWM TQQQ AAPL AMD MSFT URTY TNA XLK; 15,354,044 messages, copied into one buffer in setup. The ladder is `bench/ladder_book.hpp`: `ob::PriceLadder` per side, base set once per symbol (median of the first 1,000 add prices, to give it its best case), `std::map` overflow outside the 65,536-tick window ($6.55 at this price scale). Agreement with the production book is tested (`tests/test_ladder_book.cpp`, random stream with overflow, and the synthetic day at the populated mid-point) and the two fold to the same state (`state_checksum` equal on the full run).
 
 <!-- gen:ladder_table -->
 
@@ -38,7 +38,7 @@ Symbols (by message count): QQQ SPY IWM TQQQ AAPL AMD MSFT URTY TNA XLK; 15,354,
 
 The ladder is <!-- gen:ladder_speedup -->1.41x<!-- /gen --> faster on liquid symbols, and that is the ladder's best case, for these reasons:
 - The ladder queues orders by arrival; `Book` queues by reference number. The two are not the same work, and the queue order inside a level is not compared.
-- `state_checksum` equality covers best bid, best ask and order count of every book, sampled every 2^20 messages. Level-by-level agreement is tested separately (random stream and the real slice), not in the full-day run.
+- `state_checksum` equality covers best bid, best ask and order count of every book, sampled every 2^20 messages. Level-by-level agreement is tested separately (random stream and the synthetic day), not in the full-day run.
 - The ladder arm is pre-allocated and pre-faulted (3.16 MB per symbol, in setup) with an informed base; the vector arm allocates its level vectors inside the timed span.
 - Only the ten busiest symbols, one day.
 

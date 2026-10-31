@@ -22,10 +22,10 @@ Prices stay as raw integers (1/10000 dollars) everywhere except display and JSON
 | `stock_locate` is a 2-byte index | 65,536 books in a vector, so the index cannot go out of bounds |
 | Primary data is the 2019-12-30 file, second day is 2025-12-08 | <!-- gen:messages -->268,744,780<!-- /gen --> and <!-- gen:messages_2025 -->650,338,709<!-- /gen --> messages. `results/census_12302019.json`, `results/day_20251208.json` |
 | Integrity comes from three checks, not the `.md5sum` files | Those files returned 404. `fetch_itch.py` checks Content-Length, gzip's CRC and size trailer, and a final `S`/`C` message, and records its own SHA-256 |
-| Invariants are split by cost | O(1) checks after every message in the verify build. A whole-state walk after every message on the slice, and every 1,000,000 messages on the full day (<!-- gen:full_checks -->265<!-- /gen --> walks) |
+| Invariants are split by cost | O(1) checks after every message in the verify build. A whole-state walk after every message on the synthetic day, and every 1,000,000 messages on the full day (<!-- gen:full_checks -->265<!-- /gen --> walks) |
 | A crossed book is reported, not assumed impossible | <!-- gen:crossed_continuous -->0<!-- /gen --> in continuous trading, <!-- gen:crossed_other -->8,579<!-- /gen --> touches outside it. Explained counts are pinned in `results/expected_anomalies.json`, so a new one fails `--verify` |
 | One global order table on one thread | A full-market replay needs it, and nothing here needs a parser and book thread split |
-| Committed test data is a filtered real slice | A head-of-file cut would be pre-market with almost no executions. A symbol filter keeps whole order lives. `testdata/README.md` |
+| Committed test data is synthetic | `scripts/gen_synthetic_itch.py` writes one invented day from a seed, covering every message type, halts, crosses and whole order lives. No Nasdaq bytes are in the tree. Full-day results come from the real file, which each user downloads from Nasdaq. `testdata/README.md` |
 | Levels queue by reference number | All `E` at a best level hit the lowest reference; arrival order was wrong <!-- gen:not_head_e_before -->10,565<!-- /gen --> times and never right where reference order was wrong. `docs/DISCREPANCIES.md` |
 | `RetransmitServer` stores pointers into the mapped file | The source map outlives the server. It keeps the ring small |
 | Bursts apply downstream only, with their own retransmit-loss setting | The simplest model that still tests recovery. A lost answer is covered by `retransmit_loss` |

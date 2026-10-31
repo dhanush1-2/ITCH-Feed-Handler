@@ -16,12 +16,13 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 GEN = ROOT / "scripts" / "gen_docs.py"
 REGEN = ROOT / "scripts" / "regenerate_results.sh"
-DOCS = ["README.md", "DESIGN.md", "docs/VERIFICATION.md", "docs/INTERVIEW.md", "docs/RESUME.md"]
+DOCS = ["README.md", "DESIGN.md", "docs/VERIFICATION.md", "docs/DESIGN-QA.md"]
 GENERATED_IN = DOCS + ["docs/OPTIMIZATION-LOG.md", "docs/METHODOLOGY.md"]
 # Stamped results have a top-level meta, except these, which have the stated shape.
 NOT_RESULTS = {"expected_anomalies.json": "hand-maintained pins that --verify enforces"}
-UNSTAMPED = {"ref_12302019.json": "the reference writes no stamp; compare.py pairs it with "
-                                  "cpp_subset_12302019.json, which has one"}
+# Order-level output: reproducible, gitignored, present only where it has been generated.
+LOCAL_ONLY = {"cpp_subset_12302019.json", "ref_12302019.json"}
+UNSTAMPED = {}
 PLACEHOLDER = re.compile(r"\[__\]|\[N\]|\[CPU\]|\bTBD\b|\bTODO\b|\bFIXME\b|\bXXX\b")
 BLOCK_OPEN = "<!-- gen:"
 BLOCK_CLOSE = "<!-- /gen -->"
@@ -147,7 +148,7 @@ def test_repo_slug_set_gives_badge_and_dashboard_link():
 def test_every_results_link_exists():
     for rel in GENERATED_IN + ["docs/DISCREPANCIES.md"]:
         for name in re.findall(r"results/[\w.-]+\.json", text(rel)):
-            assert (ROOT / name).is_file(), f"{rel} names {name}"
+            assert Path(name).name in LOCAL_ONLY or (ROOT / name).is_file(), f"{rel} names {name}"
 
 
 def test_relative_links_exist():
@@ -169,7 +170,7 @@ def test_no_unfilled_placeholders():
 
 
 def test_every_result_has_meta_stamp():
-    names = sorted(p.name for p in (ROOT / "results").glob("*.json"))
+    names = sorted(p.name for p in (ROOT / "results").glob("*.json") if p.name not in LOCAL_ONLY)
     assert len(names) > 15
     for name in names:
         if name in NOT_RESULTS or name in UNSTAMPED:
@@ -251,16 +252,31 @@ def test_content_rules():
         assert word.lower() not in joined.lower(), word
 
 
-def test_resume_names_the_cpu_and_docker_for_the_fuzzer():
-    resume = text("docs/RESUME.md")
-    assert "Apple M4 Pro" in resume and "Docker" in resume and "libFuzzer" in resume
+def test_private_notes_are_optional_and_untracked(tmp_path):
+    gen = gen_module()
+    assert "private/RESUME.md" not in gen.DOCS
+    assert "/private/" in text(".gitignore")
+    assert not (ROOT / "docs" / "RESUME.md").exists() and not (ROOT / "docs" / "INTERVIEW.md").exists()
+    assert not (ROOT / "docs" / "superpowers").exists()
+    assert gen.documents(tmp_path) == gen.DOCS
+    (tmp_path / "private").mkdir()
+    (tmp_path / "private" / "RESUME.md").write_text("x")
+    assert "private/RESUME.md" in gen.documents(tmp_path)
+
+
+def test_readme_says_which_data_is_which():
+    readme = text("README.md")
+    assert "synthetic" in readme.lower()
+    assert "CI and the two-minute demo use synthetic data" in readme
+    assert "scripts/check_slice.py" in readme
+    assert "from NASDAQ" in readme
 
 
 def test_licence_covers_code_only():
     lic = text("LICENSE")
     assert lic.startswith("MIT License") and "Dhanush Chandra Shekar" in lic
     source = text("testdata/README.md")
-    assert "Nasdaq" in source and "licen" not in source.lower()
+    assert "synthetic" in source.lower() and "gen_synthetic_itch.py" in source
 
 
 def test_discrepancy_summary_matches_results():
@@ -332,7 +348,7 @@ def test_latency_is_labelled_as_a_separate_run():
     readme = text("README.md")
     assert f"{bench['msgs_per_sec']['median'] / 1e6:.2f} M msgs/s" in readme
     assert f"{bench['ns_per_msg_median']:.1f} ns" in readme
-    assert "separately timed run" in text("docs/RESUME.md")
+    assert "separately timed run" in text("scripts/gen_docs.py")
     assert "subtracting 9 ns" not in text("docs/METHODOLOGY.md")
 
 
@@ -356,7 +372,7 @@ def test_spec_pdfs_are_links_not_files():
 
 def test_licence_exclusion_names_all_the_data():
     section = text("README.md").split("## Licence and data")[1]
-    for name in ("testdata/slice.itch.gz", "fuzz/corpus", "results/", "dashboard/data/"):
+    for name in ("results/", "dashboard/data/", "docs/images/", "top of book"):
         assert name in section, name
 
 

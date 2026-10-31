@@ -45,6 +45,8 @@ if(ITCH_BUILD_TOOLS AND Python3_FOUND)
             COMMAND ${Python3_EXECUTABLE} -m pytest -q ${CMAKE_CURRENT_SOURCE_DIR}/test_dashboard_data.py)
         add_test(NAME run_bench_rules
             COMMAND ${Python3_EXECUTABLE} -m pytest -q ${CMAKE_CURRENT_SOURCE_DIR}/test_run_bench.py)
+        add_test(NAME synthetic_data
+            COMMAND ${Python3_EXECUTABLE} -m pytest -q ${CMAKE_CURRENT_SOURCE_DIR}/test_synthetic_data.py)
         add_test(NAME docs_fresh
             COMMAND ${Python3_EXECUTABLE} -m pytest -q ${CMAKE_CURRENT_SOURCE_DIR}/test_docs_fresh.py)
         add_test(NAME reference_verify
@@ -67,17 +69,17 @@ target_include_directories(itch_ladder_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 target_link_libraries(itch_ladder_tests PRIVATE itch GTest::gtest_main)
 add_test(NAME ladder_book COMMAND itch_ladder_tests)
 
-# Real-data slice (testdata/slice.itch.gz): expanded into the build tree, replayed with every
-# check on, and its export compared with testdata/expected_slice.json.
-if(ITCH_BUILD_TOOLS AND Python3_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/testdata/slice.itch.gz)
+# Synthetic day (testdata/synthetic.itch.gz): expanded into the build tree, replayed with every
+# check on, and its export compared with testdata/expected_synthetic.json.
+if(ITCH_BUILD_TOOLS AND Python3_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/testdata/synthetic.itch.gz)
     set(_slice_dir ${CMAKE_BINARY_DIR}/testdata)
     add_test(NAME slice_prepare
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/prepare_slice.py
-                --out ${_slice_dir}/slice.itch)
+                --out ${_slice_dir}/synthetic.itch)
     set_tests_properties(slice_prepare PROPERTIES FIXTURES_SETUP slice)
     add_test(NAME slice_golden
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_slice.py
-                --replay $<TARGET_FILE:itch_replay> --slice ${_slice_dir}/slice.itch
+                --replay $<TARGET_FILE:itch_replay> --slice ${_slice_dir}/synthetic.itch
                 --work ${_slice_dir})
     set_tests_properties(slice_golden PROPERTIES FIXTURES_REQUIRED slice)
 endif()
@@ -86,20 +88,20 @@ endif()
 # Both need the expanded slice, so they run after slice_prepare.
 add_executable(itch_loss_tests test_loss_injection.cpp)
 target_link_libraries(itch_loss_tests PRIVATE itch GTest::gtest_main)
-if(ITCH_BUILD_TOOLS AND Python3_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/testdata/slice.itch.gz)
+if(ITCH_BUILD_TOOLS AND Python3_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/testdata/synthetic.itch.gz)
     add_test(NAME loss_injection COMMAND itch_loss_tests)
     set_tests_properties(loss_injection PROPERTIES
         FIXTURES_REQUIRED slice
-        ENVIRONMENT "ITCH_SLICE=${_slice_dir}/slice.itch")
+        ENVIRONMENT "ITCH_SLICE=${_slice_dir}/synthetic.itch")
     set_tests_properties(ladder_book PROPERTIES
         FIXTURES_REQUIRED slice
-        ENVIRONMENT "ITCH_SLICE=${_slice_dir}/slice.itch")
+        ENVIRONMENT "ITCH_SLICE=${_slice_dir}/synthetic.itch")
     if(_pytest_rc EQUAL 0)
         add_test(NAME mold_sim_cli
             COMMAND ${Python3_EXECUTABLE} -m pytest -q ${CMAKE_CURRENT_SOURCE_DIR}/test_mold_sim_cli.py)
         set_tests_properties(mold_sim_cli PROPERTIES
             FIXTURES_REQUIRED slice
-            ENVIRONMENT "MOLD_SIM=$<TARGET_FILE:mold_sim>;ITCH_REPLAY=$<TARGET_FILE:itch_replay>;ITCH_SLICE=${_slice_dir}/slice.itch")
+            ENVIRONMENT "MOLD_SIM=$<TARGET_FILE:mold_sim>;ITCH_REPLAY=$<TARGET_FILE:itch_replay>;ITCH_SLICE=${_slice_dir}/synthetic.itch")
     endif()
     if(_pytest_rc EQUAL 0)
         # Real loopback UDP sockets, so it runs alone (RUN_SERIAL) rather than beside CPU-heavy tests.
@@ -108,6 +110,6 @@ if(ITCH_BUILD_TOOLS AND Python3_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/testdata/sl
         set_tests_properties(udp_demo_cli PROPERTIES
             FIXTURES_REQUIRED slice
             RUN_SERIAL TRUE
-            ENVIRONMENT "MOLD_UDP_DEMO=$<TARGET_FILE:mold_udp_demo>;ITCH_REPLAY=$<TARGET_FILE:itch_replay>;ITCH_SLICE=${_slice_dir}/slice.itch")
+            ENVIRONMENT "MOLD_UDP_DEMO=$<TARGET_FILE:mold_udp_demo>;ITCH_REPLAY=$<TARGET_FILE:itch_replay>;ITCH_SLICE=${_slice_dir}/synthetic.itch")
     endif()
 endif()

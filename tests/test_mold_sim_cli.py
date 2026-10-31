@@ -40,7 +40,7 @@ def test_hostile_run_matches_a_direct_file_replay(tmp_path):
     assert j["result"]["finished"] is True and j["result"]["state"] == "Finished"
     assert j["result"]["stream_matches_source"] is True
     assert j["result"]["stream_sha256"] == j["source"]["stream_sha256"]
-    assert j["result"]["delivered_messages"] == j["source"]["messages"] == 44692
+    assert j["result"]["delivered_messages"] == j["source"]["messages"] == 46930
     assert j["dump"]["non_empty"] is True and j["dump"]["complete"] is True
     assert j["dump"]["resting_orders"] == state.stat().st_size // 19
     assert j["rx"]["gaps_detected"] > 0 and j["rx"]["messages_from_retransmit"] > 0

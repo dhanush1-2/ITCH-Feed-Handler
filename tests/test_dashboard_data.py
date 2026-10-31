@@ -18,8 +18,7 @@ SCRIPT = ROOT / "scripts" / "export_dashboard.py"
 RESULTS = ROOT / "results"
 NEEDED = ["day_12302019.json", "day_20251208.json", "loss_table.json", "loss_full_day.json",
           "loss_full_day_lossless.json", "bench_12302019.json", "recon_12302019.json",
-          "recon_12302019_arrival_queue.json", "recon_20251208.json", "cpp_subset_12302019.json",
-          "ref_12302019.json"]
+          "recon_12302019_arrival_queue.json", "recon_20251208.json", "known_answer_summary.json"]
 
 spec = importlib.util.spec_from_file_location("export_dashboard", SCRIPT)
 ed = importlib.util.module_from_spec(spec)
@@ -212,11 +211,9 @@ def test_known_answer_checkpoint_refuses_unordered_candidates():
 
 
 def test_export_reports_a_missing_checkpoint_without_a_traceback(results, tmp_path):
-    for name in ("cpp_subset_12302019.json", "ref_12302019.json"):
-        doc = json.loads((results / name).read_text())
-        for sym in doc["symbols"].values():
-            sym["checkpoints"] = {"eod": sym["checkpoints"]["eod"]}
-        (results / name).write_text(json.dumps(doc))
+    doc = json.loads((results / "known_answer_summary.json").read_text())
+    doc["resting_orders_per_checkpoint"] = {"eod": 0}
+    (results / "known_answer_summary.json").write_text(json.dumps(doc))
     r = run(results, tmp_path / "out")
     assert r.returncode == 2 and "no checkpoint" in r.stderr and "Traceback" not in r.stderr
 

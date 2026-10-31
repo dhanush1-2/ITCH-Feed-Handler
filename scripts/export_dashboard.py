@@ -30,16 +30,14 @@ RECON = "recon_12302019.json"
 RECON_ARRIVAL = "recon_12302019_arrival_queue.json"
 RECON_2025 = "recon_20251208.json"
 DAY_2025 = "day_20251208.json"
-CPP_SUBSET = "cpp_subset_12302019.json"
-REF_SUBSET = "ref_12302019.json"
+KNOWN_ANSWER = "known_answer_summary.json"
 
 STAMP_FULL = ("commit", "data_file", "cpu", "compiler", "flags")
 STAMP_SCRIPT = ("commit", "data_file")
-# Files written by verify/*.py carry a shorter stamp; ref_ has none and is checked through
-# cpp_subset's, which it is compared with.
+# Files written by verify/*.py carry a shorter stamp.
 STAMPS = {
     DAY: STAMP_FULL, REPLAY: STAMP_FULL, LOSS_TABLE: STAMP_FULL, LOSS_DAY: STAMP_FULL,
-    LOSS_LOSSLESS: STAMP_FULL, BENCH: STAMP_FULL, DAY_2025: STAMP_FULL, CPP_SUBSET: STAMP_FULL,
+    LOSS_LOSSLESS: STAMP_FULL, BENCH: STAMP_FULL, DAY_2025: STAMP_FULL, KNOWN_ANSWER: STAMP_FULL,
     RECON: STAMP_SCRIPT, RECON_ARRIVAL: STAMP_SCRIPT, RECON_2025: STAMP_SCRIPT,
 }
 
@@ -64,7 +62,7 @@ COMMIT_RE = re.compile(r"^[0-9a-f]{7,40}$")
 REFUSED_SUFFIXES = ("-dirty", "-stale-build", "-unverified")
 # Every 2019 input must be about the same data file; the 2025 robustness inputs about another.
 DATA_2019 = {DAY, REPLAY, LOSS_TABLE, LOSS_DAY, LOSS_LOSSLESS, BENCH, RECON, RECON_ARRIVAL,
-             CPP_SUBSET}
+             KNOWN_ANSWER}
 DATA_2025 = {DAY_2025, RECON_2025}
 
 
@@ -334,20 +332,8 @@ def build_verify(results: Path) -> dict:
     recon, arrival = load(results, RECON), load(results, RECON_ARRIVAL)
     d25, recon25 = load(results, DAY_2025), load(results, RECON_2025)
     full, lossless = load(results, LOSS_DAY), load(results, LOSS_LOSSLESS)
-    cpp, ref = load(results, CPP_SUBSET), load(results, REF_SUBSET)
-
-    # Known-answer comparison: the same 20 symbols, field for field.
-    names = sorted(cpp["symbols"])
-    if names != sorted(ref["symbols"]):
-        raise ExportError("cpp_subset and ref cover different symbols")
-    sys.path.insert(0, str(ROOT / "verify"))
-    import compare  # the same field-by-field comparison CI runs (verify/compare.py)
-
-    def one(doc, n):
-        return {**doc, "symbols": {n: doc["symbols"][n]}}
-
-    same = [n for n in names if not compare.differences(one(cpp, n), one(ref, n))]
-    populated = compare.populated(cpp)
+    known = load(results, KNOWN_ANSWER)  # the comparison itself needs the local order-level files
+    populated = known["resting_orders_per_checkpoint"]
     noon_orders = full["dump"]["resting_orders"]
 
     o = day["oracle"]
@@ -385,14 +371,15 @@ def build_verify(results: Path) -> dict:
         "sources": {"day": src(DAY, day), "recon": src(RECON, recon),
                     "recon_arrival_queue": src(RECON_ARRIVAL, arrival),
                     "day_2025": src(DAY_2025, d25), "recon_2025": src(RECON_2025, recon25),
-                    "loss_full_day": src(LOSS_DAY, full), "known_answer": src(CPP_SUBSET, cpp),
+                    "loss_full_day": src(LOSS_DAY, full), "known_answer": src(KNOWN_ANSWER, known),
                     "replay": src(REPLAY, rep)},
         "checks": {
             "verify_passed": day["verify"]["passed"],
             "whole_state_checks": day["verify"]["full_checks"],
             "unknown_refs": day["anomalies"]["unknown_ref"],
             "conservation_failures": day["conservation"]["failures"],
-            "known_answer_symbols": len(names), "known_answer_identical": len(same),
+            "known_answer_symbols": known["symbols"],
+            "known_answer_identical": known["identical_symbols"],
             "known_answer_resting_orders": populated,
             "known_answer_checkpoint": known_answer_checkpoint(populated),
             "noon_resting_orders": noon_orders,

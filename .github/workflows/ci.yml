@@ -62,22 +62,22 @@ jobs:
         run: |
           cmake --preset release -G Ninja -DITCH_BUILD_TESTS=OFF
           cmake --build --preset release --target itch_replay
-      - name: Expand the slice
-        run: python3 scripts/prepare_slice.py --out /tmp/slice.itch
-      - name: Replay the real-data slice with every check on
+      - name: Expand the synthetic day
+        run: python3 scripts/prepare_slice.py --out /tmp/synthetic.itch
+      - name: Replay the synthetic day with every check on
         run: |
-          build/release/tools/itch_replay /tmp/slice.itch --verify --full-check-every 1 \
-            --symbols "$(cat testdata/slice_symbols.txt)" --export /tmp/slice_export.json \
+          build/release/tools/itch_replay /tmp/synthetic.itch --verify --full-check-every 1 \
+            --symbols "$(cat testdata/synthetic_symbols.txt)" --export /tmp/slice_export.json \
             --pins results/expected_anomalies.json \
-            --export-orders "$(cat testdata/slice_symbols.txt)" /tmp/slice_orders.json \
+            --export-orders "$(cat testdata/synthetic_symbols.txt)" /tmp/slice_orders.json \
             | tee /tmp/replay.log
           grep -q VERIFIED /tmp/replay.log
       - name: Compare the export with the golden file
-        run: python3 scripts/compare_export.py /tmp/slice_export.json testdata/expected_slice.json
+        run: python3 scripts/compare_export.py /tmp/slice_export.json testdata/expected_synthetic.json
       - name: Compare with the independent Python reference
         run: |
-          python3 verify/reference_book.py /tmp/slice.itch \
-            --symbols "$(cat testdata/slice_symbols.txt)" --json /tmp/slice_reference.json
+          python3 verify/reference_book.py /tmp/synthetic.itch \
+            --symbols "$(cat testdata/synthetic_symbols.txt)" --json /tmp/slice_reference.json
           python3 verify/compare.py /tmp/slice_orders.json /tmp/slice_reference.json
 
   loss-injection:
@@ -94,16 +94,16 @@ jobs:
           cmake --preset release -G Ninja -DITCH_WARNINGS_AS_ERRORS=ON -DITCH_REQUIRE_PYTEST=ON \
             -DPython3_EXECUTABLE="$(command -v python3)"
           cmake --build --preset release
-      - name: Slice loss suite (receiver rig and mold_sim CLI tests)
+      - name: Synthetic-day loss suite (receiver rig and mold_sim CLI tests)
         run: ctest --preset release -R 'slice_prepare|loss_injection|mold_sim_cli' --timeout 300
       - name: Loss sweep through the CLI, books compared with a direct replay
         # Five seeds at three loss levels. mold_sim exits 3 if the receiver goes Stale, the
         # delivered stream differs from the file's, or the noon books differ from a direct replay.
         run: |
-          python3 scripts/prepare_slice.py --out /tmp/slice.itch
+          python3 scripts/prepare_slice.py --out /tmp/synthetic.itch
           for seed in 1 2 3 4 5; do
             for loss in 0.001 0.01 0.05; do
-              build/release/tools/mold_sim /tmp/slice.itch --loss "$loss" --dup 0.005 --reorder 16 \
+              build/release/tools/mold_sim /tmp/synthetic.itch --loss "$loss" --dup 0.005 --reorder 16 \
                 --burst 0.0005,64 --retransmit-loss 0.01 --seed "$seed" \
                 --dump-state /tmp/loss_state.bin --dump-at-s 43200 --check-direct
             done

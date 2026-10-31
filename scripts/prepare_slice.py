@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Decompress testdata/slice.itch.gz to a plain ITCH file the tools can map.
+"""Decompress testdata/synthetic.itch.gz to a plain ITCH file the tools can map.
 
-    prepare_slice.py [--out build/testdata/slice.itch]
+    prepare_slice.py [--out build/testdata/synthetic.itch]
 
-The tools refuse gzip input on purpose, so the CI fixture is stored compressed and
-expanded into the build tree (never into the source tree) before it is replayed.
+The fixture is synthetic: scripts/gen_synthetic_itch.py writes it. The tools refuse gzip input on
+purpose, so it is stored compressed and expanded into the build tree before it is replayed.
 """
 import argparse
 import gzip
@@ -13,12 +13,12 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "testdata" / "slice.itch.gz"
+SRC = ROOT / "testdata" / "synthetic.itch.gz"
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--out", type=Path, default=ROOT / "build" / "testdata" / "slice.itch")
+    ap.add_argument("--out", type=Path, default=ROOT / "build" / "testdata" / "synthetic.itch")
     args = ap.parse_args()
     if not SRC.exists():
         print(f"prepare_slice: {SRC} not found", file=sys.stderr)

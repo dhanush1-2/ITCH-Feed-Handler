@@ -23,7 +23,7 @@ case "$TARGET" in
   fuzz_mold) DEFAULT_SEEDS=fuzz/corpus_mold
              DATA_FILE="fuzz/corpus_mold (hand-built MoldUDP64 event sequences: gaps, overlap, malformed, tail loss)" ;;
   *)         DEFAULT_SEEDS=fuzz/corpus
-             DATA_FILE="fuzz/corpus (builder seeds + first 64 KB of 12302019 partial stream)" ;;
+             DATA_FILE="fuzz/corpus (builder seeds + first 64 KB of the synthetic day)" ;;
 esac
 SEEDS="${ITCH_FUZZ_CORPUS:-$DEFAULT_SEEDS}"
 mkdir -p "$SEEDS"

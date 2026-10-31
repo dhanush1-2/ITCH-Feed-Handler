@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Replay the CI slice in full-verify mode, then hold it against the golden file and the reference.
+"""Replay the synthetic day (the CI fixture) in full-verify mode, then hold it against the golden file and the reference.
 
-    check_slice.py --replay <itch_replay> --slice <slice.itch> [--work dir]
+    check_slice.py --replay <itch_replay> --slice <synthetic.itch> [--work dir]
 
 Runs exactly the commands the verify-slice CI job runs: the replay with the anomaly pins, the
 golden comparison, and the independent Python reference compared with --export-orders.
@@ -20,7 +20,7 @@ def main() -> int:
     ap.add_argument("--slice", type=Path, required=True)
     ap.add_argument("--work", type=Path, default=ROOT / "build" / "testdata")
     args = ap.parse_args()
-    symbols = (ROOT / "testdata" / "slice_symbols.txt").read_text().strip()
+    symbols = (ROOT / "testdata" / "synthetic_symbols.txt").read_text().strip()
     args.work.mkdir(parents=True, exist_ok=True)
     out = args.work / "slice_export.json"
     orders = args.work / "slice_orders.json"
@@ -36,7 +36,7 @@ def main() -> int:
         print(f"check_slice: replay exited {r.returncode}", file=sys.stderr)
         return 1
     c = subprocess.run([sys.executable, str(ROOT / "scripts" / "compare_export.py"), str(out),
-                        str(ROOT / "testdata" / "expected_slice.json")])
+                        str(ROOT / "testdata" / "expected_synthetic.json")])
     if c.returncode != 0:
         return c.returncode
     b = subprocess.run([sys.executable, str(ROOT / "verify" / "reference_book.py"),

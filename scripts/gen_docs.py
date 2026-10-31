@@ -20,8 +20,10 @@ from pathlib import Path
 # the README has no CI badge and no dashboard link. Nothing derives it.
 REPO_SLUG = ""
 
-DOCS = ["README.md", "DESIGN.md", "docs/VERIFICATION.md", "docs/INTERVIEW.md", "docs/RESUME.md",
+DOCS = ["README.md", "DESIGN.md", "docs/VERIFICATION.md", "docs/DESIGN-QA.md",
         "docs/OPTIMIZATION-LOG.md", "docs/METHODOLOGY.md"]
+# Gitignored notes. Generated when present, and absent in CI.
+PRIVATE_DOCS = ["private/RESUME.md"]
 BLOCK = re.compile(r"<!-- gen:([\w.]+) -->(.*?)<!-- /gen -->", re.S)
 OPEN = "<!-- gen:"
 CLOSE = "<!-- /gen -->"
@@ -38,6 +40,10 @@ CLOSING_CROSS_S = (15 * 3600 + 59 * 60, 16 * 3600 + 60)  # 15:59:00 to 16:01:00
 
 class DocError(Exception):
     pass
+
+
+def documents(root: Path) -> list:
+    return DOCS + [rel for rel in PRIVATE_DOCS if (root / rel).exists()]
 
 
 def clock(seconds: int) -> str:
@@ -119,12 +125,6 @@ class Results:
             self._cache[name] = json.loads(path.read_text())
         return self._cache[name]
 
-    def compare_module(self):
-        spec = importlib.util.spec_from_file_location("compare", self.root / "verify" / "compare.py")
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return mod
-
 
 def build_blocks(r: Results) -> dict:
     day = lambda: r["day_12302019"]
@@ -146,10 +146,9 @@ def build_blocks(r: Results) -> dict:
         return bench()["latency"]["latency_all_ns"][key]["median"]
 
     def known_answer():
-        cpp, ref = r["cpp_subset_12302019"], r["ref_12302019"]
-        cmp_mod = r.compare_module()
-        return {"symbols": len(cpp["symbols"]), "same": not cmp_mod.differences(cpp, ref),
-                "populated": cmp_mod.populated(cpp)}
+        k = r["known_answer_summary"]
+        return {"symbols": k["symbols"], "same": k["identical_symbols"] == k["symbols"],
+                "populated": k["resting_orders_per_checkpoint"]}
 
     def known_orders():
         pop = known_answer()["populated"]
@@ -210,8 +209,10 @@ def build_blocks(r: Results) -> dict:
              f"field, {n(known_orders())} resting orders at noon, "
              f"{known_orders() / f['dump']['resting_orders'] * 100:.1f}% of noon orders, 2019 only. "
              "No shared code, same author; shares the queue rule",
-             link("cpp_subset_12302019.json") + ", " + link("ref_12302019.json"),
-             "`verify/compare.py results/cpp_subset_12302019.json results/ref_12302019.json`"],
+             link("known_answer_summary.json") + "; its inputs hold resting orders, so they are "
+             "reproducible and not committed",
+             "`itch_replay <day> --export-orders <symbols> results/cpp_subset_12302019.json`, "
+             "`verify/reference_book.py`, then `verify/compare.py`"],
             ["Bit-identical books after injected loss",
              f"{n(f['channel']['messages_lost_downstream'])} messages lost "
              f"(`messages_lost_downstream`) and recovered; state at feed second "
@@ -336,7 +337,7 @@ def build_blocks(r: Results) -> dict:
         return table(["Target", "Requested time", "Executions", "Crashes", "Commit"], rows)
 
     def provenance():
-        published = ["census_12302019", "day_12302019", "day_20251208", "cpp_subset_12302019",
+        published = ["census_12302019", "day_12302019", "day_20251208", "known_answer_summary",
                      "recon_12302019", "recon_20251208", "loss_table", "loss_full_day",
                      "loss_full_day_lossless", "udp_demo", "bench_12302019", "replay_10x",
                      "replay_max_compare", "recon_12302019_arrival_queue",
@@ -348,12 +349,6 @@ def build_blocks(r: Results) -> dict:
                 f"{'' if len(commits) == 1 else 's'}: "
                 + ", ".join(f"`{c}`" for c in sorted(commits)) + ". The kScan screening and the "
                 "profile come from patched builds and say so in their own files.")
-
-    def episode_sentence():
-        e = recon()["crossed"]["episodes_listed"][0]
-        return (f"The first example is {e['symbol']} at {clock(e['start'] // 10**9)}: bid "
-                f"{e['bid'] / 10000:.2f} above ask {e['ask'] / 10000:.2f}, in state "
-                f"`{e['state']}`, started by an add.")
 
     def resume_bullets():
         meta = r["bench_12302019"]["meta"]
@@ -425,7 +420,6 @@ def build_blocks(r: Results) -> dict:
         "c_at_display": lambda: n(day()["oracle"]["exec_not_head"] - day()["oracle"]["exec_not_head_e"]
                                   - recon()["exec_not_head"]["C"]["away_from_display_price"]["not_head"]),
         "c_away": lambda: n(recon()["exec_not_head"]["C"]["away_from_display_price"]["not_head"]),
-        "symbol_episode_sentence": episode_sentence,
         "closes_ok": lambda: f"{closes()[0]} of {closes()[1]}",
         # Second day.
         "messages_2025": lambda: n(d25()["totals"]["messages"]),
@@ -518,7 +512,7 @@ def main(argv=None) -> int:
     try:
         blocks = build_blocks(Results(args.root))
         stale, out = [], {}
-        for rel in DOCS:
+        for rel in documents(args.root):
             path = args.root / rel
             if not path.exists():
                 raise DocError(f"missing document {rel}")

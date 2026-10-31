@@ -1,6 +1,6 @@
 // tests/test_loss_injection.cpp
 //
-// The loss-injection proof on the real-data slice (testdata/slice.itch.gz, expanded by the
+// The loss-injection proof on the synthetic day (testdata/synthetic.itch.gz, expanded by the
 // slice_prepare fixture; its path comes in the ITCH_SLICE environment variable).
 //
 // The slice is sent as MoldUDP64 packets through a hostile simulated network into the

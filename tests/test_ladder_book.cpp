@@ -7,7 +7,7 @@
 // is NOT compared: Book queues by reference number, the ladder by arrival.
 //
 // Two sources: a seeded random stream that deliberately puts prices outside the ladder window
-// (so the std::map overflow is exercised), and the real-data slice from ITCH_SLICE, compared
+// (so the std::map overflow is exercised), and the synthetic day from ITCH_SLICE, compared
 // at the populated mid-point (feed second 43,200) because a full day ends with empty books.
 
 #include <gtest/gtest.h>

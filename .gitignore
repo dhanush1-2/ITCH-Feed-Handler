@@ -5,3 +5,8 @@
 /results/state_*.bin
 .DS_Store
 __pycache__/
+/results/local/
+/results/cpp_subset_12302019.json
+/results/ref_12302019.json
+/testdata/local/
+/private/

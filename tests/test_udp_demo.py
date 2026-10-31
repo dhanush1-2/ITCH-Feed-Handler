@@ -15,7 +15,7 @@ SLICE = os.environ.get("ITCH_SLICE")
 pytestmark = pytest.mark.skipif(not (DEMO and REPLAY and SLICE), reason="run through ctest")
 
 DUMP_AT_S = 43200
-SLICE_MESSAGES = 44692
+SLICE_MESSAGES = 46930
 
 
 def run(*args, timeout=120):
