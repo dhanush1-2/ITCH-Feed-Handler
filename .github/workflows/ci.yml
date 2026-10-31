@@ -109,6 +109,27 @@ jobs:
             done
           done
 
+  tsan-snapshot:
+    name: tsan-snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clang and Ninja
+        run: sudo apt-get update && sudo apt-get install -y ninja-build clang
+      - name: Build the tests with ThreadSanitizer
+        env:
+          CC: clang
+          CXX: clang++
+        run: |
+          cmake --preset tsan -G Ninja -DITCH_BUILD_TOOLS=OFF -DITCH_BUILD_BENCH=OFF
+          cmake --build --preset tsan --target itch_tests
+      - name: Snapshot, pacer and view tests
+        # The seqlock between the replay thread and the live view: one writer, a reader that
+        # retries, no torn snapshot, and a reader that never blocks the writer.
+        env:
+          TSAN_OPTIONS: halt_on_error=1
+        run: build/tsan/tests/itch_tests --gtest_filter='Snapshot*:Pacer*:Tui*'
+
   fuzz-smoke:
     name: fuzz-60s
     runs-on: ubuntu-latest

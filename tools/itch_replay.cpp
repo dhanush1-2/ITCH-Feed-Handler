@@ -5,8 +5,8 @@
 //
 //   itch_replay <file> [--symbols A,B] [--max-live-orders N] [--verify]
 //               [--full-check-every N] [--halt-grace-s S] [--dump-state path] [--dump-at-s S]
-//               [--export path] [--speed max] [--pins path]
-//               [--export-orders A,B path] [--orders-checkpoint-s S]
+//               [--export path] [--speed 1|10|max] [--from HH:MM:SS] [--tui A,B,...]
+//               [--pins path] [--export-orders A,B path] [--orders-checkpoint-s S]
 //
 //   --symbols            symbols whose top of book is recorded once per second (case is
 //                        normalised; a name not in the file's stock directory is an error)
@@ -34,17 +34,30 @@
 //   --orders-checkpoint-s  feed second of that checkpoint (default 43200, noon). A full day
 //                        ends with an empty book, so the end-of-file state alone proves little
 //
+//   --speed              replay pace in feed seconds per wall second: 1 is real time, 10 is ten
+//                        times, max (the default) never waits. Messages are applied at their
+//                        scheduled time, never skipped; one that is late is applied at once and
+//                        the worst shortfall is reported as max_lag_ns (include/replay/pacer.hpp
+//                        says how often it is sampled). A paced run prints a progress line every
+//                        10 feed minutes
+//   --from HH:MM:SS      with a paced --speed: replay at max speed up to this feed time, then pace
+//   --tui A,B,...        live terminal view of these symbols (needs a terminal); n/Tab and p
+//                        change the symbol, q or ctrl-c stops the run early without an export
+//
 // Exit codes (shared by every tool): 0 success, 2 input error (bad option, unreadable or
 // truncated file, unknown symbol, capacity exhausted), 3 verification failure.
 
 #include <sys/resource.h>
+#include <unistd.h>
 
 #include <array>
+#include <atomic>
 #include <book/builder.hpp>
 #include <book/invariants.hpp>
 #include <book/state_dump.hpp>
 #include <book/stats.hpp>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -58,13 +71,19 @@
 #include <itch/scan.hpp>
 #include <itch/sha256.hpp>
 #include <map>
+#include <memory>
 #include <optional>
+#include <replay/pacer.hpp>
+#include <replay/snapshot.hpp>
 #include <set>
 #include <span>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <type_traits>
 #include <vector>
+
+#include "tui.hpp"
 
 namespace {
 
@@ -92,13 +111,20 @@ struct Options {
     std::string              orders_path;
     std::uint64_t            orders_checkpoint_s = 43'200;
     std::string              pins_path;
+    double                   speed    = 0;  // 0 = max
+    bool                     from_set = false;
+    std::uint64_t            from_s   = 0;
+    std::vector<std::string> tui_symbols;
+    bool                     tui = false;
+    itch::Provenance         prov;  // resolved at the start: a long run must not restamp itself
 };
 
 void usage() {
     std::fprintf(stderr,
                  "usage: itch_replay <file> [--symbols A,B] [--max-live-orders N] [--verify]\n"
                  "                   [--full-check-every N] [--halt-grace-s S]\n"
-                 "                   [--dump-state path] [--export path] [--speed max]\n"
+                 "                   [--dump-state path] [--export path]\n"
+                 "                   [--speed 1|10|max] [--from HH:MM:SS] [--tui A,B,...]\n"
                  "                   [--pins path] [--export-orders A,B path]\n"
                  "                   [--orders-checkpoint-s S]\n");
 }
@@ -108,6 +134,17 @@ std::uint64_t parse_u64(const std::string& flag, const std::string& v) {
         throw InputError(flag + " needs a non-negative integer, got '" + v + "'");
     }
     return std::strtoull(v.c_str(), nullptr, 10);
+}
+
+// HH:MM:SS (or HH:MM) to seconds since midnight.
+std::uint64_t parse_clock(const std::string& v) {
+    unsigned  h = 0, m = 0, sec = 0;
+    char      extra = 0;
+    const int n     = std::sscanf(v.c_str(), "%u:%u:%u%c", &h, &m, &sec, &extra);
+    if (n != 3 || h > 47 || m > 59 || sec > 59) {
+        throw InputError("--from needs HH:MM:SS, got '" + v + "'");
+    }
+    return h * 3600ULL + m * 60ULL + sec;
 }
 
 Options parse(int argc, char** argv) {
@@ -165,9 +202,30 @@ Options parse(int argc, char** argv) {
             o.orders_checkpoint_s = parse_u64(a, value());
         } else if (a == "--speed") {
             const std::string v = value();
-            if (v != "max") {
-                throw InputError("--speed " + v + " is not available yet; only 'max' is");
+            if (v == "max") {
+                o.speed = 0;
+            } else if (v == "1" || v == "10") {
+                o.speed = v == "1" ? 1.0 : 10.0;
+            } else {
+                throw InputError("--speed must be 1, 10 or max, got '" + v + "'");
             }
+        } else if (a == "--from") {
+            o.from_s   = parse_clock(value());
+            o.from_set = true;
+        } else if (a == "--tui") {
+            std::stringstream     ss(value());
+            std::string           item;
+            std::set<std::string> seen;
+            while (std::getline(ss, item, ',')) {
+                const std::string n = itch::normalize_symbol(item);
+                if (!n.empty() && seen.insert(n).second) {
+                    o.tui_symbols.push_back(n);
+                }
+            }
+            if (o.tui_symbols.empty()) {
+                throw InputError("--tui needs at least one symbol");
+            }
+            o.tui = true;
         } else if (!a.empty() && a[0] == '-') {
             throw InputError("unknown option '" + a + "'");
         } else if (o.file.empty()) {
@@ -187,6 +245,12 @@ Options parse(int argc, char** argv) {
     }
     if (o.verify && !o.full_every_set) {
         o.full_every = 1'000'000;
+    }
+    if (o.from_set && o.speed <= 0) {
+        throw InputError("--from needs --speed 1 or 10: at max speed there is nothing to pace");
+    }
+    if (o.tui && isatty(STDOUT_FILENO) == 0) {
+        throw InputError("--tui needs a terminal on standard output");
     }
     return o;
 }
@@ -391,7 +455,7 @@ public:
     }
 
     template <class Builder>
-    void write(const std::string& path, const std::string& file, const Builder& b,
+    void write(const std::string& path, const itch::Provenance& prov, const Builder& b,
                const book::StatsObserver& st) const {
         std::filesystem::path out(path);
         if (out.has_parent_path()) {
@@ -401,7 +465,7 @@ public:
         if (!js) {
             throw InputError("cannot write '" + path + "'");
         }
-        js << "{\"meta\": " << itch::provenance_json(itch::make_provenance(file), 0)
+        js << "{\"meta\": " << itch::provenance_json(prov, 0)
            << ",\n\"checkpoint_s\": " << checkpoint_s_ << ",\n\"symbols\": {";
         bool first = true;
         for (const auto& [name, loc] : locates_) {
@@ -484,13 +548,24 @@ private:
     std::map<std::string, std::string>          at_checkpoint_;
 };
 
+// What the pacing did, for the export. At max speed nothing was paced and only wall_s is set.
+struct ReplayInfo {
+    bool          paced         = false;
+    std::uint64_t paced_feed_ns = 0;  // feed time covered by the paced part
+    std::uint64_t paced_wall_ns = 0;  // wall time the paced part took
+    std::uint64_t max_lag_ns    = 0;
+    std::uint64_t waits         = 0;
+    double        wall_s        = 0;  // whole run, including the max-speed part before --from
+};
+
 template <class Builder>
 void write_export(const Options& o, const itch::MappedFile& mf, const Builder& b,
                   const book::StatsObserver& st, const book::VerifyObserver::Options& vopt,
                   const book::Oracle* oracle, std::uint64_t full_checks, itch::FrameStatus status,
                   std::uint64_t handled, std::uint64_t skipped, std::uint64_t wrong_length,
                   const std::vector<book::ConservationFailure>& cons,
-                  const std::vector<std::string>& failures, const Dump* dump) {
+                  const std::vector<std::string>& failures, const Dump* dump,
+                  const ReplayInfo& rp) {
     std::filesystem::path out(o.export_path);
     if (out.has_parent_path()) {
         std::filesystem::create_directories(out.parent_path());
@@ -500,11 +575,24 @@ void write_export(const Options& o, const itch::MappedFile& mf, const Builder& b
         throw InputError("cannot write '" + o.export_path + "'");
     }
     const std::string manifest = "\"data_manifest\": " + manifest_json(o.file);
-    js << "{\n  \"meta\": " << itch::provenance_json(itch::make_provenance(o.file), 2, manifest)
-       << ",\n";
+    js << "{\n  \"meta\": " << itch::provenance_json(o.prov, 2, manifest) << ",\n";
     js << "  \"file\": " << json_str(std::filesystem::path(o.file).filename().string()) << ",\n";
     js << "  \"file_bytes\": " << mf.bytes().size() << ",\n";
     js << "  \"price_scale\": 10000,\n";
+    js << "  \"replay\": {\"speed\": ";
+    if (rp.paced) {
+        js << static_cast<int>(o.speed);
+    } else {
+        js << "\"max\"";
+    }
+    js << ", \"from_feed_s\": " << (o.from_set ? std::to_string(o.from_s) : "null")
+       << ", \"paced_feed_s\": "
+       << (rp.paced ? std::to_string(static_cast<double>(rp.paced_feed_ns) / 1e9) : "null")
+       << ", \"paced_wall_s\": "
+       << (rp.paced ? std::to_string(static_cast<double>(rp.paced_wall_ns) / 1e9) : "null")
+       << ", \"max_lag_ns\": " << (rp.paced ? std::to_string(rp.max_lag_ns) : "null")
+       << ", \"pacer_waits\": " << (rp.paced ? std::to_string(rp.waits) : "null")
+       << ", \"wall_s\": " << rp.wall_s << "},\n";
 
     js << "  \"verify\": {\"enabled\": " << (o.verify ? "true" : "false")
        << ", \"passed\": " << (o.verify ? (failures.empty() ? "true" : "false") : "null")
@@ -676,9 +764,97 @@ void write_export(const Options& o, const itch::MappedFile& mf, const Builder& b
     }
 }
 
+// The live view: owns the terminal and the thread that draws. The replay thread is the
+// writer of the snapshots and of Live; this thread only reads them.
+struct Live {
+    std::atomic<std::uint64_t> feed_ns{0};
+    std::atomic<std::uint64_t> messages{0};
+    std::atomic<std::uint64_t> lag_ns{0};
+};
+
+class ViewSession {
+public:
+    ViewSession(const replay::SnapshotBoard& board, std::vector<std::string> names,
+                const Live& live, double speed)
+        : board_(board), names_(std::move(names)), live_(live), speed_(speed) {
+        replay::tui::g_interrupted.store(false);
+        thread_ = std::thread([this] { loop(); });
+    }
+    ~ViewSession() {
+        done_.store(true);
+        if (thread_.joinable()) {
+            thread_.join();
+        }
+        // term_ is destroyed after this body: the screen is restored once the thread is gone.
+    }
+    ViewSession(const ViewSession&)            = delete;
+    ViewSession& operator=(const ViewSession&) = delete;
+
+private:
+    void loop() {
+        replay::tui::View v;
+        v.names = names_;
+        v.snaps.assign(names_.size(), replay::SymbolSnapshot{});
+        v.speed                   = speed_;
+        std::uint64_t last_msgs   = 0;
+        auto          last_sample = std::chrono::steady_clock::now();
+        while (!done_.load(std::memory_order_relaxed) &&
+               !replay::tui::g_interrupted.load(std::memory_order_relaxed)) {
+            for (std::size_t i = 0; i < v.snaps.size(); ++i) {
+                (void)board_.try_read(i, v.snaps[i]);  // on a retry, keep the last good copy
+            }
+            switch (replay::tui::Terminal::key()) {
+                case 'n':
+                case '\t':
+                    v.selected = (v.selected + 1) % v.snaps.size();
+                    break;
+                case 'p':
+                    v.selected = (v.selected + v.snaps.size() - 1) % v.snaps.size();
+                    break;
+                case 'q':
+                    replay::tui::g_interrupted.store(true);
+                    break;
+                default:
+                    break;
+            }
+            v.feed_ns        = live_.feed_ns.load(std::memory_order_relaxed);
+            v.messages       = live_.messages.load(std::memory_order_relaxed);
+            v.lag_ns         = live_.lag_ns.load(std::memory_order_relaxed);
+            const auto   now = std::chrono::steady_clock::now();
+            const double dt  = std::chrono::duration<double>(now - last_sample).count();
+            if (dt >= 0.5) {
+                v.msgs_per_sec = static_cast<double>(v.messages - last_msgs) / dt;
+                last_msgs      = v.messages;
+                last_sample    = now;
+            }
+            int rows = 24, cols = 80;
+            replay::tui::Terminal::size(rows, cols);
+            replay::tui::Terminal::draw(replay::tui::render(v, rows, cols));
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+    }
+
+    const replay::SnapshotBoard& board_;
+    std::vector<std::string>     names_;
+    const Live&                  live_;
+    double                       speed_;
+    std::atomic<bool>            done_{false};
+    replay::tui::Terminal        term_;  // before thread_: the screen is set up first
+    std::thread                  thread_;
+};
+
+std::string clock_text(std::uint64_t ns) {
+    const std::uint64_t s = ns / 1'000'000'000ULL;
+    char                buf[16];
+    std::snprintf(buf, sizeof buf, "%02u:%02u:%02u", static_cast<unsigned>(s / 3600),
+                  static_cast<unsigned>(s / 60 % 60), static_cast<unsigned>(s % 60));
+    return buf;
+}
+
 template <bool Verify>
 int run(const Options& o, const itch::MappedFile& mf, const itch::Resolved& resolved,
-        const itch::Resolved& order_symbols, std::unordered_set<std::uint64_t> broken) {
+        const itch::Resolved& order_symbols, const itch::Resolved& tui_symbols,
+        std::unordered_set<std::uint64_t> broken) {
     using Obs = std::conditional_t<Verify, book::BasicVerifyObserver<book::StatsObserver>,
                                    book::StatsObserver>;
     book::VerifyObserver::Options vopt;
@@ -734,7 +910,65 @@ int run(const Options& o, const itch::MappedFile& mf, const itch::Resolved& reso
     const std::uint64_t dump_at_ns = o.dump_at_s * 1'000'000'000ULL;
     OrderExport         orders(order_symbols.locate, o.orders_checkpoint_s);
     const bool          exporting_orders = !o.orders_path.empty();
+
+    // Pacing and the live view. Both are off by default and cost one predictable branch per
+    // message when off.
+    replay::Pacer<>     pacer(o.speed, replay::SteadyClock{&replay::tui::g_interrupted});
+    const bool          pacing  = pacer.paced();
+    const std::uint64_t from_ns = o.from_s * 1'000'000'000ULL;
+    ReplayInfo          rp;
+    rp.paced                            = pacing;
+    std::uint64_t           paced_feed0 = 0, last_feed_ns = 0;
+    bool                    pacing_started   = false;
+    std::uint64_t           next_progress_ns = 0;
+    constexpr std::uint64_t kProgressEveryNs = 600ULL * 1'000'000'000ULL;
+
+    replay::SnapshotBoard        board;
+    Live                         live;
+    std::vector<std::string>     tui_names;
+    std::vector<std::uint64_t>   last_trade;
+    std::unique_ptr<ViewSession> view;
+    if (o.tui) {
+        for (const auto& [name, loc] : tui_symbols.locate) {
+            board.watch(loc);
+        }
+        // Slots follow watch() order, which is by name here; name each slot by its locate.
+        tui_names.assign(board.size(), std::string());
+        for (const auto& [name, loc] : tui_symbols.locate) {
+            tui_names[static_cast<std::size_t>(board.index_of(loc))] = name;
+        }
+        last_trade.assign(board.size(), 0);
+        view = std::make_unique<ViewSession>(board, tui_names, live, o.speed);
+    }
+    std::uint64_t ticks       = 0;
+    bool          interrupted = false;
+    auto          paced_t0    = std::chrono::steady_clock::now();
+
     while ((status = framer.next(msg)) == itch::FrameStatus::Ok) {
+        if (pacing && msg.size() >= 11) {
+            const std::uint64_t ts = itch::HeaderView(msg.data()).timestamp_ns();
+            if (ts >= from_ns) {
+                if (!pacing_started) {
+                    pacing_started   = true;
+                    paced_feed0      = ts;
+                    paced_t0         = std::chrono::steady_clock::now();
+                    next_progress_ns = ts;
+                }
+                pacer.wait_until(ts);
+                last_feed_ns = ts;
+                if (!o.tui && ts >= next_progress_ns) {
+                    std::printf(
+                        "progress: feed %s  wall %.0f s  %llu msgs  max lag %llu ns\n",
+                        clock_text(ts).c_str(),
+                        std::chrono::duration<double>(std::chrono::steady_clock::now() - paced_t0)
+                            .count(),
+                        static_cast<unsigned long long>(st.frames()),
+                        static_cast<unsigned long long>(pacer.max_lag_ns()));
+                    std::fflush(stdout);
+                    next_progress_ns = ts + kProgressEveryNs;
+                }
+            }
+        }
         if (exporting_orders) {
             if (!orders.checkpoint_taken() && msg.size() >= 11 &&
                 itch::HeaderView(msg.data()).timestamp_ns() >= orders.checkpoint_ns()) {
@@ -758,6 +992,33 @@ int run(const Options& o, const itch::MappedFile& mf, const itch::Resolved& reso
                 ++wrong_length;
                 break;
         }
+        if (o.tui && msg.size() >= 11) {
+            const itch::HeaderView h(msg.data());
+            const int              slot = board.index_of(h.locate());
+            if (slot >= 0) {
+                const char kind = static_cast<char>(msg[0]);
+                if (kind == 'E' || kind == 'C' || kind == 'P') {
+                    last_trade[static_cast<std::size_t>(slot)] = h.timestamp_ns();
+                }
+                // After decode: the book already holds this message.
+                board.publish(b, h.locate(), last_trade[static_cast<std::size_t>(slot)]);
+            }
+            if ((++ticks & 0x3FF) == 0) {
+                live.feed_ns.store(h.timestamp_ns(), std::memory_order_relaxed);
+                live.messages.store(st.frames(), std::memory_order_relaxed);
+                live.lag_ns.store(pacer.max_lag_ns(), std::memory_order_relaxed);
+            }
+        }
+        if (o.tui && replay::tui::g_interrupted.load(std::memory_order_relaxed)) {
+            interrupted = true;
+            break;
+        }
+    }
+    view.reset();  // joins the view thread and restores the terminal before anything prints
+    if (interrupted) {
+        std::printf("interrupted after %llu messages; no export written\n",
+                    static_cast<unsigned long long>(st.frames()));
+        return kExitOk;
     }
     if (status != itch::FrameStatus::End) {
         throw InputError(std::string("framing error: ") + status_name(status) + " at offset " +
@@ -772,6 +1033,17 @@ int run(const Options& o, const itch::MappedFile& mf, const itch::Resolved& reso
     st.finish();
     const double secs =
         std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    rp.wall_s = secs;
+    if (pacing_started) {
+        rp.paced_feed_ns = last_feed_ns - paced_feed0;
+        rp.paced_wall_ns = static_cast<std::uint64_t>(
+            std::chrono::duration<double>(std::chrono::steady_clock::now() - paced_t0).count() *
+            1e9);
+        rp.max_lag_ns = pacer.max_lag_ns();
+        rp.waits      = pacer.waits();
+    } else {
+        rp.paced = false;
+    }
 
     const auto               cons = book::conservation_failures(b, st);
     std::vector<std::string> failures;
@@ -813,7 +1085,7 @@ int run(const Options& o, const itch::MappedFile& mf, const itch::Resolved& reso
         }
     }
     if (exporting_orders) {
-        orders.write(o.orders_path, o.file, b, st);
+        orders.write(o.orders_path, o.prov, b, st);
     }
 
     if (!o.dump_path.empty() && !dumped) {
@@ -833,7 +1105,7 @@ int run(const Options& o, const itch::MappedFile& mf, const itch::Resolved& reso
             fulls  = obs.full_checks();
         }
         write_export(o, mf, b, st, vopt, oracle, fulls, status, handled, skipped, wrong_length,
-                     cons, failures, dump_ptr);
+                     cons, failures, dump_ptr, rp);
     }
 
     std::printf("%s: %llu messages in %.1f s, live at end %zu, peak live %zu, unknown_ref %llu\n",
@@ -871,7 +1143,8 @@ int run(const Options& o, const itch::MappedFile& mf, const itch::Resolved& reso
 int main(int argc, char** argv) {
     Options o;
     try {
-        o = parse(argc, argv);
+        o      = parse(argc, argv);
+        o.prov = itch::make_provenance(o.file);
     } catch (const InputError& e) {
         std::fprintf(stderr, "itch_replay: %s\n", e.what());
         usage();
@@ -904,8 +1177,17 @@ int main(int argc, char** argv) {
         // Broken trades arrive after their trade, so the volume rule needs them first.
         auto broken = itch::scan_broken(mf.bytes());
 
-        return o.verify ? run<true>(o, mf, resolved, order_symbols, std::move(broken))
-                        : run<false>(o, mf, resolved, order_symbols, std::move(broken));
+        itch::Resolved tui_symbols;
+        if (!o.tui_symbols.empty()) {
+            tui_symbols = itch::resolve_symbols(mf.bytes(), o.tui_symbols);
+            if (!tui_symbols.unresolved.empty()) {
+                throw InputError("unknown symbol " + tui_symbols.unresolved.front() +
+                                 " in --tui: not in the stock directory of '" + o.file + "'");
+            }
+        }
+        return o.verify
+                   ? run<true>(o, mf, resolved, order_symbols, tui_symbols, std::move(broken))
+                   : run<false>(o, mf, resolved, order_symbols, tui_symbols, std::move(broken));
     } catch (const book::CapacityExceeded& e) {
         std::fprintf(stderr, "itch_replay: %s\n", e.what());
         return kExitInput;

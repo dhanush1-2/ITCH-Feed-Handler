@@ -3,13 +3,14 @@
 
     compare_export.py <actual.json> <expected.json>
 
-Ignored: "meta" (commit, CPU, compiler, flags), "max_rss_bytes" and "state_dump" (a path).
+Ignored: "meta" (commit, CPU, compiler, flags), "max_rss_bytes", "state_dump" (a path) and
+"replay" (pacing and wall time, which are what differ between a paced and a max-speed run).
 Everything else must match exactly. Exits 0 when equal, 1 with the first difference.
 """
 import json
 import sys
 
-IGNORED = {"meta", "max_rss_bytes", "state_dump"}
+IGNORED = {"meta", "max_rss_bytes", "state_dump", "replay"}
 
 
 def first_diff(a, b, path="$"):

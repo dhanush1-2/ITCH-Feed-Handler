@@ -172,7 +172,10 @@ def test_capacity_error_is_exit_2(day):
 
 def test_bad_usage_is_exit_2(day):
     assert run(day, "--no-such-flag").returncode == 2
-    assert run(day, "--speed", "10").returncode == 2
+    assert run(day, "--speed", "7").returncode == 2
+    assert run(day, "--speed", "0").returncode == 2
+    assert run(day, "--from", "9:30").returncode == 2
+    assert run(day, "--from", "09:61:00", "--speed", "10").returncode == 2
     assert run(day.with_name("missing.itch")).returncode == 2
 
 
@@ -304,3 +307,36 @@ def test_pins_need_verify(tmp_path):
 def test_export_orders_unknown_symbol_is_an_input_error(day, tmp_path):
     r = run(day, "--export-orders", "NOPE", str(tmp_path / "o.json"))
     assert r.returncode == 2
+
+
+def test_paced_run_has_the_same_books_as_max_and_reports_its_pacing(day, tmp_path):
+    fast, slow = tmp_path / "fast.json", tmp_path / "slow.json"
+    assert run(day, "--export", str(fast)).returncode == 0
+    r = run(day, "--speed", "10", "--export", str(slow))
+    assert r.returncode == 0, r.stderr
+    f, s = json.loads(fast.read_text()), json.loads(slow.read_text())
+    assert f["replay"]["speed"] == "max" and f["replay"]["max_lag_ns"] is None
+    assert s["replay"]["speed"] == 10
+    # The file spans 4 s of feed time, so about 0.4 s of wall time at 10x.
+    assert 0.3 < s["replay"]["paced_wall_s"] < 1.0
+    assert s["replay"]["max_lag_ns"] >= 0
+    assert "progress:" in r.stdout
+    for k in ("totals", "by_type", "per_second", "anomalies", "per_symbol"):
+        assert f[k] == s[k], k
+
+
+def test_from_replays_the_early_part_at_max_speed(day, tmp_path):
+    # The feed ends at 4 s; --from 00:00:03 paces only the last second, so 0.1 s at 10x.
+    out = tmp_path / "out.json"
+    r = run(day, "--speed", "1", "--from", "00:00:03", "--export", str(out))
+    assert r.returncode == 0, r.stderr
+    j = json.loads(out.read_text())
+    assert j["replay"]["from_feed_s"] == 3
+    assert j["replay"]["paced_feed_s"] <= 1.001
+    assert j["replay"]["wall_s"] < 2.5
+
+
+def test_tui_needs_a_terminal(day):
+    r = run(day, "--tui", "AAPL")
+    assert r.returncode == 2
+    assert "terminal" in r.stderr

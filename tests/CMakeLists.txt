@@ -22,8 +22,11 @@ add_executable(itch_tests
     test_stats.cpp
     test_mold_packet.cpp
     test_mold_sim.cpp
-    test_mold_receiver.cpp)
-target_include_directories(itch_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    test_mold_receiver.cpp
+    test_pacer.cpp
+    test_snapshot.cpp)
+target_include_directories(itch_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+                                              ${CMAKE_SOURCE_DIR}/tools)
 target_link_libraries(itch_tests PRIVATE itch GTest::gtest_main)
 gtest_discover_tests(itch_tests)
 
