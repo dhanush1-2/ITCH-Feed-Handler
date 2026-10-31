@@ -44,6 +44,7 @@
 #include <itch/mapped_file.hpp>
 #include <itch/provenance.hpp>
 #include <memory>
+#include <mold/cli.hpp>
 #include <mold/sim.hpp>
 #include <sstream>
 #include <string>
@@ -51,13 +52,7 @@
 
 namespace {
 
-constexpr int kExitOk     = 0;
-constexpr int kExitInput  = 2;
-constexpr int kExitFailed = 3;
-
-struct InputError : std::runtime_error {
-    using std::runtime_error::runtime_error;
-};
+using namespace mold::cli;
 
 struct Options {
     std::string     file;
@@ -76,30 +71,6 @@ void usage() {
                  "                [--max-messages N] [--timeout-ticks n] [--max-attempts n]\n"
                  "                [--buffer-packets n] [--max-gap n] [--heartbeat-every n]\n"
                  "                [--max-live-orders n] [--check-direct]\n");
-}
-
-std::uint64_t parse_u64(const std::string& flag, const std::string& v) {
-    if (v.empty() || v.find_first_not_of("0123456789") != std::string::npos) {
-        throw InputError(flag + " needs a non-negative integer, got '" + v + "'");
-    }
-    return std::strtoull(v.c_str(), nullptr, 10);
-}
-
-double parse_prob(const std::string& flag, const std::string& v) {
-    char*        end = nullptr;
-    const double d   = std::strtod(v.c_str(), &end);
-    if (v.empty() || end != v.c_str() + v.size() || !(d >= 0.0 && d <= 1.0)) {
-        throw InputError(flag + " needs a probability in [0, 1], got '" + v + "'");
-    }
-    return d;
-}
-
-std::uint32_t parse_u32(const std::string& flag, const std::string& v) {
-    const std::uint64_t n = parse_u64(flag, v);
-    if (n > UINT32_MAX) {
-        throw InputError(flag + " is too large: " + v);
-    }
-    return static_cast<std::uint32_t>(n);
 }
 
 Options parse(int argc, char** argv) {
@@ -191,29 +162,6 @@ Options parse(int argc, char** argv) {
     }
     o.sim.dump.enabled = !o.dump_path.empty();
     return o;
-}
-
-// The manifest fetch_itch.py wrote beside the data, verbatim, or "null".
-std::string manifest_json(const std::string& data_path) {
-    std::ifstream in(data_path + ".manifest.json");
-    if (!in) {
-        return "null";
-    }
-    std::stringstream ss;
-    ss << in.rdbuf();
-    std::string s = ss.str();
-    while (!s.empty() && (s.back() == '\n' || s.back() == ' ' || s.back() == '\r')) {
-        s.pop_back();
-    }
-    return !s.empty() && s.front() == '{' && s.back() == '}' ? s : "null";
-}
-
-std::string json_str(const std::string& s) {
-    return "\"" + itch::json_escape(s) + "\"";
-}
-
-const char* tf(bool b) {
-    return b ? "true" : "false";
 }
 
 struct Verdict {
@@ -371,26 +319,7 @@ int run(const Options& o) {
 
     std::string dump_file = o.dump_path;
     if (o.sim.dump.enabled) {
-        if (!ok) {
-            // A book from a run that did not pass must never pass for the real one: it goes to
-            // path.incomplete, and an earlier file at path (a previous good run) is removed.
-            dump_file += ".incomplete";
-            std::error_code ec;
-            std::filesystem::remove(o.dump_path, ec);
-        }
-        std::filesystem::path dp(dump_file);
-        if (dp.has_parent_path()) {
-            std::filesystem::create_directories(dp.parent_path());
-        }
-        std::ofstream os(dp, std::ios::binary);
-        if (!os) {
-            throw InputError("cannot write '" + dump_file + "'");
-        }
-        os.write(r.out.dump.data.data(), static_cast<std::streamsize>(r.out.dump.data.size()));
-        os.close();
-        if (!os) {
-            throw InputError("failed writing '" + dump_file + "'");
-        }
+        dump_file = store_dump(o.dump_path, r.out.dump.data, ok);
     }
     if (!o.json_path.empty()) {
         write_json(o, mf, source.size(), source_messages, source_sha, r, direct.get(), v, dump_file,

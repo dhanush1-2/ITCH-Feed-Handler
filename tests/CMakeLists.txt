@@ -81,4 +81,13 @@ if(ITCH_BUILD_TOOLS AND Python3_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/testdata/sl
             FIXTURES_REQUIRED slice
             ENVIRONMENT "MOLD_SIM=$<TARGET_FILE:mold_sim>;ITCH_REPLAY=$<TARGET_FILE:itch_replay>;ITCH_SLICE=${_slice_dir}/slice.itch")
     endif()
+    if(_pytest_rc EQUAL 0)
+        # Real loopback UDP sockets, so it runs alone (RUN_SERIAL) rather than beside CPU-heavy tests.
+        add_test(NAME udp_demo_cli
+            COMMAND ${Python3_EXECUTABLE} -m pytest -q ${CMAKE_CURRENT_SOURCE_DIR}/test_udp_demo.py)
+        set_tests_properties(udp_demo_cli PROPERTIES
+            FIXTURES_REQUIRED slice
+            RUN_SERIAL TRUE
+            ENVIRONMENT "MOLD_UDP_DEMO=$<TARGET_FILE:mold_udp_demo>;ITCH_REPLAY=$<TARGET_FILE:itch_replay>;ITCH_SLICE=${_slice_dir}/slice.itch")
+    endif()
 endif()

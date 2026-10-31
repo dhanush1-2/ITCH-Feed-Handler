@@ -14,3 +14,6 @@ target_link_libraries(itch_slice PRIVATE itch)
 
 add_executable(mold_sim mold_sim.cpp)
 target_link_libraries(mold_sim PRIVATE itch)
+
+add_executable(mold_udp_demo mold_udp_demo.cpp)
+target_link_libraries(mold_udp_demo PRIVATE itch)
