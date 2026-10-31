@@ -147,13 +147,20 @@ def summarize(name: str, runs: list[dict]) -> dict:
         "memory": {
             "max_rss_bytes_median": statistics.median(r["memory"]["max_rss_bytes"] for r in runs),
             "max_rss_includes": runs[0]["memory"]["max_rss_includes"],
-            "anonymous_footprint_after_setup_bytes_median": statistics.median(
-                r["memory"]["footprint_after_setup"]["internal_anonymous"] for r in runs),
-            "anonymous_footprint_end_bytes_median": statistics.median(
+            # The input is mlocked, and the kernel then counts its pages as "internal", so the
+            # absolute footprint includes the 8.25 GB file. Everything below is a DELTA over the
+            # footprint taken right after the input was mapped and locked: what the handler adds.
+            "tables_added_after_setup_bytes_median": statistics.median(
+                r["memory"]["footprint_after_setup"]["internal_anonymous"]
+                - r["memory"]["footprint_before_tables"]["internal_anonymous"] for r in runs),
+            "heap_added_at_end_bytes_median": statistics.median(
                 r["memory"]["footprint_end"]["internal_anonymous"]
-                + r["memory"]["footprint_end"]["compressed"] for r in runs),
-            "phys_footprint_peak_bytes_median": statistics.median(
-                r["memory"]["footprint_end"]["phys_footprint_peak"] for r in runs),
+                + r["memory"]["footprint_end"]["compressed"]
+                - r["memory"]["footprint_before_tables"]["internal_anonymous"]
+                - r["memory"]["footprint_before_tables"]["compressed"] for r in runs),
+            "peak_footprint_over_input_bytes_median": statistics.median(
+                r["memory"]["footprint_end"]["phys_footprint_peak"]
+                - r["memory"]["footprint_before_tables"]["phys_footprint"] for r in runs),
             "mapped_input_bytes": runs[0]["input"]["file_bytes"],
             "order_pool_bytes": runs[0]["memory"]["order_pool_bytes"],
             "id_index_bytes": runs[0]["memory"]["id_index_bytes"],
