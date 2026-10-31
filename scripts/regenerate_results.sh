@@ -66,9 +66,9 @@ not_regenerated() {
   cat <<'LIST'
 Not regenerated, by design:
   results/expected_anomalies.json                 hand-maintained pins; every --verify job enforces them
-  results/recon_12302019_arrival_queue.json       needs the old arrival-order queue (commit 0db1b32)
-  results/recon_20251208_arrival_queue.json       needs the old arrival-order queue (commit 8523e7f)
-  results/bench_12302019_before_optimization.json the kept baseline before the change (commit ea06f30)
+  results/recon_12302019_arrival_queue.json       needs the old arrival-order queue (commit 7f99fcb)
+  results/recon_20251208_arrival_queue.json       needs the old arrival-order queue (commit 8358d96)
+  results/bench_12302019_before_optimization.json the kept baseline before the change (commit 93efea9)
   results/screen_kscan_12302019.json              screening rows from uncommitted patched binaries
   results/profile_12302019.json                   profile of the pre-optimization book, patched scratch tree
   testdata/expected_synthetic.json                    synthetic golden file; ctest compares against it, regenerated only on a reviewed change

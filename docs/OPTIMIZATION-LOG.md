@@ -2,7 +2,7 @@
 
 Every figure here is from a committed file in `results/` (stamps: commit, data file, CPU, compiler, flags), except those the text marks as from an uncommitted run. Machine: Apple M4 Pro, AC power, macOS 27.2, `-O3 -DNDEBUG`, day 2019-12-30 (268,744,780 messages, 8.25 GB). This is a file replay; nothing here is network latency. Method: `docs/METHODOLOGY.md`.
 
-Files: `results/bench_12302019_before_optimization.json` (commit ea06f30, kScan 8), `results/bench_12302019.json` (published, kScan 64), `results/screen_kscan_12302019.json` (screening rows), `results/profile_12302019.json` (profile and counters; collected by `scripts/collect_profile.py`, counters from `scripts/profile_counters.patch` applied to a scratch tree, so its stamp is not a clean commit and it is not a timing result).
+Files: `results/bench_12302019_before_optimization.json` (commit 93efea9, kScan 8), `results/bench_12302019.json` (published, kScan 64), `results/screen_kscan_12302019.json` (screening rows), `results/profile_12302019.json` (profile and counters; collected by `scripts/collect_profile.py`, counters from `scripts/profile_counters.patch` applied to a scratch tree, so its stamp is not a clean commit and it is not a timing result).
 
 ## Headline
 

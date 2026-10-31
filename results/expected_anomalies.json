@@ -1,0 +1,29 @@
+{
+  "note": "Oracle counts that are explained in docs/DISCREPANCIES.md, per data file. itch_replay --verify fails (exit 3) on any count above its pin: a rise means something new that nobody has explained. Pinned to these files only; a different trading day is a finding, not a pin.",
+  "pins": {
+    "12302019.NASDAQ_ITCH50": {
+      "exec_not_best": 273,
+      "exec_not_best_continuous": 0,
+      "exec_not_head": 82365,
+      "exec_not_head_continuous": 82337,
+      "exec_not_head_e": 0,
+      "crossed_continuous": 0,
+      "crossed_other": 8579,
+      "episodes_continuous": 0,
+      "episodes_other": 30,
+      "match_number_collisions": 4324
+    },
+    "synthetic.itch": {
+      "exec_not_best": 0,
+      "exec_not_best_continuous": 0,
+      "exec_not_head": 204,
+      "exec_not_head_continuous": 204,
+      "exec_not_head_e": 0,
+      "crossed_continuous": 0,
+      "crossed_other": 62,
+      "episodes_continuous": 0,
+      "episodes_other": 3,
+      "match_number_collisions": 665
+    }
+  }
+}

@@ -1,0 +1,1882 @@
+{
+  "meta": {
+    "commit": "bae9ecc25cad6f9bad091d667e4f4889748fa90a",
+    "data_file": "data/12302019.NASDAQ_ITCH50",
+    "cpu": "Apple M4 Pro",
+    "compiler": "AppleClang 21.0.0.21000334",
+    "flags": "-O3 -DNDEBUG -std=c++20",
+    "os": "macOS 27.2 (Darwin 27.2.0)",
+    "power_source": "AC Power",
+    "low_power_mode": "unknown",
+    "pinning": "none: macOS has no core affinity API; the thread asks for QOS_CLASS_USER_INTERACTIVE and the scheduler decides",
+    "data_sha256": "5d81c2e14a0f748b29c674b6a342796932702034b4dd341e39e9a9ec5bac610f",
+    "data_bytes": 8251407909,
+    "label": "final, kScan=64",
+    "complete": true
+  },
+  "machine": {
+    "cpu": "Apple M4 Pro",
+    "performance_cores": "8",
+    "efficiency_cores": "4",
+    "memory_bytes": 25769803776,
+    "os": "macOS 27.2 (Darwin 27.2.0)",
+    "power_source": "AC Power",
+    "pmset_batt": "Now drawing from 'AC Power'",
+    "low_power_mode": "unknown",
+    "thermal_before": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "pinning": "none: macOS has no core affinity API; the thread asks for QOS_CLASS_USER_INTERACTIVE and the scheduler decides",
+    "thermal_after": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded"
+  },
+  "protocol": {
+    "processes_per_measurement": 5,
+    "published": "median",
+    "spread_definition": "(max - min) / median of msgs_per_sec",
+    "spread_limit": 0.1,
+    "cooldown_seconds_between_runs": 5,
+    "timer": "mach counter via ob::bench::Clock; granularity in each result's clock block",
+    "ten_symbols": [
+      "QQQ",
+      "SPY",
+      "IWM",
+      "TQQQ",
+      "AAPL",
+      "AMD",
+      "MSFT",
+      "URTY",
+      "TNA",
+      "XLK"
+    ]
+  },
+  "results": {
+    "frame": {
+      "runs": 5,
+      "msgs_per_sec": {
+        "median": 600814000.0,
+        "min": 566573000.0,
+        "max": 601480000.0,
+        "all": [
+          566573000.0,
+          600959000.0,
+          599374000.0,
+          601480000.0,
+          600814000.0
+        ],
+        "spread": 0.0581
+      },
+      "ns_per_msg_median": 1.66441,
+      "messages": 268744780,
+      "handled": 0,
+      "state_checksum": "0",
+      "peak_live_orders": 0,
+      "anomalies": null,
+      "median_of_chunk_median_msgs_per_sec": 602990000.0,
+      "input_mlocked": true,
+      "timed_span_major_faults_per_run": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "timed_span_major_faults_max": 0,
+      "timed_span_involuntary_ctx_switches_max": 37,
+      "memory": {
+        "max_rss_bytes_median": 8253718528,
+        "max_rss_includes": "the mapped input file's resident pages as well as the tables",
+        "tables_added_after_setup_bytes_median": 0,
+        "heap_added_at_end_bytes_median": 360448,
+        "peak_footprint_over_input_bytes_median": 360448,
+        "mapped_input_bytes": 8251407909,
+        "order_pool_bytes": 0,
+        "id_index_bytes": 0,
+        "books_array_bytes": 0
+      },
+      "clock": {
+        "counter_hz": 1000000000,
+        "ns_per_tick": 1,
+        "granularity_median_ns": 42,
+        "granularity_min_ns": 17,
+        "overhead_unserialized_ns": 0.22184,
+        "overhead_serialized_ns": 8.64451
+      },
+      "raw_wall_seconds_including_setup": [
+        2.7,
+        7.2,
+        6.0,
+        6.1,
+        6.1
+      ]
+    },
+    "parse": {
+      "runs": 5,
+      "msgs_per_sec": {
+        "median": 203762000.0,
+        "min": 201165000.0,
+        "max": 204253000.0,
+        "all": [
+          202349000.0,
+          204253000.0,
+          203762000.0,
+          203763000.0,
+          201165000.0
+        ],
+        "spread": 0.0152
+      },
+      "ns_per_msg_median": 4.90769,
+      "messages": 268744780,
+      "handled": 264496253,
+      "state_checksum": "18484b8a9b620215",
+      "peak_live_orders": 0,
+      "anomalies": null,
+      "median_of_chunk_median_msgs_per_sec": 201970000.0,
+      "input_mlocked": true,
+      "timed_span_major_faults_per_run": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "timed_span_major_faults_max": 0,
+      "timed_span_involuntary_ctx_switches_max": 40,
+      "memory": {
+        "max_rss_bytes_median": 8253734912,
+        "max_rss_includes": "the mapped input file's resident pages as well as the tables",
+        "tables_added_after_setup_bytes_median": 0,
+        "heap_added_at_end_bytes_median": 360448,
+        "peak_footprint_over_input_bytes_median": 360448,
+        "mapped_input_bytes": 8251407909,
+        "order_pool_bytes": 0,
+        "id_index_bytes": 0,
+        "books_array_bytes": 0
+      },
+      "clock": {
+        "counter_hz": 1000000000,
+        "ns_per_tick": 1,
+        "granularity_median_ns": 42,
+        "granularity_min_ns": 17,
+        "overhead_unserialized_ns": 0.221545,
+        "overhead_serialized_ns": 8.81489
+      },
+      "raw_wall_seconds_including_setup": [
+        6.6,
+        6.9,
+        6.9,
+        7.0,
+        7.0
+      ]
+    },
+    "apply": {
+      "runs": 5,
+      "msgs_per_sec": {
+        "median": 14247900.0,
+        "min": 14157000.0,
+        "max": 14305300.0,
+        "all": [
+          14233700.0,
+          14157000.0,
+          14305300.0,
+          14247900.0,
+          14288100.0
+        ],
+        "spread": 0.0104
+      },
+      "ns_per_msg_median": 70.1858,
+      "messages": 268744780,
+      "handled": 264496253,
+      "state_checksum": "ca81fe1ec03459c9",
+      "peak_live_orders": 1924078,
+      "anomalies": {
+        "unknown_ref": 0,
+        "duplicate_add": 0,
+        "locate_mismatch": 0,
+        "over_execute": 0,
+        "over_cancel": 0,
+        "zero_shares": 0
+      },
+      "median_of_chunk_median_msgs_per_sec": 14302800.0,
+      "input_mlocked": true,
+      "timed_span_major_faults_per_run": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "timed_span_major_faults_max": 0,
+      "timed_span_involuntary_ctx_switches_max": 367,
+      "memory": {
+        "max_rss_bytes_median": 8565997568,
+        "max_rss_includes": "the mapped input file's resident pages as well as the tables",
+        "tables_added_after_setup_bytes_median": 265945088,
+        "heap_added_at_end_bytes_median": 312606720,
+        "peak_footprint_over_input_bytes_median": 312787208,
+        "mapped_input_bytes": 8251407909,
+        "order_pool_bytes": 128000000,
+        "id_index_bytes": 134217728,
+        "books_array_bytes": 3670016
+      },
+      "book_storage": {
+        "kind": "vector",
+        "level_vector_bytes_high_water": 38914560,
+        "books_with_levels": 8892
+      },
+      "clock": {
+        "counter_hz": 1000000000,
+        "ns_per_tick": 1,
+        "granularity_median_ns": 42,
+        "granularity_min_ns": 17,
+        "overhead_unserialized_ns": 0.221635,
+        "overhead_serialized_ns": 8.64409
+      },
+      "raw_wall_seconds_including_setup": [
+        24.5,
+        24.7,
+        24.5,
+        24.5,
+        24.5
+      ]
+    },
+    "latency": {
+      "runs": 5,
+      "msgs_per_sec": {
+        "median": 9923000.0,
+        "min": 9917370.0,
+        "max": 9988690.0,
+        "all": [
+          9922820.0,
+          9917370.0,
+          9923000.0,
+          9941250.0,
+          9988690.0
+        ],
+        "spread": 0.0072
+      },
+      "ns_per_msg_median": 100.776,
+      "messages": 268744780,
+      "handled": 264496253,
+      "state_checksum": "ca81fe1ec03459c9",
+      "peak_live_orders": 1924078,
+      "anomalies": {
+        "unknown_ref": 0,
+        "duplicate_add": 0,
+        "locate_mismatch": 0,
+        "over_execute": 0,
+        "over_cancel": 0,
+        "zero_shares": 0
+      },
+      "median_of_chunk_median_msgs_per_sec": null,
+      "input_mlocked": true,
+      "timed_span_major_faults_per_run": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "timed_span_major_faults_max": 0,
+      "timed_span_involuntary_ctx_switches_max": 643,
+      "memory": {
+        "max_rss_bytes_median": 10491396096,
+        "max_rss_includes": "the mapped input file's resident pages as well as the tables",
+        "tables_added_after_setup_bytes_median": 266125312,
+        "heap_added_at_end_bytes_median": 2482896896,
+        "peak_footprint_over_input_bytes_median": 2484143904,
+        "mapped_input_bytes": 8251407909,
+        "order_pool_bytes": 128000000,
+        "id_index_bytes": 134217728,
+        "books_array_bytes": 3670016
+      },
+      "book_storage": {
+        "kind": "vector",
+        "level_vector_bytes_high_water": 38914560,
+        "books_with_levels": 8892
+      },
+      "latency_all_ns": {
+        "p50_ns": {
+          "median": 83,
+          "min": 83,
+          "max": 83
+        },
+        "p90_ns": {
+          "median": 208,
+          "min": 208,
+          "max": 208
+        },
+        "p99_ns": {
+          "median": 375,
+          "min": 375,
+          "max": 375
+        },
+        "p99_9_ns": {
+          "median": 625,
+          "min": 625,
+          "max": 625
+        },
+        "p99_99_ns": {
+          "median": 1083,
+          "min": 1000,
+          "max": 1208
+        },
+        "max_ns": {
+          "median": 515008,
+          "min": 103071,
+          "max": 2050700.0
+        },
+        "mean_ns": {
+          "median": 100.776,
+          "min": 100.113,
+          "max": 100.833
+        }
+      },
+      "latency_fraction_at_zero_ticks_median": 0.0868081,
+      "latency_timer_floor_ns": {
+        "p50_ns": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "p90_ns": {
+          "median": 42,
+          "min": 42,
+          "max": 42
+        },
+        "p99_ns": {
+          "median": 42,
+          "min": 42,
+          "max": 42
+        },
+        "p99_9_ns": {
+          "median": 42,
+          "min": 42,
+          "max": 42
+        },
+        "p99_99_ns": {
+          "median": 58,
+          "min": 58,
+          "max": 59
+        },
+        "max_ns": {
+          "median": 7643,
+          "min": 2250,
+          "max": 129779
+        },
+        "mean_ns": {
+          "median": 8.70482,
+          "min": 8.65387,
+          "max": 8.94047
+        }
+      },
+      "latency_by_type_ns": {
+        "A": {
+          "count": 117145568,
+          "p50_ns": {
+            "median": 83,
+            "min": 83,
+            "max": 83
+          },
+          "p99_ns": {
+            "median": 250,
+            "min": 250,
+            "max": 250
+          },
+          "p99_9_ns": {
+            "median": 334,
+            "min": 334,
+            "max": 375
+          },
+          "max_ns": {
+            "median": 111030,
+            "min": 53642,
+            "max": 465597
+          },
+          "mean_ns": {
+            "median": 86.7335,
+            "min": 86.2047,
+            "max": 87.0315
+          }
+        },
+        "C": {
+          "count": 99917,
+          "p50_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_ns": {
+            "median": 292,
+            "min": 292,
+            "max": 333
+          },
+          "p99_9_ns": {
+            "median": 417,
+            "min": 417,
+            "max": 417
+          },
+          "max_ns": {
+            "median": 5333,
+            "min": 3893,
+            "max": 6875
+          },
+          "mean_ns": {
+            "median": 63.5441,
+            "min": 63.2902,
+            "max": 64.2721
+          }
+        },
+        "D": {
+          "count": 114360997,
+          "p50_ns": {
+            "median": 83,
+            "min": 83,
+            "max": 83
+          },
+          "p99_ns": {
+            "median": 375,
+            "min": 375,
+            "max": 375
+          },
+          "p99_9_ns": {
+            "median": 500,
+            "min": 500,
+            "max": 500
+          },
+          "max_ns": {
+            "median": 515008,
+            "min": 57453,
+            "max": 2050700.0
+          },
+          "mean_ns": {
+            "median": 103.202,
+            "min": 102.769,
+            "max": 103.651
+          }
+        },
+        "E": {
+          "count": 5722824,
+          "p50_ns": {
+            "median": 83,
+            "min": 83,
+            "max": 83
+          },
+          "p99_ns": {
+            "median": 375,
+            "min": 375,
+            "max": 375
+          },
+          "p99_9_ns": {
+            "median": 458,
+            "min": 458,
+            "max": 459
+          },
+          "max_ns": {
+            "median": 40602,
+            "min": 24167,
+            "max": 88494
+          },
+          "mean_ns": {
+            "median": 101.464,
+            "min": 100.717,
+            "max": 101.669
+          }
+        },
+        "F": {
+          "count": 1485888,
+          "p50_ns": {
+            "median": 83,
+            "min": 83,
+            "max": 84
+          },
+          "p99_ns": {
+            "median": 292,
+            "min": 292,
+            "max": 333
+          },
+          "p99_9_ns": {
+            "median": 833,
+            "min": 792,
+            "max": 834
+          },
+          "max_ns": {
+            "median": 19726,
+            "min": 16185,
+            "max": 25767
+          },
+          "mean_ns": {
+            "median": 99.047,
+            "min": 98.5953,
+            "max": 100.081
+          }
+        },
+        "H": {
+          "count": 8966,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 59,
+            "min": 42,
+            "max": 59
+          },
+          "mean_ns": {
+            "median": 8.67477,
+            "min": 8.62592,
+            "max": 9.53669
+          }
+        },
+        "I": {
+          "count": 4024315,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 14417,
+            "min": 6625,
+            "max": 19292
+          },
+          "mean_ns": {
+            "median": 9.15978,
+            "min": 9.09273,
+            "max": 9.1977
+          }
+        },
+        "J": {
+          "count": 34,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "mean_ns": {
+            "median": 7.32353,
+            "min": 6.11765,
+            "max": 8.55882
+          }
+        },
+        "K": {
+          "count": 3,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 41
+          },
+          "p99_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          },
+          "mean_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 27.6667
+          }
+        },
+        "L": {
+          "count": 215161,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 59,
+            "min": 59,
+            "max": 6167
+          },
+          "mean_ns": {
+            "median": 8.64798,
+            "min": 8.63213,
+            "max": 9.19544
+          }
+        },
+        "P": {
+          "count": 1218602,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 4500,
+            "min": 3375,
+            "max": 10018
+          },
+          "mean_ns": {
+            "median": 10.5714,
+            "min": 10.392,
+            "max": 10.8357
+          }
+        },
+        "Q": {
+          "count": 17836,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 125,
+            "min": 59,
+            "max": 125
+          },
+          "mean_ns": {
+            "median": 10.9391,
+            "min": 10.0567,
+            "max": 11.1101
+          }
+        },
+        "R": {
+          "count": 8906,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 59,
+            "min": 58,
+            "max": 59
+          },
+          "mean_ns": {
+            "median": 8.65697,
+            "min": 8.52302,
+            "max": 8.74242
+          }
+        },
+        "S": {
+          "count": 6,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          },
+          "p99_ns": {
+            "median": 1666,
+            "min": 1458,
+            "max": 1935
+          },
+          "p99_9_ns": {
+            "median": 1666,
+            "min": 1458,
+            "max": 1935
+          },
+          "max_ns": {
+            "median": 1666,
+            "min": 1458,
+            "max": 1935
+          },
+          "mean_ns": {
+            "median": 284.5,
+            "min": 249.833,
+            "max": 336.5
+          }
+        },
+        "U": {
+          "count": 21639067,
+          "p50_ns": {
+            "median": 167,
+            "min": 167,
+            "max": 167
+          },
+          "p99_ns": {
+            "median": 625,
+            "min": 625,
+            "max": 625
+          },
+          "p99_9_ns": {
+            "median": 917,
+            "min": 917,
+            "max": 958
+          },
+          "max_ns": {
+            "median": 186439,
+            "min": 77261,
+            "max": 284658
+          },
+          "mean_ns": {
+            "median": 189.961,
+            "min": 188.804,
+            "max": 190.181
+          }
+        },
+        "V": {
+          "count": 1,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_9_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "max_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "mean_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          }
+        },
+        "X": {
+          "count": 2787676,
+          "p50_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_ns": {
+            "median": 292,
+            "min": 292,
+            "max": 292
+          },
+          "p99_9_ns": {
+            "median": 417,
+            "min": 416,
+            "max": 417
+          },
+          "max_ns": {
+            "median": 26851,
+            "min": 22958,
+            "max": 38827
+          },
+          "mean_ns": {
+            "median": 67.0677,
+            "min": 66.8399,
+            "max": 67.3568
+          }
+        },
+        "Y": {
+          "count": 9013,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 58,
+            "min": 42,
+            "max": 59
+          },
+          "mean_ns": {
+            "median": 8.69644,
+            "min": 8.64584,
+            "max": 9.54532
+          }
+        }
+      },
+      "clock": {
+        "counter_hz": 1000000000,
+        "ns_per_tick": 1,
+        "granularity_median_ns": 42,
+        "granularity_min_ns": 17,
+        "overhead_unserialized_ns": 0.221545,
+        "overhead_serialized_ns": 8.76064
+      },
+      "raw_wall_seconds_including_setup": [
+        38.7,
+        38.9,
+        38.9,
+        38.5,
+        38.2
+      ]
+    },
+    "apply_unordered_map": {
+      "runs": 5,
+      "msgs_per_sec": {
+        "median": 7109410.0,
+        "min": 7047750.0,
+        "max": 7144770.0,
+        "all": [
+          7047750.0,
+          7122020.0,
+          7103120.0,
+          7144770.0,
+          7109410.0
+        ],
+        "spread": 0.0136
+      },
+      "ns_per_msg_median": 140.659,
+      "messages": 268744780,
+      "handled": 264496253,
+      "state_checksum": "ca81fe1ec03459c9",
+      "peak_live_orders": 1924078,
+      "anomalies": {
+        "unknown_ref": 0,
+        "duplicate_add": 0,
+        "locate_mismatch": 0,
+        "over_execute": 0,
+        "over_cancel": 0,
+        "zero_shares": 0
+      },
+      "median_of_chunk_median_msgs_per_sec": 7038100.0,
+      "input_mlocked": true,
+      "timed_span_major_faults_per_run": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "timed_span_major_faults_max": 0,
+      "timed_span_involuntary_ctx_switches_max": 1391,
+      "memory": {
+        "max_rss_bytes_median": 8525643776,
+        "max_rss_includes": "the mapped input file's resident pages as well as the tables",
+        "tables_added_after_setup_bytes_median": 163741696,
+        "heap_added_at_end_bytes_median": 222117888,
+        "peak_footprint_over_input_bytes_median": 272384240,
+        "mapped_input_bytes": 8251407909,
+        "order_pool_bytes": 128000000,
+        "id_index_bytes": 0,
+        "books_array_bytes": 3670016
+      },
+      "book_storage": {
+        "kind": "vector",
+        "level_vector_bytes_high_water": 38914560,
+        "books_with_levels": 8892
+      },
+      "clock": {
+        "counter_hz": 1000000000,
+        "ns_per_tick": 1,
+        "granularity_median_ns": 42,
+        "granularity_min_ns": 17,
+        "overhead_unserialized_ns": 0.22175,
+        "overhead_serialized_ns": 8.64355
+      },
+      "raw_wall_seconds_including_setup": [
+        43.7,
+        43.6,
+        43.5,
+        43.4,
+        43.5
+      ]
+    },
+    "latency_unordered_map": {
+      "runs": 5,
+      "msgs_per_sec": {
+        "median": 6024710.0,
+        "min": 5952800.0,
+        "max": 6034610.0,
+        "all": [
+          5974530.0,
+          6026800.0,
+          5952800.0,
+          6034610.0,
+          6024710.0
+        ],
+        "spread": 0.0136
+      },
+      "ns_per_msg_median": 165.983,
+      "messages": 268744780,
+      "handled": 264496253,
+      "state_checksum": "ca81fe1ec03459c9",
+      "peak_live_orders": 1924078,
+      "anomalies": {
+        "unknown_ref": 0,
+        "duplicate_add": 0,
+        "locate_mismatch": 0,
+        "over_execute": 0,
+        "over_cancel": 0,
+        "zero_shares": 0
+      },
+      "median_of_chunk_median_msgs_per_sec": null,
+      "input_mlocked": true,
+      "timed_span_major_faults_per_run": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "timed_span_major_faults_max": 0,
+      "timed_span_involuntary_ctx_switches_max": 1448,
+      "memory": {
+        "max_rss_bytes_median": 10605461504,
+        "max_rss_includes": "the mapped input file's resident pages as well as the tables",
+        "tables_added_after_setup_bytes_median": 163921920,
+        "heap_added_at_end_bytes_median": 2392457216,
+        "peak_footprint_over_input_bytes_median": 2423588592,
+        "mapped_input_bytes": 8251407909,
+        "order_pool_bytes": 128000000,
+        "id_index_bytes": 0,
+        "books_array_bytes": 3670016
+      },
+      "book_storage": {
+        "kind": "vector",
+        "level_vector_bytes_high_water": 38914560,
+        "books_with_levels": 8892
+      },
+      "latency_all_ns": {
+        "p50_ns": {
+          "median": 125,
+          "min": 125,
+          "max": 125
+        },
+        "p90_ns": {
+          "median": 375,
+          "min": 375,
+          "max": 375
+        },
+        "p99_ns": {
+          "median": 666,
+          "min": 666,
+          "max": 667
+        },
+        "p99_9_ns": {
+          "median": 875,
+          "min": 875,
+          "max": 875
+        },
+        "p99_99_ns": {
+          "median": 1667,
+          "min": 1375,
+          "max": 4416
+        },
+        "max_ns": {
+          "median": 1067700.0,
+          "min": 934545,
+          "max": 2077990.0
+        },
+        "mean_ns": {
+          "median": 165.983,
+          "min": 165.711,
+          "max": 167.988
+        }
+      },
+      "latency_fraction_at_zero_ticks_median": 0.0267482,
+      "latency_timer_floor_ns": {
+        "p50_ns": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "p90_ns": {
+          "median": 42,
+          "min": 42,
+          "max": 42
+        },
+        "p99_ns": {
+          "median": 42,
+          "min": 42,
+          "max": 42
+        },
+        "p99_9_ns": {
+          "median": 42,
+          "min": 42,
+          "max": 42
+        },
+        "p99_99_ns": {
+          "median": 58,
+          "min": 58,
+          "max": 59
+        },
+        "max_ns": {
+          "median": 8583,
+          "min": 5583,
+          "max": 16684
+        },
+        "mean_ns": {
+          "median": 8.66074,
+          "min": 8.65236,
+          "max": 8.72577
+        }
+      },
+      "latency_by_type_ns": {
+        "A": {
+          "count": 117145568,
+          "p50_ns": {
+            "median": 83,
+            "min": 83,
+            "max": 83
+          },
+          "p99_ns": {
+            "median": 458,
+            "min": 458,
+            "max": 458
+          },
+          "p99_9_ns": {
+            "median": 584,
+            "min": 583,
+            "max": 584
+          },
+          "max_ns": {
+            "median": 174522,
+            "min": 103053,
+            "max": 2077990.0
+          },
+          "mean_ns": {
+            "median": 122.313,
+            "min": 121.805,
+            "max": 123.734
+          }
+        },
+        "C": {
+          "count": 99917,
+          "p50_ns": {
+            "median": 83,
+            "min": 83,
+            "max": 83
+          },
+          "p99_ns": {
+            "median": 583,
+            "min": 583,
+            "max": 584
+          },
+          "p99_9_ns": {
+            "median": 708,
+            "min": 708,
+            "max": 750
+          },
+          "max_ns": {
+            "median": 6958,
+            "min": 875,
+            "max": 25917
+          },
+          "mean_ns": {
+            "median": 110.917,
+            "min": 110.622,
+            "max": 112.345
+          }
+        },
+        "D": {
+          "count": 114360997,
+          "p50_ns": {
+            "median": 166,
+            "min": 125,
+            "max": 166
+          },
+          "p99_ns": {
+            "median": 667,
+            "min": 667,
+            "max": 667
+          },
+          "p99_9_ns": {
+            "median": 833,
+            "min": 792,
+            "max": 833
+          },
+          "max_ns": {
+            "median": 1067700.0,
+            "min": 934545,
+            "max": 1812240.0
+          },
+          "mean_ns": {
+            "median": 193.619,
+            "min": 192.983,
+            "max": 195.596
+          }
+        },
+        "E": {
+          "count": 5722824,
+          "p50_ns": {
+            "median": 166,
+            "min": 166,
+            "max": 166
+          },
+          "p99_ns": {
+            "median": 666,
+            "min": 666,
+            "max": 667
+          },
+          "p99_9_ns": {
+            "median": 750,
+            "min": 750,
+            "max": 791
+          },
+          "max_ns": {
+            "median": 231206,
+            "min": 31518,
+            "max": 743922
+          },
+          "mean_ns": {
+            "median": 212.432,
+            "min": 211.376,
+            "max": 214.878
+          }
+        },
+        "F": {
+          "count": 1485888,
+          "p50_ns": {
+            "median": 83,
+            "min": 83,
+            "max": 83
+          },
+          "p99_ns": {
+            "median": 459,
+            "min": 459,
+            "max": 459
+          },
+          "p99_9_ns": {
+            "median": 1000,
+            "min": 1000,
+            "max": 1084
+          },
+          "max_ns": {
+            "median": 34768,
+            "min": 20060,
+            "max": 65160
+          },
+          "mean_ns": {
+            "median": 116.438,
+            "min": 115.775,
+            "max": 117
+          }
+        },
+        "H": {
+          "count": 8966,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 59,
+            "min": 58,
+            "max": 59
+          },
+          "mean_ns": {
+            "median": 9.14098,
+            "min": 8.91992,
+            "max": 9.38166
+          }
+        },
+        "I": {
+          "count": 4024315,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 13167,
+            "min": 7709,
+            "max": 20893
+          },
+          "mean_ns": {
+            "median": 9.74722,
+            "min": 9.69171,
+            "max": 10.0361
+          }
+        },
+        "J": {
+          "count": 34,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "mean_ns": {
+            "median": 9.82353,
+            "min": 6.17647,
+            "max": 15.8824
+          }
+        },
+        "K": {
+          "count": 3,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 0,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 0,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 42,
+            "min": 0,
+            "max": 42
+          },
+          "mean_ns": {
+            "median": 14,
+            "min": 0,
+            "max": 28
+          }
+        },
+        "L": {
+          "count": 215161,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 59,
+            "min": 59,
+            "max": 5542
+          },
+          "mean_ns": {
+            "median": 9.1057,
+            "min": 9.04802,
+            "max": 9.5372
+          }
+        },
+        "P": {
+          "count": 1218602,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 8833,
+            "min": 5709,
+            "max": 13226
+          },
+          "mean_ns": {
+            "median": 11.8057,
+            "min": 11.7256,
+            "max": 11.9311
+          }
+        },
+        "Q": {
+          "count": 17836,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 59,
+            "min": 59,
+            "max": 8125
+          },
+          "mean_ns": {
+            "median": 11.3334,
+            "min": 11.1042,
+            "max": 12.3002
+          }
+        },
+        "R": {
+          "count": 8906,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 58,
+            "min": 42,
+            "max": 59
+          },
+          "mean_ns": {
+            "median": 9.13946,
+            "min": 8.74186,
+            "max": 9.17382
+          }
+        },
+        "S": {
+          "count": 6,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 1583,
+            "min": 1250,
+            "max": 1792
+          },
+          "p99_9_ns": {
+            "median": 1583,
+            "min": 1250,
+            "max": 1792
+          },
+          "max_ns": {
+            "median": 1583,
+            "min": 1250,
+            "max": 1792
+          },
+          "mean_ns": {
+            "median": 270.833,
+            "min": 222.167,
+            "max": 312.5
+          }
+        },
+        "U": {
+          "count": 21639067,
+          "p50_ns": {
+            "median": 250,
+            "min": 250,
+            "max": 250
+          },
+          "p99_ns": {
+            "median": 834,
+            "min": 834,
+            "max": 875
+          },
+          "p99_9_ns": {
+            "median": 1209,
+            "min": 1208,
+            "max": 1292
+          },
+          "max_ns": {
+            "median": 196581,
+            "min": 61077,
+            "max": 930236
+          },
+          "mean_ns": {
+            "median": 298.558,
+            "min": 298.099,
+            "max": 302.017
+          }
+        },
+        "V": {
+          "count": 1,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          },
+          "p99_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          },
+          "mean_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          }
+        },
+        "X": {
+          "count": 2787676,
+          "p50_ns": {
+            "median": 83,
+            "min": 83,
+            "max": 83
+          },
+          "p99_ns": {
+            "median": 500,
+            "min": 500,
+            "max": 500
+          },
+          "p99_9_ns": {
+            "median": 625,
+            "min": 625,
+            "max": 625
+          },
+          "max_ns": {
+            "median": 26977,
+            "min": 23017,
+            "max": 27934
+          },
+          "mean_ns": {
+            "median": 98.3577,
+            "min": 98.0285,
+            "max": 99.0005
+          }
+        },
+        "Y": {
+          "count": 9013,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 59,
+            "min": 58,
+            "max": 4892
+          },
+          "mean_ns": {
+            "median": 9.1398,
+            "min": 8.91978,
+            "max": 9.5633
+          }
+        }
+      },
+      "clock": {
+        "counter_hz": 1000000000,
+        "ns_per_tick": 1,
+        "granularity_median_ns": 42,
+        "granularity_min_ns": 17,
+        "overhead_unserialized_ns": 0.221755,
+        "overhead_serialized_ns": 8.64376
+      },
+      "raw_wall_seconds_including_setup": [
+        57.5,
+        56.5,
+        57.4,
+        56.1,
+        56.4
+      ]
+    },
+    "apply_no_book": {
+      "runs": 5,
+      "msgs_per_sec": {
+        "median": 30725000.0,
+        "min": 30686600.0,
+        "max": 30950200.0,
+        "all": [
+          30725000.0,
+          30874700.0,
+          30706200.0,
+          30686600.0,
+          30950200.0
+        ],
+        "spread": 0.0086
+      },
+      "ns_per_msg_median": 32.5468,
+      "messages": 268744780,
+      "handled": 264496253,
+      "state_checksum": "ce1a78953bdc0000",
+      "peak_live_orders": 2621959,
+      "anomalies": {
+        "unknown_ref": 0,
+        "duplicate_add": 0,
+        "locate_mismatch": 0,
+        "over_execute": 0,
+        "over_cancel": 0,
+        "zero_shares": 0
+      },
+      "median_of_chunk_median_msgs_per_sec": 30604200.0,
+      "input_mlocked": true,
+      "timed_span_major_faults_per_run": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "timed_span_major_faults_max": 0,
+      "timed_span_involuntary_ctx_switches_max": 234,
+      "memory": {
+        "max_rss_bytes_median": 8516042752,
+        "max_rss_includes": "the mapped input file's resident pages as well as the tables",
+        "tables_added_after_setup_bytes_median": 262275072,
+        "heap_added_at_end_bytes_median": 262619136,
+        "peak_footprint_over_input_bytes_median": 262733992,
+        "mapped_input_bytes": 8251407909,
+        "order_pool_bytes": 128000000,
+        "id_index_bytes": 134217728,
+        "books_array_bytes": 65536
+      },
+      "book_storage": {
+        "kind": "none"
+      },
+      "clock": {
+        "counter_hz": 1000000000,
+        "ns_per_tick": 1,
+        "granularity_median_ns": 42,
+        "granularity_min_ns": 17,
+        "overhead_unserialized_ns": 0.221545,
+        "overhead_serialized_ns": 8.7426
+      },
+      "raw_wall_seconds_including_setup": [
+        14.2,
+        14.5,
+        14.5,
+        14.5,
+        14.4
+      ]
+    },
+    "apply_ten_symbols_vector": {
+      "runs": 5,
+      "msgs_per_sec": {
+        "median": 20377600.0,
+        "min": 19914200.0,
+        "max": 20618300.0,
+        "all": [
+          20377600.0,
+          19914200.0,
+          20052700.0,
+          20484900.0,
+          20618300.0
+        ],
+        "spread": 0.0346
+      },
+      "ns_per_msg_median": 49.0735,
+      "messages": 15354044,
+      "handled": 15349140,
+      "state_checksum": "3ddacd6bf4837316",
+      "peak_live_orders": 77491,
+      "anomalies": {
+        "unknown_ref": 0,
+        "duplicate_add": 0,
+        "locate_mismatch": 0,
+        "over_execute": 0,
+        "over_cancel": 0,
+        "zero_shares": 0
+      },
+      "median_of_chunk_median_msgs_per_sec": 20871100.0,
+      "input_mlocked": true,
+      "timed_span_major_faults_per_run": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "timed_span_major_faults_max": 0,
+      "timed_span_involuntary_ctx_switches_max": 26,
+      "memory": {
+        "max_rss_bytes_median": 9253421056,
+        "max_rss_includes": "the mapped input file's resident pages as well as the tables",
+        "tables_added_after_setup_bytes_median": 265945088,
+        "heap_added_at_end_bytes_median": 267124736,
+        "peak_footprint_over_input_bytes_median": 267288816,
+        "mapped_input_bytes": 8251407909,
+        "order_pool_bytes": 128000000,
+        "id_index_bytes": 134217728,
+        "books_array_bytes": 3670016
+      },
+      "book_storage": {
+        "kind": "vector",
+        "level_vector_bytes_high_water": 678912,
+        "books_with_levels": 10
+      },
+      "clock": {
+        "counter_hz": 1000000000,
+        "ns_per_tick": 1,
+        "granularity_median_ns": 42,
+        "granularity_min_ns": 17,
+        "overhead_unserialized_ns": 0.25509,
+        "overhead_serialized_ns": 10.011
+      },
+      "raw_wall_seconds_including_setup": [
+        7.2,
+        7.3,
+        7.3,
+        7.2,
+        7.2
+      ]
+    },
+    "apply_ten_symbols_ladder": {
+      "runs": 5,
+      "msgs_per_sec": {
+        "median": 28672600.0,
+        "min": 28502700.0,
+        "max": 28885400.0,
+        "all": [
+          28672600.0,
+          28885400.0,
+          28605500.0,
+          28750700.0,
+          28502700.0
+        ],
+        "spread": 0.0133
+      },
+      "ns_per_msg_median": 34.8765,
+      "messages": 15354044,
+      "handled": 15349140,
+      "state_checksum": "3ddacd6bf4837316",
+      "peak_live_orders": 77491,
+      "anomalies": {
+        "unknown_ref": 0,
+        "duplicate_add": 0,
+        "locate_mismatch": 0,
+        "over_execute": 0,
+        "over_cancel": 0,
+        "zero_shares": 0
+      },
+      "median_of_chunk_median_msgs_per_sec": 29122100.0,
+      "input_mlocked": true,
+      "timed_span_major_faults_per_run": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "timed_span_major_faults_max": 0,
+      "timed_span_involuntary_ctx_switches_max": 4,
+      "memory": {
+        "max_rss_bytes_median": 9285009408,
+        "max_rss_includes": "the mapped input file's resident pages as well as the tables",
+        "tables_added_after_setup_bytes_median": 297418752,
+        "heap_added_at_end_bytes_median": 298713088,
+        "peak_footprint_over_input_bytes_median": 298909984,
+        "mapped_input_bytes": 8251407909,
+        "order_pool_bytes": 128000000,
+        "id_index_bytes": 134217728,
+        "books_array_bytes": 3145728
+      },
+      "book_storage": {
+        "kind": "ladder",
+        "ladder_bytes_per_symbol": 3162384,
+        "symbols_allocated": 10,
+        "adds_in_window": 7068980,
+        "adds_in_overflow_map": 1090481,
+        "per_symbol": [
+          {
+            "locate": 13,
+            "in_window_adds": 598538,
+            "overflow_adds": 197174
+          },
+          {
+            "locate": 344,
+            "in_window_adds": 633880,
+            "overflow_adds": 99625
+          },
+          {
+            "locate": 4315,
+            "in_window_adds": 967182,
+            "overflow_adds": 37466
+          },
+          {
+            "locate": 5291,
+            "in_window_adds": 582141,
+            "overflow_adds": 48758
+          },
+          {
+            "locate": 6556,
+            "in_window_adds": 1153389,
+            "overflow_adds": 67707
+          },
+          {
+            "locate": 7451,
+            "in_window_adds": 1066330,
+            "overflow_adds": 42816
+          },
+          {
+            "locate": 7879,
+            "in_window_adds": 447661,
+            "overflow_adds": 64761
+          },
+          {
+            "locate": 7931,
+            "in_window_adds": 788776,
+            "overflow_adds": 85308
+          },
+          {
+            "locate": 8197,
+            "in_window_adds": 352148,
+            "overflow_adds": 438353
+          },
+          {
+            "locate": 8748,
+            "in_window_adds": 478935,
+            "overflow_adds": 8513
+          }
+        ]
+      },
+      "clock": {
+        "counter_hz": 1000000000,
+        "ns_per_tick": 1,
+        "granularity_median_ns": 42,
+        "granularity_min_ns": 17,
+        "overhead_unserialized_ns": 0.22184,
+        "overhead_serialized_ns": 8.64376
+      },
+      "raw_wall_seconds_including_setup": [
+        7.0,
+        7.1,
+        7.0,
+        7.0,
+        6.9
+      ]
+    }
+  },
+  "rejected_sets": {}
+}

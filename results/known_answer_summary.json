@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "commit": "b5f86a4b192a4460f40153655fdf39facee07618",
+    "data_file": "data/12302019.NASDAQ_ITCH50",
+    "cpu": "Apple M4 Pro",
+    "compiler": "AppleClang 21.0.0.21000334",
+    "flags": "-O3 -DNDEBUG -std=c++20"
+  },
+  "note": "Summary only. The inputs hold resting orders; they are reproducible and not committed.",
+  "symbols": 20,
+  "identical_symbols": 20,
+  "checkpoint_s": 43200,
+  "resting_orders_per_checkpoint": {
+    "43200": 121587,
+    "eod": 0
+  },
+  "cpp_file": "cpp_subset_12302019.json",
+  "cpp_sha256": "916ae111dad4ac9f366748332eb12d61daa97cd65a85a395f1681581212e72b0",
+  "ref_file": "ref_12302019.json",
+  "ref_sha256": "105a1e5b232a4bc867f9e052b7994a910e0cf6827e95d7baacf3351e70c7ce83"
+}

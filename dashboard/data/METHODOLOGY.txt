@@ -1,0 +1,70 @@
+# Benchmark methodology
+
+A replay of one recorded trading day (NASDAQ TotalView-ITCH 5.0, 2019-12-30, 8,251,407,909 bytes, SHA-256 in `results/bench_12302019.json`) from a memory-mapped file. There is no network. Nothing here is a network latency, tick-to-trade or production claim. The method is carried over from Project 1 (`bench/clock.hpp`, `bench/histogram.hpp`, its METHODOLOGY.md).
+
+Throughput is the headline. Latency percentiles show shape only.
+
+## Machine
+
+Apple M4 Pro (arm64, 12 cores), 24 GB, macOS 27.2, AppleClang 21.0.0, `-O3 -DNDEBUG -std=c++20`. AC power (checked with `pmset -g batt`, recorded). Nothing else ran. Every result carries commit, data file, CPU, compiler and flags; published results come from a clean rebuilt commit, so the stamp has no suffix.
+
+**Pinning: none.** macOS has no core-affinity API. The thread requests `QOS_CLASS_USER_INTERACTIVE` and the scheduler decides. Involuntary context switches per run are recorded.
+
+## Clock
+
+`ob::bench::Clock`, `CNTVCT_EL0`. Measured on this run: granularity (median consecutive-read delta) **42 ns** (41.67 ns tick; the minimum read delta is smaller and is not quoted as resolution), serialized read cost 8.8 ns, unserialized 0.22 ns. `CNTFRQ_EL0` reports 1 GHz, which is not the real rate (the `clock` block of each result therefore shows `counter_hz` 1,000,000,000 and `ns_per_tick` 1; read `granularity_median_ns` instead. `run_bench.py` now adds a `clock_note` field saying so; the committed results predate it); the counter advances every 41.67 ns, as Project 1 measured. Latency uses `raw_serialized()` (`isb` + `mrs`); throughput reads the clock twice per chunk.
+
+## Modes (`bench/bench_feed.cpp`)
+
+| Mode | Timed work | Clock use |
+|---|---|---|
+| frame | length-prefix walk, nothing decoded | 2 reads per 2^20 messages |
+| parse | frame + `decode` into a sink that reads every field the book builder reads | same |
+| apply | parse + `BookBuilder<NullObserver>` | same; state fold between chunks, outside the timed span |
+| latency | apply, with a serialized read before and after each `decode` | 2 per message |
+
+Excluded from timing: opening, mapping, locking and (for the ten-symbol runs) filtering the input; the order pool and id index (their constructors write every byte, so they are resident); ladder allocation and bases; histogram allocation. Level vectors are allocated lazily by `Book` inside the timed span, which is part of the real cost.
+
+## Protocol
+
+- 5 fresh processes per measurement, sequential, 5 s apart. Median published, with min, max and spread = (max - min) / median.
+- A set with spread over 10% is rejected, retried once, then dropped. None was rejected in the published run.
+- A set does not start with the 1-minute load average above 4.0 on this 12-core machine (`LOAD_LIMIT` in `run_bench.py`): it waits up to 5 minutes, then refuses. A normal idle desktop here sits at 2 to 4. The load before each set is recorded. `meta.complete` is true only if every set was published and none was ever rejected. The published file is replaced by rename only when the run finishes; progress goes to a `.partial` file.
+- Runs of a set must agree on state checksum, peak live orders, anomaly counts and message count, or the script fails. Pairs that must fold to the same state (index A/B, vector vs ladder) are checked.
+- No warm-up is discarded and no outlier is dropped: one pass is the workload, the first chunks are the quiet pre-market, and the tail is the product. Max is published.
+- Latency set: the spread rule applies to its throughput; percentile min and max across the 5 runs are published beside the median.
+
+## Errors addressed
+
+| Error | Handling |
+|---|---|
+| Page faults on the 8.25 GB input | `mlock` of the mapping; major faults in each timed span are recorded and `run_bench.py` fails a set if the input is not locked or any timed span has a major fault (0 in all published runs). Without it, early uncommitted runs showed 75% to 97% spread |
+| Clock granularity 42 ns | per-message percentiles are quoted only as multiples of the tick; 8.7% of apply samples read zero ticks (published); the empty-region timer floor is published (p50 0 ns, p99 42 ns) |
+| Timer overhead | measured and published, not subtracted. An empty timed region averages 8.7 ns, but two serialized reads per message raise the whole run's cost from 70 to 100.8 ns per message, so the percentiles describe a separately timed run at 9.92 M msgs/s, not the published throughput run. Subtracting anything from a distribution quantized at the clock tick is false precision |
+| Compiler removing work | parse sink and the state fold are read; fold checksums are compared across variants |
+| Cache pollution by the harness | histogram stores happen after the second timestamp; the fold runs between chunks |
+| Throughput/latency interference | separate modes; apply has no per-message clock |
+| Lazy A/B bias | the ladder gets a good base and pre-allocated, pre-faulted arrays |
+| Thermal / power | AC power, `pmset -g therm` before and after (no warning recorded), median of 5 processes |
+
+## Memory
+
+Reported three ways and never as one number. `max_rss` (8.57 GB) includes the mapped input and is not handler memory. The anonymous figure is the footprint delta over the point after the input was locked (the kernel counts locked pages as internal, so the absolute footprint would include the file). Table sizes (pool 128.0 MB, index 134.2 MB, books array 3.7 MB at a 4,000,000-order capacity, peak live 1,924,078) are computed exactly. The latency set's max RSS (10.49 GB) includes about 2.2 GB of raw histogram samples and is harness memory, not handler memory. `latency.all` pools every message type including the skipped ones; use the per-type table.
+
+## Profiling
+
+No hardware counters. `xctrace` needs full Xcode (not installed), so profiles are `/usr/bin/sample` call-graph samples plus temporary counters and ablations (a no-op book, a no-op index swap). Nothing about cache misses or mispredicts is measured; explanations are labeled as hypotheses.
+
+## Limitations
+
+- 42 ns quantization; latency is of `decode`+apply only, framing is outside the window.
+- One machine, one day, no x86 cross-check, no hard affinity.
+- The unordered_map and ladder arms are baselines I wrote or wrapped; the ladder's base heuristic is mine.
+- Instrumented and screening binaries came from uncommitted patches (the counters patch is committed as `scripts/profile_counters.patch`); only published results are from a clean commit.
+
+## Reproduce
+
+```
+cmake --preset release && cmake --build --preset release
+caffeinate -i python3 -I scripts/run_bench.py --day 12302019
+```

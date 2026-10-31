@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "commit": "78384b40071f343534ccd3336c9a7cb3601bd10d",
+    "data_file": "data/12302019.NASDAQ_ITCH50",
+    "cpu": "Apple M4 Pro",
+    "compiler": "AppleClang 21.0.0.21000334",
+    "flags": "-O3 -DNDEBUG -std=c++20",
+    "data_manifest": {
+  "url": "https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/12302019.NASDAQ_ITCH50.gz",
+  "file": "12302019.NASDAQ_ITCH50",
+  "gz_bytes": 3524013057,
+  "decompressed_bytes": 8251407909,
+  "gz_sha256": "ef03df46a27e6bda4dead017f84c2e3979df7211f02c7868b51d53fceb99c689",
+  "ends_with_system_event_C": true,
+  "fetched_utc": "2026-10-30T23:05:17Z"
+}
+  },
+  "note": "loopback UDP on one host; not multicast; not a latency claim",
+  "config": {
+    "transport": "UDP over 127.0.0.1, two threads in one process",
+    "seed": 1,
+    "drop": 0.01,
+    "rate_mps": 1000000,
+    "retention_messages": 1048576,
+    "tick_ms": 5,
+    "timeout_ticks": 20,
+    "max_attempts": 16,
+    "max_buffered_packets": 4096,
+    "max_gap_messages": 16777216,
+    "heartbeat_every_packets": 32,
+    "mtu": 1400,
+    "idle_timeout_ms": 5000,
+    "end_wait_ms": 10000,
+    "max_messages": 5000000,
+    "dump_at_s": 25000,
+    "check_direct": true
+  },
+  "source": {"file": "12302019.NASDAQ_ITCH50", "file_bytes": 8251407909, "bytes_used": 149652744, "messages": 5000000, "packets": 109672, "stream_sha256": "8bccdc8192a55356a18db477c20590c9a9968e9d0731f3debdaa89e210de1616"},
+  "result": {"state": "Finished", "stale_reason": "none", "gave_up": "none", "finished": true, "delivered_messages": 5000000, "stream_sha256": "8bccdc8192a55356a18db477c20590c9a9968e9d0731f3debdaa89e210de1616", "stream_matches_source": true, "end_of_session_sends": 1, "handled": 4776012, "skipped": 223988, "wrong_length": 0, "live_orders_at_end": 231866, "seconds": 5.0},
+  "rx": {"gaps_detected": 1130, "dup_packets": 0, "partial_overlaps": 0, "wrong_session": 0, "malformed": 0, "retransmit_requests": 1130, "messages_delivered_late": 52137, "messages_from_retransmit": 52137, "messages_buffered_peak": 177, "buffer_overflow_drops": 0, "max_gap_len": 130},
+  "injected": {"packets_offered": 113100, "downstream_dropped": 1174, "messages_lost_downstream": 52137, "delivered_to_socket": 111926},
+  "sockets": {"rcvbuf_bytes": 8388608, "rcvbuf_requested": 8388608, "feed_sent": 111926, "feed_received": 111926, "retransmit_sent": 1141, "retransmit_received": 1141, "requests_sent": 1130, "requests_received": 1130, "requests_ignored": 0, "foreign_datagrams": 0},
+  "kernel": {"feed_datagrams_lost": 0, "retransmit_datagrams_lost": 0, "request_datagrams_lost": 0, "send_errors": 0},
+  "dump": {"path": "results/state_udp_demo.bin", "at_end": false, "at_second": 25000, "at_message": 2485608, "bytes": 142500, "resting_orders": 7500, "non_empty": true, "complete": true, "valid": true, "sha256": "76742a6e165be4acf006c9097d560bcf2eb8346c333482e576680461dcbcd6bd", "direct_sha256": "76742a6e165be4acf006c9097d560bcf2eb8346c333482e576680461dcbcd6bd", "direct_bytes": 142500, "matches_direct": true},
+  "verdict": {"passed": true, "exit_code": 0}
+}

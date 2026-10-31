@@ -1,0 +1,119 @@
+{
+  "meta": {
+    "data_file": "data/12302019.NASDAQ_ITCH50",
+    "bench_stamp": {
+      "commit": "93efea9548daf2e3a68cf472ea0342fc76125106-stale-build-dirty",
+      "data_file": "data/12302019.NASDAQ_ITCH50",
+      "cpu": "Apple M4 Pro",
+      "compiler": "AppleClang 21.0.0.21000334",
+      "flags": "-O3 -DNDEBUG -std=c++20"
+    },
+    "counters_bench_stamp": {
+      "commit": "b594cc2a58c6bebf8211567ecaf43c8ac7580887-dirty-stale-build-dirty",
+      "data_file": "data/12302019.NASDAQ_ITCH50",
+      "cpu": "Apple M4 Pro",
+      "compiler": "AppleClang 21.0.0.21000334",
+      "flags": "-O3 -DNDEBUG -std=c++20"
+    },
+    "note": "Profile of the pre-optimization book (kScan 8). Not a timing result: sampling and counters slow the run. The counters binary comes from scripts/profile_counters.patch applied to a scratch tree, so its stamp is not a clean commit."
+  },
+  "sample": {
+    "tool": "/usr/bin/sample, 6 s, 1 ms interval, full-day apply",
+    "thread_samples": 4559,
+    "top_of_stack": [
+      {
+        "symbol": "book::Book::lower_bound(std::vector<book::Level> const&, ob::Side, int)",
+        "samples": 2558
+      },
+      {
+        "symbol": "itch::decode<book::BookBuilder<book::NullObserver, ob::IdIndex, book::Book>>(std::span<std::byte const, 1844674407370955",
+        "samples": 554
+      },
+      {
+        "symbol": "book::BookBuilder<book::NullObserver, ob::IdIndex, book::Book>::add_order(unsigned short, unsigned long long, char, unsi",
+        "samples": 455
+      },
+      {
+        "symbol": "book::BookBuilder<book::NullObserver, ob::IdIndex, book::Book>::retire(unsigned int)",
+        "samples": 226
+      },
+      {
+        "symbol": "ob::IdIndex::erase(unsigned long long)",
+        "samples": 198
+      },
+      {
+        "symbol": "_platform_memmove",
+        "samples": 180
+      },
+      {
+        "symbol": "book::BookBuilder<book::NullObserver, ob::IdIndex, book::Book>::replace(unsigned short, unsigned long long, unsigned lon",
+        "samples": 145
+      },
+      {
+        "symbol": "book::Book::add(ob::OrderPool&, unsigned int)",
+        "samples": 133
+      },
+      {
+        "symbol": "(anonymous namespace)::run((anonymous namespace)::Options const&)",
+        "samples": 54
+      },
+      {
+        "symbol": "book::BookBuilder<book::NullObserver, ob::IdIndex, book::Book>::execute(unsigned short, unsigned long long, unsigned int",
+        "samples": 32
+      },
+      {
+        "symbol": "std::vector<book::Level>::insert(std::__wrap_iter<book::Level const*>, book::Level&&)",
+        "samples": 17
+      }
+    ]
+  },
+  "counters": {
+    "calls": 284881004,
+    "pp_calls": 65173253,
+    "adds": 140270523,
+    "walk_calls": 360450,
+    "walk_steps": 3284598,
+    "scan_steps_from_back_0_to_7": [
+      15805953,
+      113982849,
+      34567705,
+      16279181,
+      11593604,
+      9368691,
+      9628458,
+      8481310
+    ],
+    "calls_reaching_binary_search_by_log2_len": {
+      "0": 13624,
+      "1": 28541,
+      "2": 90912,
+      "3": 345914,
+      "4": 1597993,
+      "5": 10384627,
+      "6": 20429210,
+      "7": 11740248,
+      "8": 8878386,
+      "9": 5242632,
+      "10": 3738848,
+      "11": 1781865,
+      "12": 887392,
+      "13": 13061
+    },
+    "calls_by_log2_vector_size": {
+      "0": 108425,
+      "1": 274309,
+      "2": 713011,
+      "3": 2181149,
+      "4": 8164962,
+      "5": 34271392,
+      "6": 109803692,
+      "7": 60305109,
+      "8": 33883094,
+      "9": 16393071,
+      "10": 11491949,
+      "11": 5079250,
+      "12": 2170403,
+      "13": 41188
+    }
+  }
+}

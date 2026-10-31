@@ -1,0 +1,170 @@
+{
+  "note": "Screening of the Level search bound, apply mode, full day, 5 fresh processes per row, run in the order listed. Binaries were built from temporary patches to book.hpp (macro-selected kScan, galloping variant) that are not committed; only kScan=64 was kept. Stamps are the build commit; the patched trees were uncommitted, so these rows are screening, not the published result.",
+  "rows": [
+    {
+      "variant": "kScan 8 (baseline)",
+      "msgs_per_sec_median": 13052700.0,
+      "all_five": [
+        13052700.0,
+        13113500.0,
+        13092700.0,
+        13016800.0,
+        12998000.0
+      ],
+      "spread": 0.0088,
+      "state_checksum": "ca81fe1ec03459c9",
+      "stamp": "93efea9548daf2e3a68cf472ea0342fc76125106",
+      "flags": "-O3 -DNDEBUG -std=c++20"
+    },
+    {
+      "variant": "kScan 4",
+      "msgs_per_sec_median": 12809800.0,
+      "all_five": [
+        12851100.0,
+        12809800.0,
+        12812400.0,
+        12794800.0,
+        12807000.0
+      ],
+      "spread": 0.0044,
+      "state_checksum": "ca81fe1ec03459c9",
+      "stamp": "93efea9548daf2e3a68cf472ea0342fc76125106-dirty-stale-build",
+      "flags": "-DITCH_BOOK_SCAN=4 -O3 -DNDEBUG -std=c++20"
+    },
+    {
+      "variant": "kScan 2",
+      "msgs_per_sec_median": 12371800.0,
+      "all_five": [
+        12372500.0,
+        12317600.0,
+        12385600.0,
+        12371800.0,
+        12313600.0
+      ],
+      "spread": 0.0058,
+      "state_checksum": "ca81fe1ec03459c9",
+      "stamp": "93efea9548daf2e3a68cf472ea0342fc76125106-dirty-stale-build",
+      "flags": "-DITCH_BOOK_SCAN=2 -O3 -DNDEBUG -std=c++20"
+    },
+    {
+      "variant": "kScan 16",
+      "msgs_per_sec_median": 13329400.0,
+      "all_five": [
+        13346300.0,
+        13380700.0,
+        13311800.0,
+        13329400.0,
+        13272300.0
+      ],
+      "spread": 0.0081,
+      "state_checksum": "ca81fe1ec03459c9",
+      "stamp": "93efea9548daf2e3a68cf472ea0342fc76125106-dirty-stale-build",
+      "flags": "-DITCH_BOOK_SCAN=16 -O3 -DNDEBUG -std=c++20"
+    },
+    {
+      "variant": "kScan 32",
+      "msgs_per_sec_median": 13943100.0,
+      "all_five": [
+        13943100.0,
+        13955400.0,
+        13863500.0,
+        13862100.0,
+        13946700.0
+      ],
+      "spread": 0.0067,
+      "state_checksum": "ca81fe1ec03459c9",
+      "stamp": "93efea9548daf2e3a68cf472ea0342fc76125106-dirty-stale-build",
+      "flags": "-DITCH_BOOK_SCAN=32 -O3 -DNDEBUG -std=c++20"
+    },
+    {
+      "variant": "kScan 8 (baseline, repeat)",
+      "msgs_per_sec_median": 12959800.0,
+      "all_five": [
+        12962400.0,
+        12959800.0,
+        13003000.0,
+        12934000.0,
+        12945100.0
+      ],
+      "spread": 0.0053,
+      "state_checksum": "ca81fe1ec03459c9",
+      "stamp": "93efea9548daf2e3a68cf472ea0342fc76125106",
+      "flags": "-O3 -DNDEBUG -std=c++20"
+    },
+    {
+      "variant": "kScan 64",
+      "msgs_per_sec_median": 14026800.0,
+      "all_five": [
+        13990500.0,
+        14062000.0,
+        13975200.0,
+        14064500.0,
+        14026800.0
+      ],
+      "spread": 0.0064,
+      "state_checksum": "ca81fe1ec03459c9",
+      "stamp": "93efea9548daf2e3a68cf472ea0342fc76125106-dirty-stale-build",
+      "flags": "-DITCH_BOOK_SCAN=64 -O3 -DNDEBUG -std=c++20"
+    },
+    {
+      "variant": "kScan 128",
+      "msgs_per_sec_median": 13881100.0,
+      "all_five": [
+        13955600.0,
+        13881100.0,
+        13696400.0,
+        13884600.0,
+        13850700.0
+      ],
+      "spread": 0.0187,
+      "state_checksum": "ca81fe1ec03459c9",
+      "stamp": "93efea9548daf2e3a68cf472ea0342fc76125106-dirty-stale-build",
+      "flags": "-DITCH_BOOK_SCAN=128 -O3 -DNDEBUG -std=c++20"
+    },
+    {
+      "variant": "kScan 8 then galloping search",
+      "msgs_per_sec_median": 13548100.0,
+      "all_five": [
+        13589600.0,
+        13589200.0,
+        13548100.0,
+        13510000.0,
+        13528900.0
+      ],
+      "spread": 0.0059,
+      "state_checksum": "ca81fe1ec03459c9",
+      "stamp": "93efea9548daf2e3a68cf472ea0342fc76125106-dirty-stale-build",
+      "flags": "-DITCH_BOOK_GALLOP -O3 -DNDEBUG -std=c++20"
+    },
+    {
+      "variant": "kScan 32 (repeat)",
+      "msgs_per_sec_median": 13963100.0,
+      "all_five": [
+        14001900.0,
+        13963100.0,
+        13973400.0,
+        13878000.0,
+        13933800.0
+      ],
+      "spread": 0.0089,
+      "state_checksum": "ca81fe1ec03459c9",
+      "stamp": "93efea9548daf2e3a68cf472ea0342fc76125106-dirty-stale-build",
+      "flags": "-DITCH_BOOK_SCAN=32 -O3 -DNDEBUG -std=c++20"
+    },
+    {
+      "variant": "kScan 8 (baseline, repeat 2)",
+      "msgs_per_sec_median": 12985400.0,
+      "all_five": [
+        12985900.0,
+        12876400.0,
+        12985400.0,
+        12901600.0,
+        13000700.0
+      ],
+      "spread": 0.0096,
+      "state_checksum": "ca81fe1ec03459c9",
+      "stamp": "93efea9548daf2e3a68cf472ea0342fc76125106",
+      "flags": "-O3 -DNDEBUG -std=c++20"
+    }
+  ]
+}

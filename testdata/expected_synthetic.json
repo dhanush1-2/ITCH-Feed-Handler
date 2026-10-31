@@ -1,6 +1,6 @@
 {
   "meta": {
-    "commit": "0a64f96adec6af586bf3e920e6b3d7b99cf63852",
+    "commit": "dbd65d5ad32f355f699dec860335ca6948cb48cc",
     "data_file": "build/testdata/synthetic.itch",
     "cpu": "Apple M4 Pro",
     "compiler": "AppleClang 21.0.0.21000334",

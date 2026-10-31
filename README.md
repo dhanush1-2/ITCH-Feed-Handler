@@ -12,7 +12,7 @@ Real data for real symbols, aggregated by price level, 30 s around the open. `it
 
 ## Proof
 
-Each number below is generated from the stamped file named beside it by `scripts/gen_docs.py`, and CI fails if a block goes stale. <!-- gen:provenance -->The current result files come from 13 commits: `07c3627`, `0db1b32`, `0ec51a7`, `1c9f43a`, `2aabbec`, `43d1e2f`, `82e91fc`, `8523e7f`, `a3857fc`, `ae87c50`, `cb6d700`, `ea06f30`, `ee12565`. The kScan screening and the profile come from patched builds and say so in their own files.<!-- /gen -->
+Each number below is generated from the stamped file named beside it by `scripts/gen_docs.py`, and CI fails if a block goes stale. <!-- gen:provenance -->The current result files come from 13 commits: `a917fa5`, `7f99fcb`, `67707b0`, `ce42ef2`, `bae9ecc`, `a09caac`, `2c3e5da`, `8358d96`, `78384b4`, `ca1e418`, `c54ba4f`, `93efea9`, `b5f86a4`. The kScan screening and the profile come from patched builds and say so in their own files.<!-- /gen -->
 
 <!-- gen:proof_table -->
 

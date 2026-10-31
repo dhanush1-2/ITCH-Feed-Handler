@@ -68,3 +68,7 @@ No hardware counters. `xctrace` needs full Xcode (not installed), so profiles ar
 cmake --preset release && cmake --build --preset release
 caffeinate -i python3 -I scripts/run_bench.py --day 12302019
 ```
+
+## History rewrite
+
+Before publishing, the git history was rewritten once to set the commit email and to remove real NASDAQ data, the spec PDFs and all result files from older commits. Result files first appear in the commit that adds them after that rewrite. Commit hashes in result stamps were mapped to the rewritten commits, which hold the same source. Older commits may no longer pass tests because their test data is gone.

@@ -1,0 +1,53 @@
+{
+  "meta": {
+    "commit": "a917fa50a0cd15484a6e28863abfa199d7fcf0e5",
+    "data_file": "data/12302019.NASDAQ_ITCH50",
+    "cpu": "Apple M4 Pro",
+    "compiler": "AppleClang 21.0.0.21000334",
+    "flags": "-O3 -DNDEBUG -std=c++20",
+    "data_manifest": {
+      "url": "https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/12302019.NASDAQ_ITCH50.gz",
+      "file": "12302019.NASDAQ_ITCH50",
+      "gz_bytes": 3524013057,
+      "decompressed_bytes": 8251407909,
+      "gz_sha256": "ef03df46a27e6bda4dead017f84c2e3979df7211f02c7868b51d53fceb99c689",
+      "ends_with_system_event_C": true,
+      "fetched_utc": "2026-10-30T23:05:17Z"
+    }
+  },
+  "paced_file": "replay_10x.json",
+  "paced_commit": "ce42ef2e8760f31d27450b4358ad2dac57dd95eb",
+  "paced_speed": 10,
+  "compared": [
+    "anomalies",
+    "by_type",
+    "conservation",
+    "file",
+    "file_bytes",
+    "oracle",
+    "peak_live_orders",
+    "per_second",
+    "per_symbol",
+    "price_scale",
+    "symbols_with_orders",
+    "totals",
+    "verify",
+    "watch"
+  ],
+  "ignored": [
+    "max_rss_bytes",
+    "meta",
+    "replay",
+    "state_dump"
+  ],
+  "watched_symbols": [
+    "AAPL",
+    "AMD",
+    "MSFT",
+    "QQQ",
+    "SPY"
+  ],
+  "matches": true,
+  "first_difference": null,
+  "note": "Compares exports, not book state: no state dump is taken at the paced speed."
+}

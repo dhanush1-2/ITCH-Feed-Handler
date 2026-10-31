@@ -10,7 +10,7 @@ Two separate runs, neither a timing result:
      reference-walk counters. That binary is built from a temporary patch (book.hpp with kScan 8,
      counters); it is stamped by its own run output and is never a published number.
 The profile describes the Book with kScan = 8, the code the optimization started from, so
---bench must be a build with kScan 8 (commit ea06f30).
+--bench must be a build with kScan 8 (commit 93efea9).
 """
 import argparse, json, re, subprocess, sys, tempfile, time
 from pathlib import Path
