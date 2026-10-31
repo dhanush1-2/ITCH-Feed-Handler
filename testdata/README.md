@@ -71,5 +71,6 @@ the replay has `unknown_ref` 0, all anomalies 0, conservation holds for every lo
 crossed books in continuous trading. The oracle counts are findings, not failures: 222 executions
 not at the best price (all outside continuous trading) and 9 not at the head of their queue.
 
-To regenerate it after an intentional change, run the command above, review the diff, and copy
-the result over this file.
+To regenerate it after an intentional change, run the command above from a clean commit, using a
+repo-relative slice path (`build/testdata/slice.itch`, from `scripts/prepare_slice.py`) so the
+stamp holds no machine-specific path; review the diff and copy the result over this file.

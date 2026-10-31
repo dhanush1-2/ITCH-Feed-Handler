@@ -5,7 +5,8 @@
 //
 //   itch_replay <file> [--symbols A,B] [--max-live-orders N] [--verify]
 //               [--full-check-every N] [--halt-grace-s S] [--dump-state path] [--dump-at-s S]
-//               [--export path] [--speed max]
+//               [--export path] [--speed max] [--pins path]
+//               [--export-orders A,B path] [--orders-checkpoint-s S]
 //
 //   --symbols            symbols whose top of book is recorded once per second (case is
 //                        normalised; a name not in the file's stock directory is an error)
@@ -22,12 +23,21 @@
 //                        resting orders, so its end-of-file dump is empty
 //   --dump-at-s S        dump just before the first message at or after feed second S
 //   --export             write the JSON export (results/day_<date>.json for a full day)
+//   --pins               with --verify, a JSON file of allowed oracle counts per data file
+//                        (results/expected_anomalies.json); any count above its pin fails
+//   --export-orders      write the canonical per-symbol result for these symbols, which
+//                        verify/compare.py holds against the independent Python reference:
+//                        message counts by type, share totals, printed volume, and levels
+//                        and FIFO lists both at a checkpoint and at the end of the file
+//   --orders-checkpoint-s  feed second of that checkpoint (default 43200, noon). A full day
+//                        ends with an empty book, so the end-of-file state alone proves little
 //
 // Exit codes (shared by every tool): 0 success, 2 input error (bad option, unreadable or
 // truncated file, unknown symbol, capacity exhausted), 3 verification failure.
 
 #include <sys/resource.h>
 
+#include <array>
 #include <book/builder.hpp>
 #include <book/invariants.hpp>
 #include <book/state_dump.hpp>
@@ -45,7 +55,9 @@
 #include <itch/provenance.hpp>
 #include <itch/scan.hpp>
 #include <itch/sha256.hpp>
+#include <map>
 #include <set>
+#include <span>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -73,13 +85,19 @@ struct Options {
     bool                     dump_at_set = false;
     std::uint64_t            dump_at_s   = 0;
     std::string              export_path;
+    std::vector<std::string> order_symbols;
+    std::string              orders_path;
+    std::uint64_t            orders_checkpoint_s = 43'200;
+    std::string              pins_path;
 };
 
 void usage() {
     std::fprintf(stderr,
                  "usage: itch_replay <file> [--symbols A,B] [--max-live-orders N] [--verify]\n"
                  "                   [--full-check-every N] [--halt-grace-s S]\n"
-                 "                   [--dump-state path] [--export path] [--speed max]\n");
+                 "                   [--dump-state path] [--export path] [--speed max]\n"
+                 "                   [--pins path] [--export-orders A,B path]\n"
+                 "                   [--orders-checkpoint-s S]\n");
 }
 
 std::uint64_t parse_u64(const std::string& flag, const std::string& v) {
@@ -128,6 +146,20 @@ Options parse(int argc, char** argv) {
             o.dump_at_set = true;
         } else if (a == "--export") {
             o.export_path = value();
+        } else if (a == "--pins") {
+            o.pins_path = value();
+        } else if (a == "--export-orders") {
+            std::stringstream ss(value());
+            std::string       item;
+            while (std::getline(ss, item, ',')) {
+                const std::string n = itch::normalize_symbol(item);
+                if (!n.empty()) {
+                    o.order_symbols.push_back(n);
+                }
+            }
+            o.orders_path = value();
+        } else if (a == "--orders-checkpoint-s") {
+            o.orders_checkpoint_s = parse_u64(a, value());
         } else if (a == "--speed") {
             const std::string v = value();
             if (v != "max") {
@@ -146,6 +178,9 @@ Options parse(int argc, char** argv) {
     }
     if (o.dump_at_set && o.dump_path.empty()) {
         throw InputError("--dump-at-s needs --dump-state");
+    }
+    if (!o.pins_path.empty() && !o.verify) {
+        throw InputError("--pins needs --verify");
     }
     if (o.verify && !o.full_every_set) {
         o.full_every = 1'000'000;
@@ -243,6 +278,193 @@ book::StatsObserver& stats_of(book::BasicVerifyObserver<book::StatsObserver>& o)
 
 const char* kOracleNames[] = {"exec_not_best", "exec_not_head", "crossed_continuous",
                               "crossed_other"};
+
+// The pins for one data file, from {"pins": {"<file name>": {"<count>": N, ...}, ...}}. This is a
+// small reader for that one committed shape, not a JSON parser.
+std::map<std::string, std::uint64_t> read_pins(const std::string& path, const std::string& file) {
+    std::ifstream in(path);
+    if (!in) {
+        throw InputError("cannot read pins file '" + path + "'");
+    }
+    std::stringstream ss;
+    ss << in.rdbuf();
+    const std::string text = ss.str();
+    const std::string key  = "\"" + file + "\"";
+    const std::size_t at   = text.find(key, text.find("\"pins\""));
+    const std::size_t open = at == std::string::npos ? at : text.find('{', at);
+    const std::size_t end  = open == std::string::npos ? open : text.find('}', open);
+    if (end == std::string::npos) {
+        throw InputError("no pins for '" + file + "' in '" + path + "'");
+    }
+    std::map<std::string, std::uint64_t> pins;
+    for (std::size_t i = text.find('"', open); i < end; i = text.find('"', i)) {
+        const std::size_t close = text.find('"', i + 1);
+        const std::size_t colon = text.find(':', close);
+        const std::size_t num   = text.find_first_of("0123456789", colon);
+        if (close == std::string::npos || colon == std::string::npos || num >= end) {
+            throw InputError("malformed pins for '" + file + "' in '" + path + "'");
+        }
+        pins[text.substr(i + 1, close - i - 1)] = std::strtoull(text.c_str() + num, nullptr, 10);
+        i                                       = text.find_first_not_of("0123456789", num);
+    }
+    return pins;
+}
+
+// One count above its pin is a failure: an anomaly nobody has explained yet.
+std::vector<std::string> check_pins(const std::map<std::string, std::uint64_t>& pins,
+                                    const book::OracleCounts& c, std::uint64_t collisions) {
+    const std::map<std::string, std::uint64_t> counts = {
+        {"exec_not_best", c.exec_not_best},
+        {"exec_not_best_continuous", c.exec_not_best_continuous},
+        {"exec_not_head", c.exec_not_head},
+        {"exec_not_head_continuous", c.exec_not_head_continuous},
+        {"crossed_continuous", c.crossed_continuous},
+        {"crossed_other", c.crossed_other},
+        {"episodes_continuous", c.episodes_continuous},
+        {"episodes_other", c.episodes_other},
+        {"match_number_collisions", collisions},
+    };
+    std::vector<std::string> failures;
+    for (const auto& [name, pin] : pins) {
+        const auto it = counts.find(name);
+        if (it == counts.end()) {
+            throw InputError("unknown pin '" + name + "'");
+        }
+        if (it->second > pin) {
+            failures.push_back(name + " = " + std::to_string(it->second) + ", above its pin of " +
+                               std::to_string(pin));
+        }
+    }
+    return failures;
+}
+
+// The canonical per-symbol result that verify/compare.py checks against the Python reference.
+class OrderExport {
+public:
+    OrderExport(const std::map<std::string, std::uint16_t>& locates, std::uint64_t checkpoint_s)
+        : locates_(locates), checkpoint_s_(checkpoint_s), tracked_(65536, -1) {
+        int idx = 0;
+        for (const auto& [name, loc] : locates_) {
+            tracked_[loc] = idx++;
+        }
+        counts_.resize(locates_.size());
+    }
+
+    void count(std::span<const std::byte> msg) {
+        if (msg.size() < 11) {
+            return;
+        }
+        const int idx = tracked_[itch::HeaderView(msg.data()).locate()];
+        if (idx >= 0) {
+            ++counts_[static_cast<std::size_t>(idx)][static_cast<unsigned char>(msg[0])];
+        }
+    }
+
+    [[nodiscard]] std::uint64_t checkpoint_ns() const noexcept {
+        return checkpoint_s_ * 1'000'000'000ULL;
+    }
+    [[nodiscard]] bool checkpoint_taken() const noexcept { return !at_checkpoint_.empty(); }
+
+    template <class Builder>
+    void take_checkpoint(const Builder& b) {
+        for (const auto& [name, loc] : locates_) {
+            at_checkpoint_[name] = book_json(b.book(loc), b.pool());
+        }
+    }
+
+    template <class Builder>
+    void write(const std::string& path, const std::string& file, const Builder& b,
+               const book::StatsObserver& st) const {
+        std::filesystem::path out(path);
+        if (out.has_parent_path()) {
+            std::filesystem::create_directories(out.parent_path());
+        }
+        std::ofstream js(out);
+        if (!js) {
+            throw InputError("cannot write '" + path + "'");
+        }
+        js << "{\"meta\": " << itch::provenance_json(itch::make_provenance(file), 0)
+           << ",\n\"checkpoint_s\": " << checkpoint_s_ << ",\n\"symbols\": {";
+        bool first = true;
+        for (const auto& [name, loc] : locates_) {
+            const auto& s = st.symbol(loc);
+            js << (first ? "\n" : ",\n") << json_str(name) << ": {\"counts\": {";
+            first                  = false;
+            bool        first_kind = true;
+            const auto& per_kind   = counts_[static_cast<std::size_t>(tracked_[loc])];
+            for (std::size_t k = 0; k < per_kind.size(); ++k) {
+                if (per_kind[k] != 0) {
+                    js << (first_kind ? "" : ", ") << json_char(static_cast<char>(k)) << ": "
+                       << per_kind[k];
+                    first_kind = false;
+                }
+            }
+            js << "},\n \"executed_shares\": " << s.executed
+               << ", \"cancelled_shares\": " << s.cancelled << ", \"deleted_shares\": " << s.deleted
+               << ", \"replaced_out_shares\": " << s.replaced_out
+               << ", \"replaced_in_shares\": " << s.replaced_in
+               << ", \"printed_volume\": " << s.volume << ", \"trade_count\": " << s.trades
+               << ",\n \"checkpoints\": {\"" << checkpoint_s_ << "\": ";
+            const auto        noon     = at_checkpoint_.find(name);
+            const std::string end_book = book_json(b.book(loc), b.pool());
+            js << (noon != at_checkpoint_.end() ? noon->second : end_book);
+            js << ",\n \"eod\": " << end_book << "}}";
+        }
+        js << "\n}}\n";
+        if (!js) {
+            throw InputError("failed writing '" + path + "'");
+        }
+    }
+
+private:
+    template <class Levels>
+    static void levels_json(std::ostream& os, const Levels& levels) {
+        os << "[";
+        bool first = true;
+        for (const book::Level& lv : levels) {
+            os << (first ? "" : ",") << "[" << lv.price << "," << lv.total << "," << lv.count
+               << "]";
+            first = false;
+        }
+        os << "]";
+    }
+
+    template <class Levels>
+    static void fifo_json(std::ostream& os, const Levels& levels, const ob::OrderPool& pool) {
+        os << "[";
+        bool first = true;
+        for (const book::Level& lv : levels) {
+            os << (first ? "" : ",") << "[" << lv.price << ",[";
+            first = false;
+            for (ob::Slot s = lv.head; s != ob::kInvalidSlot; s = pool.at(s).next) {
+                const ob::Order& o = pool.at(s);
+                os << (s == lv.head ? "" : ",") << "[" << o.id << "," << o.remaining << "]";
+            }
+            os << "]]";
+        }
+        os << "]";
+    }
+
+    static std::string book_json(const book::Book& bk, const ob::OrderPool& pool) {
+        std::ostringstream os;
+        os << "{\"bids\": ";
+        levels_json(os, bk.bids());
+        os << ", \"asks\": ";
+        levels_json(os, bk.asks());
+        os << ", \"fifo\": {\"B\": ";
+        fifo_json(os, bk.bids(), pool);
+        os << ", \"S\": ";
+        fifo_json(os, bk.asks(), pool);
+        os << "}}";
+        return os.str();
+    }
+
+    std::map<std::string, std::uint16_t>        locates_;
+    std::uint64_t                               checkpoint_s_;
+    std::vector<int>                            tracked_;
+    std::vector<std::array<std::uint64_t, 256>> counts_;
+    std::map<std::string, std::string>          at_checkpoint_;
+};
 
 template <class Builder>
 void write_export(const Options& o, const itch::MappedFile& mf, const Builder& b,
@@ -437,7 +659,7 @@ void write_export(const Options& o, const itch::MappedFile& mf, const Builder& b
 
 template <bool Verify>
 int run(const Options& o, const itch::MappedFile& mf, const itch::Resolved& resolved,
-        std::unordered_set<std::uint64_t> broken) {
+        const itch::Resolved& order_symbols, std::unordered_set<std::uint64_t> broken) {
     using Obs = std::conditional_t<Verify, book::BasicVerifyObserver<book::StatsObserver>,
                                    book::StatsObserver>;
     book::VerifyObserver::Options vopt;
@@ -491,7 +713,16 @@ int run(const Options& o, const itch::MappedFile& mf, const itch::Resolved& reso
         dumped          = true;
     };
     const std::uint64_t dump_at_ns = o.dump_at_s * 1'000'000'000ULL;
+    OrderExport         orders(order_symbols.locate, o.orders_checkpoint_s);
+    const bool          exporting_orders = !o.orders_path.empty();
     while ((status = framer.next(msg)) == itch::FrameStatus::Ok) {
+        if (exporting_orders) {
+            if (!orders.checkpoint_taken() && msg.size() >= 11 &&
+                itch::HeaderView(msg.data()).timestamp_ns() >= orders.checkpoint_ns()) {
+                orders.take_checkpoint(b);
+            }
+            orders.count(msg);
+        }
         if (o.dump_at_set && !dumped && msg.size() >= 11 &&
             itch::HeaderView(msg.data()).timestamp_ns() >= dump_at_ns) {
             take_dump(false, o.dump_at_s);
@@ -542,6 +773,15 @@ int run(const Options& o, const itch::MappedFile& mf, const itch::Resolved& reso
                 (st.last_system_event() == 0 ? "none" : std::string(1, st.last_system_event())) +
                 ")");
         }
+        if (!o.pins_path.empty()) {
+            const auto over = check_pins(
+                read_pins(o.pins_path, std::filesystem::path(o.file).filename().string()),
+                obs.counts(), st.match_collisions());
+            failures.insert(failures.end(), over.begin(), over.end());
+        }
+    }
+    if (exporting_orders) {
+        orders.write(o.orders_path, o.file, b, st);
     }
 
     if (!o.dump_path.empty() && !dumped) {
@@ -620,11 +860,20 @@ int main(int argc, char** argv) {
                                  ": not in the stock directory of '" + o.file + "'");
             }
         }
+        itch::Resolved order_symbols;
+        if (!o.order_symbols.empty()) {
+            order_symbols = itch::resolve_symbols(mf.bytes(), o.order_symbols);
+            if (!order_symbols.unresolved.empty()) {
+                throw InputError("unknown symbol " + order_symbols.unresolved.front() +
+                                 " in --export-orders: not in the stock directory of '" + o.file +
+                                 "'");
+            }
+        }
         // Broken trades arrive after their trade, so the volume rule needs them first.
         auto broken = itch::scan_broken(mf.bytes());
 
-        return o.verify ? run<true>(o, mf, resolved, std::move(broken))
-                        : run<false>(o, mf, resolved, std::move(broken));
+        return o.verify ? run<true>(o, mf, resolved, order_symbols, std::move(broken))
+                        : run<false>(o, mf, resolved, order_symbols, std::move(broken));
     } catch (const book::CapacityExceeded& e) {
         std::fprintf(stderr, "itch_replay: %s\n", e.what());
         return kExitInput;

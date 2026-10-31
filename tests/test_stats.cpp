@@ -208,3 +208,15 @@ TEST(Scan, ResolveSymbolsNormalizesAndReportsUnknown) {
     ASSERT_EQ(r.unresolved.size(), 1u);
     EXPECT_EQ(r.unresolved[0], "AAPLL");
 }
+
+// Spec 1.5.2: a cross with insufficient interest may show zero shares. No trade happened, so it
+// must not count as one. Found by the Python reference: 12,189 of the day's 17,836 Q messages.
+TEST(Stats, ZeroShareCrossIsNotATrade) {
+    StatsRig r;
+    r.feed(itch::test::make_cross(H1, 0, "TEST", 5000, 77, 'O'));
+    EXPECT_EQ(r.st.trade_count(), 0u);
+    EXPECT_EQ(r.st.symbol(1).trades, 0u);
+    r.feed(itch::test::make_cross(H1, 10, "TEST", 5000, 78, 'C'));
+    EXPECT_EQ(r.st.trade_count(), 1u);
+    EXPECT_EQ(r.st.printed_volume(), 10u);
+}

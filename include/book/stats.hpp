@@ -17,7 +17,9 @@
 // Printed volume = E shares + C shares with printable 'Y' + P shares + Q shares, minus the
 // prints named by a broken trade (B). A B arrives after its trade, so the broken match
 // numbers must be known up front (set_broken_matches, from itch::scan_broken). The same match
-// number on more than one print is counted (finish()).
+// number on more than one message is counted (finish()). On the 2019-12-30 file every such
+// pair is one non-printable C plus one printable E, C or P, so the printable filter already
+// counts each match once (docs/DISCREPANCIES.md).
 //
 // Watched symbols get the top of book recorded once per feed second: the state after the
 // LAST change in that second. Seconds with no change to that book have no row; a consumer
@@ -295,6 +297,9 @@ private:
             broken_shares_ += shares;
             broken_hit_.insert(match);
             return;
+        }
+        if (shares == 0) {
+            return;  // spec 1.5.2: a Q with no cross shows zero shares, and no trade happened
         }
         volume_by_kind_[k] += shares;
         ++trades_by_kind_[k];

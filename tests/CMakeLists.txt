@@ -35,6 +35,10 @@ if(ITCH_BUILD_TOOLS AND Python3_FOUND)
             COMMAND ${Python3_EXECUTABLE} -m pytest -q ${CMAKE_CURRENT_SOURCE_DIR}/test_replay_cli.py)
         set_tests_properties(replay_cli PROPERTIES
             ENVIRONMENT "ITCH_REPLAY=$<TARGET_FILE:itch_replay>")
+        add_test(NAME reference_verify
+            COMMAND ${Python3_EXECUTABLE} -m pytest -q ${CMAKE_CURRENT_SOURCE_DIR}/test_verify.py)
+        set_tests_properties(reference_verify PROPERTIES
+            ENVIRONMENT "ITCH_REPLAY=$<TARGET_FILE:itch_replay>")
     elseif(ITCH_REQUIRE_PYTEST)
         message(FATAL_ERROR "pytest is required (ITCH_REQUIRE_PYTEST=ON) but "
                             "'${Python3_EXECUTABLE} -m pytest' failed")

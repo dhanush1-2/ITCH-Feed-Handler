@@ -210,3 +210,55 @@ def test_dump_at_second_captures_midday_state(day, tmp_path):
     r = run(day, "--dump-state", str(tmp_path / "never.bin"), "--dump-at-s", "99")
     assert r.returncode == 2 and "99" in r.stderr
     assert run(day, "--dump-at-s", "2").returncode == 2
+
+
+def pinned_day(tmp_path, pins):
+    """A book whose second order trades first: exec_not_head is 1 on this file."""
+    path = tmp_path / "pin.itch"
+    path.write_bytes(frame([
+        system_event(b"O"),
+        directory(1, "AAA"),
+        add(1, 1, b"B", 100, "AAA", 100000),
+        add(1, 2, b"B", 100, "AAA", 100000),
+        executed(1, 2, 100, 1),
+        delete(1, 1),
+        system_event(b"C", ts=5_000_000_000),
+    ]))
+    pin_file = tmp_path / "pins.json"
+    pin_file.write_text(json.dumps({"note": "test", "pins": {"pin.itch": pins}}))
+    return path, pin_file
+
+
+def test_pin_at_the_count_passes(tmp_path):
+    path, pins = pinned_day(tmp_path, {"exec_not_head": 1, "exec_not_best": 0})
+    r = run(path, "--verify", "--pins", str(pins))
+    assert r.returncode == 0, r.stderr
+
+
+def test_count_above_its_pin_fails_verify(tmp_path):
+    path, pins = pinned_day(tmp_path, {"exec_not_head": 0})
+    r = run(path, "--verify", "--pins", str(pins))
+    assert r.returncode == 3
+    assert "exec_not_head" in r.stderr
+
+
+def test_unknown_pin_name_is_an_input_error(tmp_path):
+    path, pins = pinned_day(tmp_path, {"exec_not_heads": 1})
+    assert run(path, "--verify", "--pins", str(pins)).returncode == 2
+
+
+def test_file_without_pins_is_an_input_error(tmp_path):
+    path, pins = pinned_day(tmp_path, {"exec_not_head": 1})
+    other = tmp_path / "other.itch"
+    other.write_bytes(path.read_bytes())
+    assert run(other, "--verify", "--pins", str(pins)).returncode == 2
+
+
+def test_pins_need_verify(tmp_path):
+    path, pins = pinned_day(tmp_path, {"exec_not_head": 1})
+    assert run(path, "--pins", str(pins)).returncode == 2
+
+
+def test_export_orders_unknown_symbol_is_an_input_error(day, tmp_path):
+    r = run(day, "--export-orders", "NOPE", str(tmp_path / "o.json"))
+    assert r.returncode == 2

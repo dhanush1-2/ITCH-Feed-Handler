@@ -68,10 +68,17 @@ jobs:
         run: |
           build/release/tools/itch_replay /tmp/slice.itch --verify --full-check-every 1 \
             --symbols "$(cat testdata/slice_symbols.txt)" --export /tmp/slice_export.json \
+            --pins results/expected_anomalies.json \
+            --export-orders "$(cat testdata/slice_symbols.txt)" /tmp/slice_orders.json \
             | tee /tmp/replay.log
           grep -q VERIFIED /tmp/replay.log
       - name: Compare the export with the golden file
         run: python3 scripts/compare_export.py /tmp/slice_export.json testdata/expected_slice.json
+      - name: Compare with the independent Python reference
+        run: |
+          python3 verify/reference_book.py /tmp/slice.itch \
+            --symbols "$(cat testdata/slice_symbols.txt)" --json /tmp/slice_reference.json
+          python3 verify/compare.py /tmp/slice_orders.json /tmp/slice_reference.json
 
   fuzz-smoke:
     name: fuzz-60s

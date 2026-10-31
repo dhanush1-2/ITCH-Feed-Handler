@@ -6,7 +6,8 @@
 Exits 0 only on exact equality of everything but "meta", and only if at least one symbol has
 resting orders at a checkpoint: a day ends with an empty book, so a comparison of nothing but
 empty books would pass while proving nothing. Otherwise exits 1 and lists every difference by
-symbol and field.
+symbol and field. The reference's per-symbol anomaly counts have no C++ counterpart, so they
+are not compared, but any nonzero one fails: both sides have then dropped a message.
 """
 import json
 import sys
@@ -33,12 +34,22 @@ def _walk(a, b, path, out):
         out.append(f"{path}: {a!r} vs {b!r}")
 
 
+def _comparable(doc):
+    out = {k: v for k, v in doc.items() if k not in IGNORED}
+    out["symbols"] = {name: {k: v for k, v in sym.items() if k != "anomalies"}
+                      for name, sym in doc["symbols"].items()}
+    return out
+
+
 def differences(a, b):
     out = []
-    a = {k: v for k, v in a.items() if k not in IGNORED}
-    b = {k: v for k, v in b.items() if k not in IGNORED}
-    _walk(a, b, "", out)
+    _walk(_comparable(a), _comparable(b), "", out)
     return out
+
+
+def anomalies(doc):
+    return [f"{name}.{key} = {n}" for name, sym in doc["symbols"].items()
+            for key, n in sym.get("anomalies", {}).items() if n != 0]
 
 
 def populated(doc):
@@ -57,21 +68,17 @@ def warnings(doc):
             for name in empty]
 
 
-def main():
-    if len(sys.argv) != 3:
-        print(__doc__, file=sys.stderr)
-        return 2
-    with open(sys.argv[1]) as f:
-        a = json.load(f)
-    with open(sys.argv[2]) as f:
-        b = json.load(f)
+def main_exit(a, b):
     diffs = differences(a, b)
-    if diffs:
-        for d in diffs[:MAX_LISTED]:
-            print(d)
-        if len(diffs) > MAX_LISTED:
-            print(f"... and {len(diffs) - MAX_LISTED} more")
-        print(f"DIFFERENT: {len(diffs)} differences")
+    bad = anomalies(a) + anomalies(b)
+    for d in diffs[:MAX_LISTED]:
+        print(d)
+    if len(diffs) > MAX_LISTED:
+        print(f"... and {len(diffs) - MAX_LISTED} more")
+    for line in bad:
+        print(f"anomaly: {line}")
+    if diffs or bad:
+        print(f"DIFFERENT: {len(diffs)} differences, {len(bad)} anomalies")
         return 1
     totals = populated(a)
     for w in warnings(a):
@@ -82,6 +89,17 @@ def main():
     print(f"IDENTICAL: {len(a['symbols'])} symbols; resting orders compared per checkpoint: "
           + ", ".join(f"{k}={v}" for k, v in sorted(totals.items())))
     return 0
+
+
+def main():
+    if len(sys.argv) != 3:
+        print(__doc__, file=sys.stderr)
+        return 2
+    with open(sys.argv[1]) as f:
+        a = json.load(f)
+    with open(sys.argv[2]) as f:
+        b = json.load(f)
+    return main_exit(a, b)
 
 
 if __name__ == "__main__":

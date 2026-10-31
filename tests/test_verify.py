@@ -5,10 +5,13 @@ values were worked out by hand in the comments, so no C++ is involved in any exp
 """
 import copy
 import json
+import os
 import struct
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "verify"))
@@ -202,3 +205,34 @@ def test_compare_refuses_a_vacuous_comparison(tmp_path):
         a["symbols"]["AAA"]["checkpoints"]["43200"][side] = []
     a["symbols"]["AAA"]["checkpoints"]["43200"]["fifo"] = {"B": [], "S": []}
     assert any("populated" in w for w in compare.warnings(a))
+
+
+def test_cpp_export_matches_reference_on_handbuilt_stream(tmp_path):
+    """The whole loop: both implementations, one hand-built file, exact equality."""
+    binary = Path(os.environ.get("ITCH_REPLAY", ROOT / "build" / "release" / "tools" / "itch_replay"))
+    if not binary.exists():
+        pytest.skip(f"{binary} is not built")
+    path = tmp_path / "hand.itch"
+    path.write_bytes(stream())
+    out = tmp_path / "cpp.json"
+    r = subprocess.run([str(binary), str(path), "--export-orders", "AAA", str(out)],
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    ref = reference_book.build(str(path), ["AAA"], checkpoint_s=43_200)
+    assert compare.differences(json.loads(out.read_text()), ref) == []
+    assert compare.main_exit(json.loads(out.read_text()), ref) == 0
+
+
+def test_compare_fails_on_a_reference_anomaly(tmp_path):
+    a = run_ref(tmp_path)
+    b = copy.deepcopy(a)
+    b["symbols"]["AAA"]["anomalies"]["unknown_ref"] = 1
+    assert compare.main_exit(a, b) == 1
+
+
+def test_compare_exit_on_empty_books_is_failure(tmp_path):
+    a = run_ref(tmp_path)
+    for cp in a["symbols"]["AAA"]["checkpoints"].values():
+        cp["bids"], cp["asks"] = [], []
+        cp["fifo"] = {"B": [], "S": []}
+    assert compare.main_exit(a, copy.deepcopy(a)) == 1
