@@ -44,6 +44,7 @@ STAMPS = {
 }
 
 SESSION = (9 * 3600 + 30 * 60, 16 * 3600)  # regular session, seconds since midnight
+CLOSING_CROSS_S = (15 * 3600 + 59 * 60, 16 * 3600 + 60)  # 15:59:00 to 16:01:00
 GRID_S = 5  # top-of-book sample spacing
 TYPE_NAMES = {
     "A": "Add order", "F": "Add order, MPID", "E": "Order executed", "C": "Executed at price",
@@ -101,6 +102,24 @@ def load(results: Path, name: str) -> dict:
 def src(name: str, d: dict) -> dict:
     meta = d["meta"]
     return {"file": name, "commit": meta["commit"], "data_file": meta["data_file"]}
+
+
+def is_closing_cross_time(second: int) -> bool:
+    return CLOSING_CROSS_S[0] <= second <= CLOSING_CROSS_S[1]
+
+
+def known_answer_checkpoint(populated: dict) -> str:
+    """The checkpoint the known-answer comparison is quoted at: the one that is not end of day.
+    Several are accepted only if they are feed seconds, which order themselves."""
+    candidates = [k for k in populated if k != "eod"]
+    if not candidates:
+        raise ExportError("known-answer comparison has no checkpoint before end of day")
+    if len(candidates) == 1:
+        return candidates[0]
+    if all(k.isdigit() for k in candidates):
+        return min(candidates, key=int)
+    raise ExportError(f"known-answer comparison has several checkpoints and no order among them: "
+                      f"{', '.join(sorted(candidates))}")
 
 
 def clock(seconds: int) -> str:
@@ -214,6 +233,7 @@ def build_day(results: Path, max_bytes: int) -> dict:
             "peak_msgs_per_sec": peak,
             "peak_second": clock(peak_s),
             "peak_second_s": peak_s,
+            "peak_is_closing_cross": is_closing_cross_time(peak_s),
             "unknown_refs": day["anomalies"]["unknown_ref"],
             "first_message": clock(totals["first_timestamp_ns"] // 10**9),
             "last_message": clock(totals["last_timestamp_ns"] // 10**9),
@@ -373,7 +393,7 @@ def build_verify(results: Path) -> dict:
             "conservation_failures": day["conservation"]["failures"],
             "known_answer_symbols": len(names), "known_answer_identical": len(same),
             "known_answer_resting_orders": populated,
-            "known_answer_checkpoint": next(k for k in populated if k != "eod"),
+            "known_answer_checkpoint": known_answer_checkpoint(populated),
             "noon_resting_orders": noon_orders,
             "noon_sha256": full["dump"]["sha256"],
             "checkpoint_second": full["dump"]["at_second"],
@@ -485,7 +505,8 @@ def main(argv=None) -> int:
         (out / name).write_text(json.dumps(d, separators=(",", ":")) + "\n")
     meth = ROOT / "docs" / "METHODOLOGY.md"
     if meth.exists():
-        (out / "METHODOLOGY.txt").write_text(meth.read_text())
+        # The page shows it as text, so gen_docs.py's markers come out and the numbers stay.
+        (out / "METHODOLOGY.txt").write_text(re.sub(r"<!-- /?gen[^>]*-->", "", meth.read_text()))
     for name in parts:
         print(f"wrote {out / name} ({(out / name).stat().st_size:,} bytes)")
     return 0

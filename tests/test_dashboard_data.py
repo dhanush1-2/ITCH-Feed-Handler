@@ -191,3 +191,59 @@ def test_lossless_rows_are_the_reference_not_a_self_comparison(results, tmp_path
     assert [r["cmp"] for r in loss["rows"] if r["kind"] == "baseline"] == ["reference"]
     assert [f["cmp"] for f in loss["full_day"] if f["loss"] == 0] == ["reference"]
     assert all(r["checkpoint"] for r in loss["rows"])
+
+
+def test_known_answer_checkpoint_needs_a_populated_checkpoint():
+    with pytest.raises(ed.ExportError, match="no checkpoint"):
+        ed.known_answer_checkpoint({"eod": 0})
+
+
+def test_known_answer_checkpoint_takes_the_only_candidate():
+    assert ed.known_answer_checkpoint({"43200": 121587, "eod": 0}) == "43200"
+
+
+def test_known_answer_checkpoint_orders_feed_seconds():
+    assert ed.known_answer_checkpoint({"50000": 2, "43200": 1, "eod": 0}) == "43200"
+
+
+def test_known_answer_checkpoint_refuses_unordered_candidates():
+    with pytest.raises(ed.ExportError, match="several"):
+        ed.known_answer_checkpoint({"noon": 1, "open": 2, "eod": 0})
+
+
+def test_export_reports_a_missing_checkpoint_without_a_traceback(results, tmp_path):
+    for name in ("cpp_subset_12302019.json", "ref_12302019.json"):
+        doc = json.loads((results / name).read_text())
+        for sym in doc["symbols"].values():
+            sym["checkpoints"] = {"eod": sym["checkpoints"]["eod"]}
+        (results / name).write_text(json.dumps(doc))
+    r = run(results, tmp_path / "out")
+    assert r.returncode == 2 and "no checkpoint" in r.stderr and "Traceback" not in r.stderr
+
+
+@pytest.mark.parametrize("second,expected", [
+    (15 * 3600 + 58 * 60 + 59, False), (15 * 3600 + 59 * 60, True), (16 * 3600, True),
+    (16 * 3600 + 60, True), (16 * 3600 + 61, False), (9 * 3600 + 30 * 60, False)])
+def test_peak_second_counts_as_the_closing_cross_only_near_16_00(second, expected):
+    assert ed.is_closing_cross_time(second) is expected
+
+
+def test_day_json_says_whether_the_peak_is_the_close(results):
+    day = json.loads((results / "day_12302019.json").read_text())
+    day["per_second"][34200] = max(day["per_second"]) + 1  # move the peak to the open
+    (results / "day_12302019.json").write_text(json.dumps(day))
+    rep = json.loads((results / "replay_10x.json").read_text())
+    rep["per_second"] = day["per_second"]
+    (results / "replay_10x.json").write_text(json.dumps(rep))
+    assert ed.build_day(results, ed.MAX_DAY_BYTES)["kpi"]["peak_is_closing_cross"] is False
+
+
+def test_page_only_names_the_cross_when_the_export_says_so():
+    app = (ROOT / "dashboard" / "app.js").read_text()
+    line = next(x for x in app.splitlines() if "closing-cross burst" in x)
+    assert "peak_is_closing_cross" in line
+
+
+def test_methodology_copy_has_no_generator_markers(results, tmp_path):
+    assert run(results, tmp_path / "out").returncode == 0
+    assert "gen:" not in (tmp_path / "out" / "METHODOLOGY.txt").read_text()

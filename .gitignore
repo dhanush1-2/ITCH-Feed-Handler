@@ -4,3 +4,4 @@
 /build-*/
 /results/state_*.bin
 .DS_Store
+__pycache__/

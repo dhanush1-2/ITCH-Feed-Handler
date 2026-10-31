@@ -445,7 +445,7 @@
       if (p.max_lag_ns > 0) {
         if (p.max_lag_at_feed_s != null) {
           var near = Math.abs(p.max_lag_at_feed_s - day.kpi.peak_second_s) <= 5;
-          txt += ", seen at feed time " + clockS(p.max_lag_at_feed_s) + (near ? ", the day's peak-rate second (" + day.kpi.peak_second + "), the closing-cross burst" : "");
+          txt += ", seen at feed time " + clockS(p.max_lag_at_feed_s) + (near ? ", the day's peak-rate second (" + day.kpi.peak_second + ")" + (day.kpi.peak_is_closing_cross ? ", the closing-cross burst" : "") : "");
         } else {
           txt += "; this file does not record where in the feed it occurred";
         }

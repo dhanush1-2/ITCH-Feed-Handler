@@ -168,6 +168,15 @@ jobs:
           name: fuzz-crashes
           path: /tmp/art
 
+  docs-fresh:
+    name: docs-fresh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generated document blocks match results/
+        # Needs committed files only; CI has no data files.
+        run: python3 scripts/gen_docs.py --check
+
   format:
     runs-on: ubuntu-latest
     steps:
