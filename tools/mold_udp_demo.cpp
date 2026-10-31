@@ -68,8 +68,10 @@
 #include <memory>
 #include <mold/cli.hpp>
 #include <mold/sim.hpp>
+#include <span>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -77,18 +79,19 @@ namespace {
 using namespace mold::cli;
 using Clock = std::chrono::steady_clock;
 
-struct Options {
-    std::string     file;
+// The run itself could not be carried out (a socket call failed, the books of datagrams do not
+// add up): exit 3, not an input error.
+struct RunFailed : std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+
+struct Options : CommonOptions {
     mold::SimConfig sim;
-    std::string     dump_path;
-    std::string     json_path;
-    std::uint64_t   max_messages = 0;
-    std::uint64_t   rate_mps     = 1'000'000;
-    std::uint32_t   tick_ms      = 5;
-    std::uint64_t   rcvbuf       = 8U << 20;
-    std::uint64_t   idle_ms      = 5000;
-    std::uint64_t   end_wait_ms  = 10000;
-    bool            check_direct = false;
+    std::uint64_t   rate_mps    = 1'000'000;
+    std::uint32_t   tick_ms     = 5;
+    std::uint64_t   rcvbuf      = 8U << 20;
+    std::uint64_t   idle_ms     = 5000;
+    std::uint64_t   end_wait_ms = 10000;
 };
 
 void usage() {
@@ -127,15 +130,6 @@ Options parse(int argc, char** argv) {
             if (o.sim.retention == 0) {
                 throw InputError("--retention must be at least 1");
             }
-        } else if (a == "--dump-state") {
-            o.dump_path = value();
-        } else if (a == "--dump-at-s") {
-            o.sim.dump.at_s   = parse_u64(a, value());
-            o.sim.dump.at_set = true;
-        } else if (a == "--json") {
-            o.json_path = value();
-        } else if (a == "--max-messages") {
-            o.max_messages = parse_u64(a, value());
         } else if (a == "--rcvbuf") {
             o.rcvbuf = parse_u64(a, value());
             if (o.rcvbuf == 0 || o.rcvbuf > (1U << 30)) {
@@ -158,11 +152,6 @@ Options parse(int argc, char** argv) {
             }
         } else if (a == "--heartbeat-every") {
             o.sim.heartbeat_every = parse_u32(a, value());
-        } else if (a == "--max-live-orders") {
-            o.sim.max_live_orders = static_cast<std::size_t>(parse_u64(a, value()));
-            if (o.sim.max_live_orders == 0) {
-                throw InputError("--max-live-orders must be at least 1");
-            }
         } else if (a == "--idle-timeout-ms") {
             o.idle_ms = parse_u64(a, value());
             if (o.idle_ms == 0) {
@@ -173,26 +162,11 @@ Options parse(int argc, char** argv) {
             if (o.end_wait_ms == 0) {
                 throw InputError("--end-wait-ms must be at least 1");
             }
-        } else if (a == "--check-direct") {
-            o.check_direct = true;
-        } else if (!a.empty() && a[0] == '-') {
-            throw InputError("unknown option '" + a + "'");
-        } else if (o.file.empty()) {
-            o.file = a;
         } else {
-            throw InputError("unexpected argument '" + a + "'");
+            parse_common(a, value, o, o.sim);
         }
     }
-    if (o.file.empty()) {
-        throw InputError("no input file given");
-    }
-    if (o.sim.dump.at_set && o.dump_path.empty()) {
-        throw InputError("--dump-at-s needs --dump-state");
-    }
-    if (o.check_direct && o.dump_path.empty()) {
-        throw InputError("--check-direct needs --dump-state");
-    }
-    o.sim.dump.enabled = !o.dump_path.empty();
+    finish_common(o, o.sim);
     return o;
 }
 
@@ -240,7 +214,7 @@ private:
 [[nodiscard]] Socket make_udp() {
     const int fd = ::socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
-        throw std::runtime_error(errno_text("socket"));
+        throw RunFailed(errno_text("socket"));
     }
     return Socket(fd);
 }
@@ -249,11 +223,11 @@ private:
 [[nodiscard]] sockaddr_in bind_loopback(const Socket& s) {
     sockaddr_in a = loopback(0);
     if (::bind(s.fd(), reinterpret_cast<const sockaddr*>(&a), sizeof a) != 0) {
-        throw std::runtime_error(errno_text("bind"));
+        throw RunFailed(errno_text("bind"));
     }
     socklen_t len = sizeof a;
     if (::getsockname(s.fd(), reinterpret_cast<sockaddr*>(&a), &len) != 0) {
-        throw std::runtime_error(errno_text("getsockname"));
+        throw RunFailed(errno_text("getsockname"));
     }
     return a;
 }
@@ -263,7 +237,7 @@ void set_timeout(const Socket& s, int opt, std::uint32_t ms) {
     tv.tv_sec  = static_cast<decltype(tv.tv_sec)>(ms / 1000);
     tv.tv_usec = static_cast<decltype(tv.tv_usec)>((ms % 1000) * 1000);
     if (::setsockopt(s.fd(), SOL_SOCKET, opt, &tv, sizeof tv) != 0) {
-        throw std::runtime_error(errno_text("setsockopt timeout"));
+        throw RunFailed(errno_text("setsockopt timeout"));
     }
 }
 
@@ -278,7 +252,7 @@ std::uint64_t set_buffer(const Socket& s, int opt, std::uint64_t bytes) {
     int       got = 0;
     socklen_t len = sizeof got;
     if (::getsockopt(s.fd(), SOL_SOCKET, opt, &got, &len) != 0) {
-        throw std::runtime_error(errno_text("getsockopt buffer"));
+        throw RunFailed(errno_text("getsockopt buffer"));
     }
     return static_cast<std::uint64_t>(got);
 }
@@ -570,7 +544,7 @@ private:
                 }
                 now = Clock::now();
             } else if (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) {
-                throw std::runtime_error(errno_text("recvfrom"));
+                throw RunFailed(errno_text("recvfrom"));
             }
             if (now - last_tick >= tick) {
                 rx.on_tick();  // one tick per elapsed period, however late the loop is
@@ -638,14 +612,6 @@ void drain_socket(int fd, F&& classify) {
 }
 
 // ---- report -----------------------------------------------------------------------------
-
-struct Verdict {
-    bool finished              = false;
-    bool stream_matches_source = false;
-    int  state_matches_direct  = -1;  // -1 not checked
-    bool comparison_empty      = false;
-    int  exit_code             = kExitOk;
-};
 
 struct Run {
     mold::RxState       state   = mold::RxState::Live;
@@ -869,7 +835,7 @@ int run(const Options& o) {
     k.send_errors = r.tx.feed_errors + r.tx.retransmit_errors + r.rxs.request_errors;
     if (k.feed_lost < 0 || k.retx_lost < 0 || k.request_lost < 0 || r.rxs.foreign != 0) {
         // More received than sent means the accounting (or a stray sender) is wrong.
-        throw std::runtime_error("datagram accounting is inconsistent: received more than sent");
+        throw RunFailed("datagram accounting is inconsistent: received more than sent");
     }
 
     r.state   = receiver.state();
@@ -878,21 +844,9 @@ int run(const Options& o) {
     r.rx      = receiver.counts();
     r.out     = sink.finish(r.state == mold::RxState::Finished);
 
-    Verdict v;
-    v.finished = r.state == mold::RxState::Finished;
-    v.stream_matches_source =
-        v.finished && r.out.stream_sha256 == source_sha && r.out.delivered == source_messages;
-    if (direct) {
-        // A comparison of two empty books proves nothing, so it fails.
-        v.comparison_empty     = direct->dump.bytes == 0 || r.out.dump.bytes == 0;
-        v.state_matches_direct = !v.comparison_empty && r.out.dump.taken && direct->dump.taken &&
-                                         r.out.dump.sha256 == direct->dump.sha256 &&
-                                         r.out.dump.data == direct->dump.data
-                                     ? 1
-                                     : 0;
-    }
-    const bool ok = v.finished && v.stream_matches_source && v.state_matches_direct != 0;
-    v.exit_code   = ok ? kExitOk : kExitFailed;
+    const Verdict v =
+        judge(r.state == mold::RxState::Finished, r.out, source_sha, source_messages, direct.get());
+    const bool ok = v.exit_code == kExitOk;
 
     std::string dump_file = o.dump_path;
     if (o.sim.dump.enabled) {
@@ -945,14 +899,8 @@ int run(const Options& o) {
                      mold::to_string(r.state), mold::to_string(r.stale),
                      r.gave_up == GaveUp::None ? "" : ", gave up: ",
                      r.gave_up == GaveUp::None ? "" : to_string(r.gave_up));
-    } else if (!v.stream_matches_source) {
-        std::fprintf(stderr, "mold_udp_demo: FAILED: delivered stream differs from the file's\n");
-    } else if (v.comparison_empty) {
-        std::fprintf(stderr,
-                     "mold_udp_demo: FAILED: the comparison state is empty, which proves "
-                     "nothing; pick a --dump-at-s where the books hold orders\n");
-    } else if (v.state_matches_direct == 0) {
-        std::fprintf(stderr, "mold_udp_demo: FAILED: state differs from the direct replay\n");
+    } else if (const std::string why = failure_after_finish(v); !why.empty()) {
+        std::fprintf(stderr, "mold_udp_demo: FAILED: %s\n", why.c_str());
     }
     return v.exit_code;
 }
@@ -970,6 +918,9 @@ int main(int argc, char** argv) {
     }
     try {
         return run(o);
+    } catch (const RunFailed& e) {
+        std::fprintf(stderr, "mold_udp_demo: FAILED: %s\n", e.what());
+        return kExitFailed;
     } catch (const book::CapacityExceeded& e) {
         std::fprintf(stderr, "mold_udp_demo: order capacity exhausted: %s\n", e.what());
         return kExitInput;

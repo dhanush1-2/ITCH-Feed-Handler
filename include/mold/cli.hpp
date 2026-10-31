@@ -9,10 +9,12 @@
 #include <filesystem>
 #include <fstream>
 #include <itch/provenance.hpp>
+#include <mold/sim.hpp>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <system_error>
+#include <utility>
 
 namespace mold::cli {
 
@@ -70,6 +72,105 @@ struct InputError : std::runtime_error {
 
 [[nodiscard]] inline const char* tf(bool b) {
     return b ? "true" : "false";
+}
+
+// Options and checks both tools share: the input file, the state dump, the JSON output, the
+// message cap and the direct-replay comparison.
+struct CommonOptions {
+    std::string   file;
+    std::string   dump_path;
+    std::string   json_path;
+    std::uint64_t max_messages = 0;
+    bool          check_direct = false;
+};
+
+// Handles the option `a` when no tool-specific option matched it: a common option, the
+// positional file, or an unknown flag (which throws). `value()` returns the next argument.
+template <class ValueFn>
+inline void parse_common(const std::string& a, ValueFn&& value, CommonOptions& c,
+                         mold::SimConfig& sim) {
+    if (a == "--dump-state") {
+        c.dump_path = value();
+    } else if (a == "--dump-at-s") {
+        sim.dump.at_s   = parse_u64(a, value());
+        sim.dump.at_set = true;
+    } else if (a == "--json") {
+        c.json_path = value();
+    } else if (a == "--max-messages") {
+        c.max_messages = parse_u64(a, value());
+    } else if (a == "--max-live-orders") {
+        sim.max_live_orders = static_cast<std::size_t>(parse_u64(a, value()));
+        if (sim.max_live_orders == 0) {
+            throw InputError("--max-live-orders must be at least 1");
+        }
+    } else if (a == "--check-direct") {
+        c.check_direct = true;
+    } else if (!a.empty() && a[0] == '-') {
+        throw InputError("unknown option '" + a + "'");
+    } else if (c.file.empty()) {
+        c.file = a;
+    } else {
+        throw InputError("unexpected argument '" + a + "'");
+    }
+}
+
+// Cross-validation once every argument is read.
+inline void finish_common(const CommonOptions& c, mold::SimConfig& sim) {
+    if (c.file.empty()) {
+        throw InputError("no input file given");
+    }
+    if (sim.dump.at_set && c.dump_path.empty()) {
+        throw InputError("--dump-at-s needs --dump-state");
+    }
+    if (c.check_direct && c.dump_path.empty()) {
+        throw InputError("--check-direct needs --dump-state");
+    }
+    sim.dump.enabled = !c.dump_path.empty();
+}
+
+struct Verdict {
+    bool finished              = false;
+    bool stream_matches_source = false;
+    int  state_matches_direct  = -1;  // -1 not checked
+    bool comparison_empty      = false;
+    int  exit_code             = kExitOk;
+};
+
+// The run passed when it finished, delivered the file's stream, and (if checked) its state is
+// the direct replay's. A comparison of two empty books proves nothing, so it fails.
+[[nodiscard]] inline Verdict judge(bool finished, const mold::ReplayOutcome& out,
+                                   const std::string& source_sha, std::uint64_t source_messages,
+                                   const mold::ReplayOutcome* direct) {
+    Verdict v;
+    v.finished = finished;
+    v.stream_matches_source =
+        finished && out.stream_sha256 == source_sha && out.delivered == source_messages;
+    if (direct != nullptr) {
+        v.comparison_empty     = direct->dump.bytes == 0 || out.dump.bytes == 0;
+        v.state_matches_direct = !v.comparison_empty && out.dump.taken && direct->dump.taken &&
+                                         out.dump.sha256 == direct->dump.sha256 &&
+                                         out.dump.data == direct->dump.data
+                                     ? 1
+                                     : 0;
+    }
+    v.exit_code =
+        finished && v.stream_matches_source && v.state_matches_direct != 0 ? kExitOk : kExitFailed;
+    return v;
+}
+
+// The reason line for a failed verdict (empty when it passed and the stream/state agree).
+[[nodiscard]] inline std::string failure_after_finish(const Verdict& v) {
+    if (!v.stream_matches_source) {
+        return "delivered stream differs from the file's";
+    }
+    if (v.comparison_empty) {
+        return "the comparison state is empty, which proves nothing; pick a --dump-at-s where "
+               "the books hold orders";
+    }
+    if (v.state_matches_direct == 0) {
+        return "state differs from the direct replay";
+    }
+    return {};
 }
 
 // Writes a state dump. A book from a run that did not pass must never pass for the real one:

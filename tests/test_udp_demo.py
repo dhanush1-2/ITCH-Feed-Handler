@@ -90,6 +90,11 @@ def test_a_tiny_receive_buffer_still_ends_identical(tmp_path):
     assert j["injected"]["downstream_dropped"] == 0
     assert j["sockets"]["rcvbuf_bytes"] > 0
     assert j["kernel"]["feed_datagrams_lost"] >= 0
+    if j["kernel"]["feed_datagrams_lost"] > 0:
+        # Something the kernel discarded had to come back by re-request. Reordering cannot occur
+        # here, so a lost datagram can only have been delivered as a retransmit.
+        assert j["rx"]["gaps_detected"] > 0
+        assert j["rx"]["messages_from_retransmit"] > 0
     assert j["dump"]["matches_direct"] is True and j["dump"]["non_empty"] is True
 
 

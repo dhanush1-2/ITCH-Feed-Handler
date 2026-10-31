@@ -54,13 +54,8 @@ namespace {
 
 using namespace mold::cli;
 
-struct Options {
-    std::string     file;
+struct Options : CommonOptions {
     mold::SimConfig sim;
-    std::string     dump_path;
-    std::string     json_path;
-    std::uint64_t   max_messages = 0;
-    bool            check_direct = false;
 };
 
 void usage() {
@@ -108,15 +103,6 @@ Options parse(int argc, char** argv) {
             if (o.sim.retention == 0) {
                 throw InputError("--retention must be at least 1");
             }
-        } else if (a == "--dump-state") {
-            o.dump_path = value();
-        } else if (a == "--dump-at-s") {
-            o.sim.dump.at_s   = parse_u64(a, value());
-            o.sim.dump.at_set = true;
-        } else if (a == "--json") {
-            o.json_path = value();
-        } else if (a == "--max-messages") {
-            o.max_messages = parse_u64(a, value());
         } else if (a == "--timeout-ticks") {
             rec.timeout_ticks = parse_u32(a, value());
             if (rec.timeout_ticks == 0) {
@@ -136,41 +122,13 @@ Options parse(int argc, char** argv) {
             }
         } else if (a == "--heartbeat-every") {
             o.sim.heartbeat_every = parse_u32(a, value());
-        } else if (a == "--max-live-orders") {
-            o.sim.max_live_orders = static_cast<std::size_t>(parse_u64(a, value()));
-            if (o.sim.max_live_orders == 0) {
-                throw InputError("--max-live-orders must be at least 1");
-            }
-        } else if (a == "--check-direct") {
-            o.check_direct = true;
-        } else if (!a.empty() && a[0] == '-') {
-            throw InputError("unknown option '" + a + "'");
-        } else if (o.file.empty()) {
-            o.file = a;
         } else {
-            throw InputError("unexpected argument '" + a + "'");
+            parse_common(a, value, o, o.sim);
         }
     }
-    if (o.file.empty()) {
-        throw InputError("no input file given");
-    }
-    if (o.sim.dump.at_set && o.dump_path.empty()) {
-        throw InputError("--dump-at-s needs --dump-state");
-    }
-    if (o.check_direct && o.dump_path.empty()) {
-        throw InputError("--check-direct needs --dump-state");
-    }
-    o.sim.dump.enabled = !o.dump_path.empty();
+    finish_common(o, o.sim);
     return o;
 }
-
-struct Verdict {
-    bool finished              = false;
-    bool stream_matches_source = false;
-    int  state_matches_direct  = -1;  // -1 not checked
-    bool comparison_empty      = false;
-    int  exit_code             = kExitOk;
-};
 
 void write_json(const Options& o, const itch::MappedFile& mf, std::size_t used_bytes,
                 std::uint64_t source_messages, const std::string& source_sha,
@@ -301,21 +259,8 @@ int run(const Options& o) {
     const double secs =
         std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
 
-    Verdict v;
-    v.finished = r.finished();
-    v.stream_matches_source =
-        v.finished && r.out.stream_sha256 == source_sha && r.out.delivered == source_messages;
-    if (direct) {
-        // A comparison of two empty books proves nothing, so it fails.
-        v.comparison_empty     = direct->dump.bytes == 0 || r.out.dump.bytes == 0;
-        v.state_matches_direct = !v.comparison_empty && r.out.dump.taken && direct->dump.taken &&
-                                         r.out.dump.sha256 == direct->dump.sha256 &&
-                                         r.out.dump.data == direct->dump.data
-                                     ? 1
-                                     : 0;
-    }
-    const bool ok = v.finished && v.stream_matches_source && v.state_matches_direct != 0;
-    v.exit_code   = ok ? kExitOk : kExitFailed;
+    const Verdict v  = judge(r.finished(), r.out, source_sha, source_messages, direct.get());
+    const bool    ok = v.exit_code == kExitOk;
 
     std::string dump_file = o.dump_path;
     if (o.sim.dump.enabled) {
@@ -372,14 +317,8 @@ int run(const Options& o) {
     if (!v.finished) {
         std::fprintf(stderr, "mold_sim: FAILED: receiver ended %s (%s); books are incomplete\n",
                      mold::to_string(r.state), mold::to_string(r.stale));
-    } else if (!v.stream_matches_source) {
-        std::fprintf(stderr, "mold_sim: FAILED: delivered stream differs from the file's\n");
-    } else if (v.comparison_empty) {
-        std::fprintf(stderr,
-                     "mold_sim: FAILED: the comparison state is empty, which proves "
-                     "nothing; pick a --dump-at-s where the books hold orders\n");
-    } else if (v.state_matches_direct == 0) {
-        std::fprintf(stderr, "mold_sim: FAILED: state differs from the direct replay\n");
+    } else if (const std::string why = failure_after_finish(v); !why.empty()) {
+        std::fprintf(stderr, "mold_sim: FAILED: %s\n", why.c_str());
     }
     return v.exit_code;
 }
