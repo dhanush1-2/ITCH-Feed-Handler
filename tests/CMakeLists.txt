@@ -50,6 +50,13 @@ if(ITCH_BUILD_TOOLS AND Python3_FOUND)
     endif()
 endif()
 
+# Project 1's ladder as a book (bench/ladder_book.hpp) against the production book. The random
+# stream always runs; the real-slice comparison needs ITCH_SLICE and is skipped without it.
+add_executable(itch_ladder_tests test_ladder_book.cpp)
+target_include_directories(itch_ladder_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+                                                     ${CMAKE_SOURCE_DIR}/bench)
+target_link_libraries(itch_ladder_tests PRIVATE itch GTest::gtest_main)
+
 # Real-data slice (testdata/slice.itch.gz): expanded into the build tree, replayed with every
 # check on, and its export compared with testdata/expected_slice.json.
 if(ITCH_BUILD_TOOLS AND Python3_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/testdata/slice.itch.gz)
@@ -72,6 +79,10 @@ target_link_libraries(itch_loss_tests PRIVATE itch GTest::gtest_main)
 if(ITCH_BUILD_TOOLS AND Python3_FOUND AND EXISTS ${CMAKE_SOURCE_DIR}/testdata/slice.itch.gz)
     add_test(NAME loss_injection COMMAND itch_loss_tests)
     set_tests_properties(loss_injection PROPERTIES
+        FIXTURES_REQUIRED slice
+        ENVIRONMENT "ITCH_SLICE=${_slice_dir}/slice.itch")
+    add_test(NAME ladder_book COMMAND itch_ladder_tests)
+    set_tests_properties(ladder_book PROPERTIES
         FIXTURES_REQUIRED slice
         ENVIRONMENT "ITCH_SLICE=${_slice_dir}/slice.itch")
     if(_pytest_rc EQUAL 0)

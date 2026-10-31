@@ -12,6 +12,7 @@ endif()
 
 option(ITCH_BUILD_TESTS       "Build tests"                  ON)
 option(ITCH_BUILD_TOOLS       "Build tools"                  ON)
+option(ITCH_BUILD_BENCH       "Build the benchmark harness"  ON)
 option(ITCH_BUILD_FUZZ        "Build libFuzzer targets (needs clang)" OFF)
 option(ITCH_VERIFY            "Enable ITCH_ASSERT checks"    OFF)
 option(ITCH_SANITIZE          "Enable ASan + UBSan"          OFF)
@@ -95,6 +96,10 @@ endif()
 
 if(ITCH_BUILD_TOOLS)
     add_subdirectory(tools)
+endif()
+
+if(ITCH_BUILD_BENCH)
+    add_subdirectory(bench)
 endif()
 
 if(ITCH_BUILD_FUZZ)

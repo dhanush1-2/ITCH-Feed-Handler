@@ -64,12 +64,17 @@ enum class RemoveKind : std::uint8_t { Executed = 0, Cancelled, Deleted, Replace
 struct NullObserver {
     template <class View>
     void pass(const View&) noexcept {}
-    void before_execute(const Book&, const ob::Order&, ob::Side, std::uint32_t, std::uint64_t,
+    template <class BookT>
+    void before_execute(const BookT&, const ob::Order&, ob::Side, std::uint32_t, std::uint64_t,
                         std::uint32_t) noexcept {}
     void after_apply(std::uint16_t) noexcept {}
 };
 
-template <class Obs>
+// Index and BookT are for the benchmark's A/B runs (bench/bench_feed.cpp). The defaults are what
+// ships: Project 1's IdIndex and the sorted-vector Book. An Index offers insert, find, erase,
+// size and full with IdIndex's meanings; a BookT offers add, remove, reduce, best_bid, best_ask
+// and order_count with Book's.
+template <class Obs, class Index = ob::IdIndex, class BookT = Book>
 class BookBuilder {
 public:
     static constexpr std::size_t kLocates = 65536;
@@ -108,7 +113,9 @@ public:
     void on(const itch::TradingActionView& v) { obs_.pass(v); }
     void on(const itch::StockDirectoryView& v) { obs_.pass(v); }
 
-    [[nodiscard]] const Book& book(std::uint16_t locate) const noexcept { return books_[locate]; }
+    [[nodiscard]] const BookT& book(std::uint16_t locate) const noexcept { return books_[locate]; }
+    // Setup only (the benchmark gives a ladder book its price base before the run).
+    [[nodiscard]] BookT& book_for_setup(std::uint16_t locate) noexcept { return books_[locate]; }
     [[nodiscard]] const Anomalies& anomalies() const noexcept { return anomalies_; }
     [[nodiscard]] std::size_t      live_orders() const noexcept { return pool_.size(); }
     [[nodiscard]] std::size_t      peak_live_orders() const noexcept { return peak_; }
@@ -292,12 +299,12 @@ private:
         pool_.free(s);
     }
 
-    ob::OrderPool     pool_;
-    ob::IdIndex       index_;
-    std::vector<Book> books_;
-    Obs&              obs_;
-    Anomalies         anomalies_{};
-    std::size_t       peak_ = 0;
+    ob::OrderPool      pool_;
+    Index              index_;
+    std::vector<BookT> books_;
+    Obs&               obs_;
+    Anomalies          anomalies_{};
+    std::size_t        peak_ = 0;
 };
 
 }  // namespace book

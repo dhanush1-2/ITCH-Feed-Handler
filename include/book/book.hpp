@@ -133,6 +133,12 @@ public:
         return (side == ob::Side::Buy ? bids_ : asks_).size();
     }
 
+    // Heap bytes held by the two level vectors (capacity, not size). A vector keeps its capacity
+    // when levels empty, so this is the book's high-water mark. The benchmark reports it.
+    [[nodiscard]] std::size_t reserved_bytes() const noexcept {
+        return (bids_.capacity() + asks_.capacity()) * sizeof(Level);
+    }
+
     // Best to worst.
     [[nodiscard]] auto bids() const noexcept {
         return std::views::reverse(std::span<const Level>(bids_));
