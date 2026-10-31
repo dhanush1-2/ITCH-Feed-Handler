@@ -242,6 +242,39 @@ AAPL has a second source reported on the day, unadjusted: 291.52, at
 conventional split; the agreement at 45.18 supports it but it was not separately confirmed. Stooq
 was tried and returned a browser check with no data.
 
+## Robustness day: 2025-12-08
+
+`S120825-v50.txt`, 650,338,709 messages, in `results/day_20251208.json` and
+`results/recon_20251208.json`. `--verify` passed: no hard violation, `unknown_ref` 0, conservation
+holds, end of day empty, peak 5,271,230 live orders against the default capacity of 16,000,000, which
+did not need raising. No new message types appeared, so nothing new was skipped. These counts are
+findings, not pins. `verify/recon_book.py` reproduced the C++ oracle counts here too. The
+known-answer subset comparison was not run on this day.
+
+| Check | 2019-12-30 | 2025-12-08 |
+|---|---|---|
+| E at a best level, lowest reference | 5,722,824 of 5,722,824 | 14,857,571 of 14,857,571 |
+| Arrival order right, reference order wrong | 0 | 0 |
+| `exec_not_head` | 92,941 | 442,348 (E 33,638, C away from display 408,698, other C 12) |
+| Inverted adds (from `U`) | 360,450 (0) | 1,529,895 (0) |
+| Crossed in continuous trading | 0 | 0 |
+| Episodes, all starting in `H` or `P` | 30 | 119 |
+| Longest crossed touch after a resume | 1.214 ms | 3.960 ms |
+| Match numbers on two messages | 4,324 | 32, each one non-printable C plus printable E or P |
+| Zero-share Q | 12,189 of 17,836 | 15,454 of 24,268 |
+
+The reference-order finding survives a second day six years later. Two things differ. 1,529,852
+inversions are within 60 s of the open but 43 are in the 16:00 hour, so "confined to the open" is a
+2019 observation, and those 43 were not examined.
+
+**Unexplained: 43 E messages not at the best price (2025 only).** `exec_not_best` is 8,883, of which
+8,840 are non-printable C like 2019's and 43 are printable E, which 2019 never had. All 43 are
+outside continuous trading in a crossed book, in state `T`, at most 1.606 ms from an `H` cross, and
+mostly on SMX (22) and IBIO (15). 39 are not at the cross price, so the 2019 explanation does not
+cover them. All are listed in `not_best_E`. A plausible reading is residual crossed interest trading
+out just after the cross, but that has not been shown. Remaining 2025 counts were not investigated
+beyond this table.
+
 ## Limits
 
 - **Queue position.** The C++ book and the reference both append by arrival, so their FIFO lists
@@ -249,7 +282,8 @@ was tried and returned a browser check with no data.
   from the open until those orders leave, arrival-order rank is wrong. Price levels, share totals
   and the ledger are unaffected. Inserting by reference number within a level would bring
   `exec_not_head` for E to 0 on this day; that has not been built or tested in the handler.
-- **One day.** Everything here is measured on 2019-12-30. The pins apply to this file and the slice.
+- **Mostly one day.** Sections other than "Robustness day" are measured on 2019-12-30. The pins apply
+  to that file and the slice.
 - **No broken trades.** The day has no `B`, so that path is covered by synthetic tests only.
 
 ## Regenerating
