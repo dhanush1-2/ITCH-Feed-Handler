@@ -38,7 +38,7 @@ static_assert(sizeof(Level) == 24);
 class Book {
 public:
     static constexpr std::size_t kInitialLevels = 64;
-    // Levels scanned from the back before binary search. 64 not 8: measured +8% throughput on
+    // Levels scanned from the back before binary search. 64 not 8: measured +6.9% throughput on
     // the full day (docs/OPTIMIZATION-LOG.md); most lookups end within a few levels of the touch.
     static constexpr std::size_t kScan = 64;
 

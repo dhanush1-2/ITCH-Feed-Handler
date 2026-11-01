@@ -237,7 +237,7 @@ replay_10x() {
   local load_log="$WORK/replay_10x_load.log" sampler
   ( while :; do echo "$(date -u +%FT%TZ) $(uptime)"; sleep 300; done ) >> "$load_log" &
   sampler=$!
-  trap 'kill "$sampler" 2>/dev/null || true' EXIT
+  trap "kill $sampler 2>/dev/null || true" EXIT
   "$RELEASE/itch_replay" "$DAY" --speed 10 --symbols QQQ,SPY,AAPL,AMD,MSFT --export results/replay_10x.json
 }
 
