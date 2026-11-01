@@ -12,7 +12,7 @@ Apple M4 Pro (arm64, 12 cores), 24 GB, macOS 27.2, AppleClang 21.0.0, `-O3 -DNDE
 
 ## Clock
 
-`ob::bench::Clock`, `CNTVCT_EL0`. Measured on this run: granularity (median consecutive-read delta) **<!-- gen:clock_granularity -->42<!-- /gen --> ns** (41.67 ns tick; the minimum read delta is smaller and is not quoted as resolution), serialized read cost <!-- gen:clock_serialized -->8.8<!-- /gen --> ns, unserialized <!-- gen:clock_unserialized -->0.22<!-- /gen --> ns. `CNTFRQ_EL0` reports 1 GHz, which is not the real rate (the `clock` block of each result therefore shows `counter_hz` 1,000,000,000 and `ns_per_tick` 1; read `granularity_median_ns` instead. `run_bench.py` now adds a `clock_note` field saying so; the committed results predate it); the counter advances every 41.67 ns, as Project 1 measured. Latency uses `raw_serialized()` (`isb` + `mrs`); throughput reads the clock twice per chunk.
+`ob::bench::Clock`, `CNTVCT_EL0`. Measured on this run: granularity (median consecutive-read delta) **<!-- gen:clock_granularity -->42<!-- /gen --> ns** (41.67 ns tick; the minimum read delta is smaller and is not quoted as resolution), serialized read cost <!-- gen:clock_serialized -->8.6<!-- /gen --> ns, unserialized <!-- gen:clock_unserialized -->0.22<!-- /gen --> ns. `CNTFRQ_EL0` reports 1 GHz, which is not the real rate (the `clock` block of each result therefore shows `counter_hz` 1,000,000,000 and `ns_per_tick` 1; read `granularity_median_ns` instead. `run_bench.py` now adds a `clock_note` field saying so; the committed results predate it); the counter advances every 41.67 ns, as Project 1 measured. Latency uses `raw_serialized()` (`isb` + `mrs`); throughput reads the clock twice per chunk.
 
 ## Modes (`bench/bench_feed.cpp`)
 
@@ -39,8 +39,8 @@ Excluded from timing: opening, mapping, locking and (for the ten-symbol runs) fi
 | Error | Handling |
 |---|---|
 | Page faults on the 8.25 GB input | `mlock` of the mapping; major faults in each timed span are recorded and `run_bench.py` fails a set if the input is not locked or any timed span has a major fault (0 in all published runs). Without it, early uncommitted runs showed 75% to 97% spread |
-| Clock granularity 42 ns | per-message percentiles are quoted only as multiples of the tick; <!-- gen:zero_tick_pct -->8.7%<!-- /gen --> of apply samples read zero ticks (published); the empty-region timer floor is published (p50 <!-- gen:floor_p50 -->0<!-- /gen --> ns, p99 <!-- gen:floor_p99 -->42<!-- /gen --> ns) |
-| Timer overhead | measured and published, not subtracted. An empty timed region averages <!-- gen:floor_mean -->8.7<!-- /gen --> ns, but two serialized reads per message raise the whole run's cost from <!-- gen:apply_ns -->70<!-- /gen --> to <!-- gen:timed_ns -->100.8<!-- /gen --> ns per message, so the percentiles describe a separately timed run at <!-- gen:timed_mps -->9.92 M<!-- /gen --> msgs/s, not the published throughput run. Subtracting anything from a distribution quantized at the clock tick is false precision |
+| Clock granularity 42 ns | per-message percentiles are quoted only as multiples of the tick; <!-- gen:zero_tick_pct -->8.3%<!-- /gen --> of apply samples read zero ticks (published); the empty-region timer floor is published (p50 <!-- gen:floor_p50 -->0<!-- /gen --> ns, p99 <!-- gen:floor_p99 -->42<!-- /gen --> ns) |
+| Timer overhead | measured and published, not subtracted. An empty timed region averages <!-- gen:floor_mean -->8.7<!-- /gen --> ns, but two serialized reads per message raise the whole run's cost from <!-- gen:apply_ns -->69<!-- /gen --> to <!-- gen:timed_ns -->99.5<!-- /gen --> ns per message, so the percentiles describe a separately timed run at <!-- gen:timed_mps -->10.05 M<!-- /gen --> msgs/s, not the published throughput run. Subtracting anything from a distribution quantized at the clock tick is false precision |
 | Compiler removing work | parse sink and the state fold are read; fold checksums are compared across variants |
 | Cache pollution by the harness | histogram stores happen after the second timestamp; the fold runs between chunks |
 | Throughput/latency interference | separate modes; apply has no per-message clock |
@@ -49,7 +49,7 @@ Excluded from timing: opening, mapping, locking and (for the ten-symbol runs) fi
 
 ## Memory
 
-Reported three ways and never as one number. `max_rss` (<!-- gen:max_rss_gb -->8.57 GB<!-- /gen -->) includes the mapped input and is not handler memory. The anonymous figure is the footprint delta over the point after the input was locked (the kernel counts locked pages as internal, so the absolute footprint would include the file). Table sizes (pool <!-- gen:pool_mb -->128.0 MB<!-- /gen -->, index <!-- gen:index_mb -->134.2 MB<!-- /gen -->, books array <!-- gen:books_mb -->3.7 MB<!-- /gen --> at a 4,000,000-order capacity, peak live <!-- gen:peak_live -->1,924,078<!-- /gen -->) are computed exactly. The latency set's max RSS (<!-- gen:latency_rss_gb -->10.49 GB<!-- /gen -->) includes about 2.2 GB of raw histogram samples and is harness memory, not handler memory. `latency.all` pools every message type including the skipped ones; use the per-type table.
+Reported three ways and never as one number. `max_rss` (<!-- gen:max_rss_gb -->8.57 GB<!-- /gen -->) includes the mapped input and is not handler memory. The anonymous figure is the footprint delta over the point after the input was locked (the kernel counts locked pages as internal, so the absolute footprint would include the file). Table sizes (pool <!-- gen:pool_mb -->128.0 MB<!-- /gen -->, index <!-- gen:index_mb -->134.2 MB<!-- /gen -->, books array <!-- gen:books_mb -->3.7 MB<!-- /gen --> at a 4,000,000-order capacity, peak live <!-- gen:peak_live -->1,924,078<!-- /gen -->) are computed exactly. The latency set's max RSS (<!-- gen:latency_rss_gb -->10.74 GB<!-- /gen -->) includes about 2.2 GB of raw histogram samples and is harness memory, not handler memory. `latency.all` pools every message type including the skipped ones; use the per-type table.
 
 ## Profiling
 
@@ -72,3 +72,7 @@ caffeinate -i python3 -I scripts/run_bench.py --day 12302019
 ## History rewrite
 
 Before publishing, the git history was rewritten once to set the commit email and to remove real NASDAQ data, the spec PDFs and all result files from older commits. Result files first appear in the commit that adds them after that rewrite. Commit hashes in result stamps were mapped to the rewritten commits, which hold the same source. Older commits may no longer pass tests because their test data is gone.
+
+## Machine drift
+
+The same binary measured 11.7 M and 13.3 M msgs/s applied on this machine within a day, with other work running or just after a reboot. Results from different sessions are not comparable. So the baseline and the final build were measured back to back with the load settled, and the frame figures (602 M for both) show the two sets ran under the same conditions. Reruns on a busy machine should expect lower figures. The 10x replay ran during the slow period, so its lag figure is not from a quiet machine.

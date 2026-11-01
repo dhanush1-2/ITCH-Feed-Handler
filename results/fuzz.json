@@ -2,7 +2,7 @@
   "runs": [
     {
       "meta": {
-        "commit": "c54ba4f9faa059f07f1d33333b0d6b675a202a72",
+        "commit": "690b749de2a5e8fbbcdc18e84e6923d5ad42aeb4",
         "data_file": "fuzz/corpus_mold (hand-built MoldUDP64 event sequences: gaps, overlap, malformed, tail loss)",
         "cpu": "Apple M4 Pro (host; run inside a Docker Linux VM, alpine:3.20)",
         "compiler": "Alpine clang version 17.0.6",
@@ -10,24 +10,24 @@
       },
       "target": "fuzz_mold",
       "duration_s": 300,
-      "executed_units": 32295598,
-      "avg_exec_per_s": 107294,
-      "new_units_added": 6395,
+      "executed_units": 29067622,
+      "avg_exec_per_s": 96570,
+      "new_units_added": 6241,
       "crashes": 0
     },
     {
       "meta": {
-        "commit": "a09caac64ba70aa9ede9bd1afeb77829f444f6df",
-        "data_file": "fuzz/corpus (builder seeds + first 64 KB of 12302019 partial stream)",
+        "commit": "690b749de2a5e8fbbcdc18e84e6923d5ad42aeb4",
+        "data_file": "fuzz/corpus (builder seeds + first 64 KB of the synthetic day)",
         "cpu": "Apple M4 Pro (host; run inside a Docker Linux VM, alpine:3.20)",
         "compiler": "Alpine clang version 17.0.6",
         "flags": "-O2 -g -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer -UNDEBUG -DITCH_VERIFY=1; ASAN_OPTIONS=detect_leaks=0"
       },
       "target": "fuzz_parser",
       "duration_s": 300,
-      "executed_units": 16198868,
-      "avg_exec_per_s": 53816,
-      "new_units_added": 1320,
+      "executed_units": 49876977,
+      "avg_exec_per_s": 165704,
+      "new_units_added": 2255,
       "crashes": 0
     }
   ]

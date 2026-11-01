@@ -1,6 +1,6 @@
 {
   "meta": {
-    "commit": "b5f86a4b192a4460f40153655fdf39facee07618",
+    "commit": "690b749de2a5e8fbbcdc18e84e6923d5ad42aeb4",
     "data_file": "data/12302019.NASDAQ_ITCH50",
     "cpu": "Apple M4 Pro",
     "compiler": "AppleClang 21.0.0.21000334",
@@ -15,7 +15,7 @@
     "eod": 0
   },
   "cpp_file": "cpp_subset_12302019.json",
-  "cpp_sha256": "916ae111dad4ac9f366748332eb12d61daa97cd65a85a395f1681581212e72b0",
+  "cpp_sha256": "446fe9a61808f0550ed0acec61f69e999aeafe865accb553e167cc5a1f781c45",
   "ref_file": "ref_12302019.json",
   "ref_sha256": "105a1e5b232a4bc867f9e052b7994a910e0cf6827e95d7baacf3351e70c7ce83"
 }

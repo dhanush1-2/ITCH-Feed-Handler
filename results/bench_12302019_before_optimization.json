@@ -3,7 +3,7 @@
     "commit": "93efea9548daf2e3a68cf472ea0342fc76125106",
     "data_file": "data/12302019.NASDAQ_ITCH50",
     "cpu": "Apple M4 Pro",
-    "compiler": "AppleClang 21.0.0.21000334",
+    "compiler": "AppleClang 21.0.0.21000401",
     "flags": "-O3 -DNDEBUG -std=c++20",
     "os": "macOS 27.2 (Darwin 27.2.0)",
     "power_source": "AC Power",
@@ -51,25 +51,25 @@
     "frame": {
       "runs": 5,
       "msgs_per_sec": {
-        "median": 599965000.0,
-        "min": 595142000.0,
-        "max": 600898000.0,
+        "median": 602261000.0,
+        "min": 581422000.0,
+        "max": 602758000.0,
         "all": [
-          595142000.0,
-          600592000.0,
-          599732000.0,
-          599965000.0,
-          600898000.0
+          601994000.0,
+          602261000.0,
+          602593000.0,
+          602758000.0,
+          581422000.0
         ],
-        "spread": 0.0096
+        "spread": 0.0354
       },
-      "ns_per_msg_median": 1.66677,
+      "ns_per_msg_median": 1.66041,
       "messages": 268744780,
       "handled": 0,
       "state_checksum": "0",
       "peak_live_orders": 0,
       "anomalies": null,
-      "median_of_chunk_median_msgs_per_sec": 602038000.0,
+      "median_of_chunk_median_msgs_per_sec": 603048000.0,
       "input_mlocked": true,
       "timed_span_major_faults_per_run": [
         0,
@@ -79,13 +79,13 @@
         0
       ],
       "timed_span_major_faults_max": 0,
-      "timed_span_involuntary_ctx_switches_max": 8,
+      "timed_span_involuntary_ctx_switches_max": 22,
       "memory": {
         "max_rss_bytes_median": 8253734912,
         "max_rss_includes": "the mapped input file's resident pages as well as the tables",
         "anonymous_footprint_after_setup_bytes_median": 8252293120,
         "anonymous_footprint_end_bytes_median": 8252653568,
-        "phys_footprint_peak_bytes_median": 8256952440,
+        "phys_footprint_peak_bytes_median": 8256968848,
         "mapped_input_bytes": 8251407909,
         "order_pool_bytes": 0,
         "id_index_bytes": 0,
@@ -96,39 +96,39 @@
         "ns_per_tick": 1,
         "granularity_median_ns": 42,
         "granularity_min_ns": 17,
-        "overhead_unserialized_ns": 0.22205,
-        "overhead_serialized_ns": 8.64409
+        "overhead_unserialized_ns": 0.221755,
+        "overhead_serialized_ns": 8.64376
       },
       "raw_wall_seconds_including_setup": [
-        2.7,
-        6.2,
-        6.2,
-        6.1,
-        6.1
+        2.2,
+        4.0,
+        3.8,
+        3.9,
+        4.1
       ]
     },
     "parse": {
       "runs": 5,
       "msgs_per_sec": {
-        "median": 197628000.0,
-        "min": 196312000.0,
-        "max": 198507000.0,
+        "median": 204027000.0,
+        "min": 202864000.0,
+        "max": 204061000.0,
         "all": [
-          197029000.0,
-          196312000.0,
-          198507000.0,
-          198038000.0,
-          197628000.0
+          202864000.0,
+          204028000.0,
+          203878000.0,
+          204061000.0,
+          204027000.0
         ],
-        "spread": 0.0111
+        "spread": 0.0059
       },
-      "ns_per_msg_median": 5.06002,
+      "ns_per_msg_median": 4.90131,
       "messages": 268744780,
       "handled": 264496253,
       "state_checksum": "18484b8a9b620215",
       "peak_live_orders": 0,
       "anomalies": null,
-      "median_of_chunk_median_msgs_per_sec": 195675000.0,
+      "median_of_chunk_median_msgs_per_sec": 201907000.0,
       "input_mlocked": true,
       "timed_span_major_faults_per_run": [
         0,
@@ -138,13 +138,13 @@
         0
       ],
       "timed_span_major_faults_max": 0,
-      "timed_span_involuntary_ctx_switches_max": 39,
+      "timed_span_involuntary_ctx_switches_max": 19,
       "memory": {
         "max_rss_bytes_median": 8253734912,
         "max_rss_includes": "the mapped input file's resident pages as well as the tables",
         "anonymous_footprint_after_setup_bytes_median": 8252293120,
         "anonymous_footprint_end_bytes_median": 8252653568,
-        "phys_footprint_peak_bytes_median": 8256952440,
+        "phys_footprint_peak_bytes_median": 8256968848,
         "mapped_input_bytes": 8251407909,
         "order_pool_bytes": 0,
         "id_index_bytes": 0,
@@ -155,33 +155,33 @@
         "ns_per_tick": 1,
         "granularity_median_ns": 42,
         "granularity_min_ns": 17,
-        "overhead_unserialized_ns": 0.221635,
-        "overhead_serialized_ns": 8.64367
+        "overhead_unserialized_ns": 0.22634,
+        "overhead_serialized_ns": 8.82656
       },
       "raw_wall_seconds_including_setup": [
-        7.1,
-        7.0,
-        7.0,
-        7.0,
-        7.0
+        4.9,
+        4.9,
+        5.0,
+        5.1,
+        5.0
       ]
     },
     "apply": {
       "runs": 5,
       "msgs_per_sec": {
-        "median": 13163000.0,
-        "min": 13075300.0,
-        "max": 13255500.0,
+        "median": 13484600.0,
+        "min": 13437700.0,
+        "max": 13511100.0,
         "all": [
-          13255500.0,
-          13130600.0,
-          13175500.0,
-          13075300.0,
-          13163000.0
+          13437700.0,
+          13502600.0,
+          13444300.0,
+          13484600.0,
+          13511100.0
         ],
-        "spread": 0.0137
+        "spread": 0.0054
       },
-      "ns_per_msg_median": 75.9708,
+      "ns_per_msg_median": 74.1587,
       "messages": 268744780,
       "handled": 264496253,
       "state_checksum": "ca81fe1ec03459c9",
@@ -194,23 +194,23 @@
         "over_cancel": 0,
         "zero_shares": 0
       },
-      "median_of_chunk_median_msgs_per_sec": 13087400.0,
+      "median_of_chunk_median_msgs_per_sec": 13433800.0,
       "input_mlocked": true,
       "timed_span_major_faults_per_run": [
-        0,
+        1,
         0,
         0,
         0,
         0
       ],
-      "timed_span_major_faults_max": 0,
-      "timed_span_involuntary_ctx_switches_max": 596,
+      "timed_span_major_faults_max": 1,
+      "timed_span_involuntary_ctx_switches_max": 356,
       "memory": {
         "max_rss_bytes_median": 8565981184,
         "max_rss_includes": "the mapped input file's resident pages as well as the tables",
         "anonymous_footprint_after_setup_bytes_median": 8518238208,
         "anonymous_footprint_end_bytes_median": 8564899840,
-        "phys_footprint_peak_bytes_median": 8569379176,
+        "phys_footprint_peak_bytes_median": 8569395608,
         "mapped_input_bytes": 8251407909,
         "order_pool_bytes": 128000000,
         "id_index_bytes": 134217728,
@@ -226,33 +226,33 @@
         "ns_per_tick": 1,
         "granularity_median_ns": 42,
         "granularity_min_ns": 17,
-        "overhead_unserialized_ns": 0.254965,
-        "overhead_serialized_ns": 9.01519
+        "overhead_unserialized_ns": 0.221635,
+        "overhead_serialized_ns": 8.64376
       },
       "raw_wall_seconds_including_setup": [
-        26.1,
-        26.3,
-        26.1,
-        26.3,
-        26.1
+        23.9,
+        24.2,
+        24.2,
+        24.3,
+        24.3
       ]
     },
     "latency": {
       "runs": 5,
       "msgs_per_sec": {
-        "median": 9442320.0,
-        "min": 9036130.0,
-        "max": 9499260.0,
+        "median": 9621430.0,
+        "min": 9611240.0,
+        "max": 9685000.0,
         "all": [
-          9363330.0,
-          9442320.0,
-          9499260.0,
-          9480790.0,
-          9036130.0
+          9621430.0,
+          9611240.0,
+          9618980.0,
+          9643980.0,
+          9685000.0
         ],
-        "spread": 0.049
+        "spread": 0.0077
       },
-      "ns_per_msg_median": 105.906,
+      "ns_per_msg_median": 103.935,
       "messages": 268744780,
       "handled": 264496253,
       "state_checksum": "ca81fe1ec03459c9",
@@ -275,13 +275,13 @@
         0
       ],
       "timed_span_major_faults_max": 0,
-      "timed_span_involuntary_ctx_switches_max": 2071,
+      "timed_span_involuntary_ctx_switches_max": 414,
       "memory": {
-        "max_rss_bytes_median": 10391142400,
+        "max_rss_bytes_median": 10736304128,
         "max_rss_includes": "the mapped input file's resident pages as well as the tables",
         "anonymous_footprint_after_setup_bytes_median": 8518418432,
-        "anonymous_footprint_end_bytes_median": 10735222784,
-        "phys_footprint_peak_bytes_median": 10740768664,
+        "anonymous_footprint_end_bytes_median": 10735190016,
+        "phys_footprint_peak_bytes_median": 10740752304,
         "mapped_input_bytes": 8251407909,
         "order_pool_bytes": 128000000,
         "id_index_bytes": 134217728,
@@ -295,41 +295,41 @@
       "latency_all_ns": {
         "p50_ns": {
           "median": 84,
-          "min": 83,
+          "min": 84,
           "max": 84
         },
         "p90_ns": {
           "median": 208,
           "min": 208,
-          "max": 209
+          "max": 208
         },
         "p99_ns": {
-          "median": 416,
+          "median": 375,
           "min": 375,
-          "max": 417
+          "max": 375
         },
         "p99_9_ns": {
-          "median": 666,
-          "min": 625,
-          "max": 750
+          "median": 625,
+          "min": 584,
+          "max": 625
         },
         "p99_99_ns": {
-          "median": 1000,
-          "min": 1000,
-          "max": 1958
+          "median": 917,
+          "min": 916,
+          "max": 1000
         },
         "max_ns": {
-          "median": 663203,
-          "min": 43183,
-          "max": 1802450.0
+          "median": 187147,
+          "min": 79410,
+          "max": 6931160.0
         },
         "mean_ns": {
-          "median": 105.906,
-          "min": 105.271,
-          "max": 110.667
+          "median": 103.935,
+          "min": 103.252,
+          "max": 104.045
         }
       },
-      "latency_fraction_at_zero_ticks_median": 0.0762841,
+      "latency_fraction_at_zero_ticks_median": 0.0762638,
       "latency_timer_floor_ns": {
         "p50_ns": {
           "median": 0,
@@ -354,17 +354,17 @@
         "p99_99_ns": {
           "median": 58,
           "min": 58,
-          "max": 59
+          "max": 58
         },
         "max_ns": {
-          "median": 8625,
-          "min": 5893,
-          "max": 33309
+          "median": 9417,
+          "min": 5958,
+          "max": 10791
         },
         "mean_ns": {
-          "median": 8.68941,
-          "min": 8.65789,
-          "max": 8.82335
+          "median": 8.65543,
+          "min": 8.65363,
+          "max": 8.65779
         }
       },
       "latency_by_type_ns": {
@@ -381,443 +381,23 @@
             "max": 250
           },
           "p99_9_ns": {
-            "median": 375,
-            "min": 375,
-            "max": 435
+            "median": 334,
+            "min": 334,
+            "max": 334
           },
           "max_ns": {
-            "median": 70344,
-            "min": 41810,
-            "max": 1802450.0
+            "median": 38893,
+            "min": 36142,
+            "max": 6575840.0
           },
           "mean_ns": {
-            "median": 90.817,
-            "min": 90.5001,
-            "max": 93.7177
+            "median": 89.1322,
+            "min": 88.6383,
+            "max": 89.1438
           }
         },
         "C": {
           "count": 99917,
-          "p50_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "p99_ns": {
-            "median": 292,
-            "min": 292,
-            "max": 334
-          },
-          "p99_9_ns": {
-            "median": 417,
-            "min": 417,
-            "max": 458
-          },
-          "max_ns": {
-            "median": 1893,
-            "min": 584,
-            "max": 6933
-          },
-          "mean_ns": {
-            "median": 65.7822,
-            "min": 65.2596,
-            "max": 68.6096
-          }
-        },
-        "D": {
-          "count": 114360997,
-          "p50_ns": {
-            "median": 83,
-            "min": 83,
-            "max": 84
-          },
-          "p99_ns": {
-            "median": 375,
-            "min": 375,
-            "max": 417
-          },
-          "p99_9_ns": {
-            "median": 542,
-            "min": 542,
-            "max": 625
-          },
-          "max_ns": {
-            "median": 126070,
-            "min": 43183,
-            "max": 1566310.0
-          },
-          "mean_ns": {
-            "median": 109.891,
-            "min": 108.947,
-            "max": 115.984
-          }
-        },
-        "E": {
-          "count": 5722824,
-          "p50_ns": {
-            "median": 83,
-            "min": 83,
-            "max": 83
-          },
-          "p99_ns": {
-            "median": 375,
-            "min": 375,
-            "max": 416
-          },
-          "p99_9_ns": {
-            "median": 458,
-            "min": 458,
-            "max": 500
-          },
-          "max_ns": {
-            "median": 37726,
-            "min": 27060,
-            "max": 126946
-          },
-          "mean_ns": {
-            "median": 102.195,
-            "min": 101.168,
-            "max": 108.735
-          }
-        },
-        "F": {
-          "count": 1485888,
-          "p50_ns": {
-            "median": 84,
-            "min": 84,
-            "max": 84
-          },
-          "p99_ns": {
-            "median": 333,
-            "min": 333,
-            "max": 333
-          },
-          "p99_9_ns": {
-            "median": 792,
-            "min": 792,
-            "max": 1000
-          },
-          "max_ns": {
-            "median": 26542,
-            "min": 15810,
-            "max": 102487
-          },
-          "mean_ns": {
-            "median": 100.998,
-            "min": 100.544,
-            "max": 104.105
-          }
-        },
-        "H": {
-          "count": 8966,
-          "p50_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 0
-          },
-          "p99_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "p99_9_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "max_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 59
-          },
-          "mean_ns": {
-            "median": 8.82389,
-            "min": 8.53993,
-            "max": 9.1451
-          }
-        },
-        "I": {
-          "count": 4024315,
-          "p50_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 0
-          },
-          "p99_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "p99_9_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "max_ns": {
-            "median": 7667,
-            "min": 6750,
-            "max": 21017
-          },
-          "mean_ns": {
-            "median": 9.18008,
-            "min": 9.05251,
-            "max": 9.19501
-          }
-        },
-        "J": {
-          "count": 34,
-          "p50_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 0
-          },
-          "p99_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "p99_9_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "max_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "mean_ns": {
-            "median": 11.0294,
-            "min": 8.58824,
-            "max": 13.5588
-          }
-        },
-        "K": {
-          "count": 3,
-          "p50_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 0
-          },
-          "p99_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 42
-          },
-          "p99_9_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 42
-          },
-          "max_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 42
-          },
-          "mean_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 14
-          }
-        },
-        "L": {
-          "count": 215161,
-          "p50_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 0
-          },
-          "p99_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "p99_9_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "max_ns": {
-            "median": 59,
-            "min": 59,
-            "max": 6601
-          },
-          "mean_ns": {
-            "median": 8.69864,
-            "min": 8.63817,
-            "max": 9.62283
-          }
-        },
-        "P": {
-          "count": 1218602,
-          "p50_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 0
-          },
-          "p99_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "p99_9_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "max_ns": {
-            "median": 10583,
-            "min": 4559,
-            "max": 15500
-          },
-          "mean_ns": {
-            "median": 10.6641,
-            "min": 10.3601,
-            "max": 11.0494
-          }
-        },
-        "Q": {
-          "count": 17836,
-          "p50_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 0
-          },
-          "p99_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "p99_9_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "max_ns": {
-            "median": 83,
-            "min": 42,
-            "max": 84
-          },
-          "mean_ns": {
-            "median": 10.3795,
-            "min": 10.1062,
-            "max": 11.2746
-          }
-        },
-        "R": {
-          "count": 8906,
-          "p50_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 0
-          },
-          "p99_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "p99_9_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "max_ns": {
-            "median": 58,
-            "min": 42,
-            "max": 59
-          },
-          "mean_ns": {
-            "median": 8.74197,
-            "min": 8.64137,
-            "max": 9.08814
-          }
-        },
-        "S": {
-          "count": 6,
-          "p50_ns": {
-            "median": 41,
-            "min": 0,
-            "max": 41
-          },
-          "p99_ns": {
-            "median": 1750,
-            "min": 1500,
-            "max": 1958
-          },
-          "p99_9_ns": {
-            "median": 1750,
-            "min": 1500,
-            "max": 1958
-          },
-          "max_ns": {
-            "median": 1750,
-            "min": 1500,
-            "max": 1958
-          },
-          "mean_ns": {
-            "median": 305.333,
-            "min": 277.5,
-            "max": 347.167
-          }
-        },
-        "U": {
-          "count": 21639067,
-          "p50_ns": {
-            "median": 167,
-            "min": 167,
-            "max": 167
-          },
-          "p99_ns": {
-            "median": 625,
-            "min": 625,
-            "max": 708
-          },
-          "p99_9_ns": {
-            "median": 934,
-            "min": 917,
-            "max": 1101
-          },
-          "max_ns": {
-            "median": 96636,
-            "min": 36101,
-            "max": 663203
-          },
-          "mean_ns": {
-            "median": 197.333,
-            "min": 196.152,
-            "max": 206.487
-          }
-        },
-        "V": {
-          "count": 1,
-          "p50_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 42
-          },
-          "p99_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 42
-          },
-          "p99_9_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 42
-          },
-          "max_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 42
-          },
-          "mean_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 42
-          }
-        },
-        "X": {
-          "count": 2787676,
           "p50_ns": {
             "median": 42,
             "min": 42,
@@ -831,404 +411,101 @@
           "p99_9_ns": {
             "median": 417,
             "min": 417,
-            "max": 458
+            "max": 417
           },
           "max_ns": {
-            "median": 25434,
-            "min": 21417,
-            "max": 25892
+            "median": 3208,
+            "min": 583,
+            "max": 7958
           },
           "mean_ns": {
-            "median": 68.8821,
-            "min": 68.4711,
-            "max": 70.9006
-          }
-        },
-        "Y": {
-          "count": 9013,
-          "p50_ns": {
-            "median": 0,
-            "min": 0,
-            "max": 0
-          },
-          "p99_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "p99_9_ns": {
-            "median": 42,
-            "min": 42,
-            "max": 42
-          },
-          "max_ns": {
-            "median": 58,
-            "min": 58,
-            "max": 59
-          },
-          "mean_ns": {
-            "median": 8.80695,
-            "min": 8.56463,
-            "max": 9.20637
-          }
-        }
-      },
-      "clock": {
-        "counter_hz": 1000000000,
-        "ns_per_tick": 1,
-        "granularity_median_ns": 42,
-        "granularity_min_ns": 17,
-        "overhead_unserialized_ns": 0.255085,
-        "overhead_serialized_ns": 9.05361
-      },
-      "raw_wall_seconds_including_setup": [
-        40.1,
-        40.4,
-        40.1,
-        39.9,
-        41.2
-      ]
-    },
-    "apply_unordered_map": {
-      "runs": 5,
-      "msgs_per_sec": {
-        "median": 6758650.0,
-        "min": 6716460.0,
-        "max": 6776150.0,
-        "all": [
-          6716460.0,
-          6768310.0,
-          6745010.0,
-          6776150.0,
-          6758650.0
-        ],
-        "spread": 0.0088
-      },
-      "ns_per_msg_median": 147.958,
-      "messages": 268744780,
-      "handled": 264496253,
-      "state_checksum": "ca81fe1ec03459c9",
-      "peak_live_orders": 1924078,
-      "anomalies": {
-        "unknown_ref": 0,
-        "duplicate_add": 0,
-        "locate_mismatch": 0,
-        "over_execute": 0,
-        "over_cancel": 0,
-        "zero_shares": 0
-      },
-      "median_of_chunk_median_msgs_per_sec": 6658600.0,
-      "input_mlocked": true,
-      "timed_span_major_faults_per_run": [
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
-      "timed_span_major_faults_max": 0,
-      "timed_span_involuntary_ctx_switches_max": 914,
-      "memory": {
-        "max_rss_bytes_median": 8525627392,
-        "max_rss_includes": "the mapped input file's resident pages as well as the tables",
-        "anonymous_footprint_after_setup_bytes_median": 8416034816,
-        "anonymous_footprint_end_bytes_median": 8474394624,
-        "phys_footprint_peak_bytes_median": 8528959848,
-        "mapped_input_bytes": 8251407909,
-        "order_pool_bytes": 128000000,
-        "id_index_bytes": 0,
-        "books_array_bytes": 3670016
-      },
-      "book_storage": {
-        "kind": "vector",
-        "level_vector_bytes_high_water": 38914560,
-        "books_with_levels": 8892
-      },
-      "clock": {
-        "counter_hz": 1000000000,
-        "ns_per_tick": 1,
-        "granularity_median_ns": 42,
-        "granularity_min_ns": 17,
-        "overhead_unserialized_ns": 0.22184,
-        "overhead_serialized_ns": 8.64388
-      },
-      "raw_wall_seconds_including_setup": [
-        45.7,
-        45.6,
-        45.5,
-        45.3,
-        45.6
-      ]
-    },
-    "latency_unordered_map": {
-      "runs": 5,
-      "msgs_per_sec": {
-        "median": 5831370.0,
-        "min": 5810280.0,
-        "max": 5854250.0,
-        "all": [
-          5814560.0,
-          5854250.0,
-          5810280.0,
-          5831370.0,
-          5845440.0
-        ],
-        "spread": 0.0075
-      },
-      "ns_per_msg_median": 171.486,
-      "messages": 268744780,
-      "handled": 264496253,
-      "state_checksum": "ca81fe1ec03459c9",
-      "peak_live_orders": 1924078,
-      "anomalies": {
-        "unknown_ref": 0,
-        "duplicate_add": 0,
-        "locate_mismatch": 0,
-        "over_execute": 0,
-        "over_cancel": 0,
-        "zero_shares": 0
-      },
-      "median_of_chunk_median_msgs_per_sec": null,
-      "input_mlocked": true,
-      "timed_span_major_faults_per_run": [
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
-      "timed_span_major_faults_max": 0,
-      "timed_span_involuntary_ctx_switches_max": 795,
-      "memory": {
-        "max_rss_bytes_median": 10612211712,
-        "max_rss_includes": "the mapped input file's resident pages as well as the tables",
-        "anonymous_footprint_after_setup_bytes_median": 8416215040,
-        "anonymous_footprint_end_bytes_median": 10644733952,
-        "phys_footprint_peak_bytes_median": 10680164200,
-        "mapped_input_bytes": 8251407909,
-        "order_pool_bytes": 128000000,
-        "id_index_bytes": 0,
-        "books_array_bytes": 3670016
-      },
-      "book_storage": {
-        "kind": "vector",
-        "level_vector_bytes_high_water": 38914560,
-        "books_with_levels": 8892
-      },
-      "latency_all_ns": {
-        "p50_ns": {
-          "median": 125,
-          "min": 125,
-          "max": 125
-        },
-        "p90_ns": {
-          "median": 375,
-          "min": 375,
-          "max": 375
-        },
-        "p99_ns": {
-          "median": 667,
-          "min": 667,
-          "max": 667
-        },
-        "p99_9_ns": {
-          "median": 917,
-          "min": 916,
-          "max": 917
-        },
-        "p99_99_ns": {
-          "median": 1458,
-          "min": 1392,
-          "max": 2875
-        },
-        "max_ns": {
-          "median": 1081450.0,
-          "min": 1025680.0,
-          "max": 1328150.0
-        },
-        "mean_ns": {
-          "median": 171.486,
-          "min": 170.816,
-          "max": 172.109
-        }
-      },
-      "latency_fraction_at_zero_ticks_median": 0.0246001,
-      "latency_timer_floor_ns": {
-        "p50_ns": {
-          "median": 0,
-          "min": 0,
-          "max": 0
-        },
-        "p90_ns": {
-          "median": 42,
-          "min": 42,
-          "max": 42
-        },
-        "p99_ns": {
-          "median": 42,
-          "min": 42,
-          "max": 42
-        },
-        "p99_9_ns": {
-          "median": 42,
-          "min": 42,
-          "max": 42
-        },
-        "p99_99_ns": {
-          "median": 59,
-          "min": 58,
-          "max": 59
-        },
-        "max_ns": {
-          "median": 8750,
-          "min": 6291,
-          "max": 15209
-        },
-        "mean_ns": {
-          "median": 8.6849,
-          "min": 8.65868,
-          "max": 8.72107
-        }
-      },
-      "latency_by_type_ns": {
-        "A": {
-          "count": 117145568,
-          "p50_ns": {
-            "median": 83,
-            "min": 83,
-            "max": 83
-          },
-          "p99_ns": {
-            "median": 459,
-            "min": 459,
-            "max": 459
-          },
-          "p99_9_ns": {
-            "median": 625,
-            "min": 625,
-            "max": 625
-          },
-          "max_ns": {
-            "median": 114028,
-            "min": 73969,
-            "max": 323051
-          },
-          "mean_ns": {
-            "median": 128.552,
-            "min": 128.209,
-            "max": 129.637
-          }
-        },
-        "C": {
-          "count": 99917,
-          "p50_ns": {
-            "median": 83,
-            "min": 83,
-            "max": 83
-          },
-          "p99_ns": {
-            "median": 583,
-            "min": 542,
-            "max": 583
-          },
-          "p99_9_ns": {
-            "median": 708,
-            "min": 667,
-            "max": 709
-          },
-          "max_ns": {
-            "median": 6250,
-            "min": 3500,
-            "max": 28476
-          },
-          "mean_ns": {
-            "median": 110.393,
-            "min": 109.851,
-            "max": 110.769
+            "median": 65.5654,
+            "min": 65.2324,
+            "max": 65.6893
           }
         },
         "D": {
           "count": 114360997,
           "p50_ns": {
-            "median": 166,
-            "min": 166,
-            "max": 166
+            "median": 84,
+            "min": 84,
+            "max": 84
           },
           "p99_ns": {
-            "median": 667,
-            "min": 667,
-            "max": 667
+            "median": 375,
+            "min": 334,
+            "max": 375
           },
           "p99_9_ns": {
-            "median": 875,
-            "min": 834,
-            "max": 875
+            "median": 500,
+            "min": 500,
+            "max": 541
           },
           "max_ns": {
-            "median": 1081450.0,
-            "min": 1025680.0,
-            "max": 1328150.0
+            "median": 187147,
+            "min": 79410,
+            "max": 6931160.0
           },
           "mean_ns": {
-            "median": 197.455,
-            "min": 196.502,
-            "max": 198.101
+            "median": 108.157,
+            "min": 107.402,
+            "max": 108.24
           }
         },
         "E": {
           "count": 5722824,
-          "p50_ns": {
-            "median": 166,
-            "min": 166,
-            "max": 166
-          },
-          "p99_ns": {
-            "median": 642,
-            "min": 625,
-            "max": 666
-          },
-          "p99_9_ns": {
-            "median": 750,
-            "min": 750,
-            "max": 750
-          },
-          "max_ns": {
-            "median": 28476,
-            "min": 26351,
-            "max": 65993
-          },
-          "mean_ns": {
-            "median": 210.346,
-            "min": 209.5,
-            "max": 212.328
-          }
-        },
-        "F": {
-          "count": 1485888,
           "p50_ns": {
             "median": 83,
             "min": 83,
             "max": 83
           },
           "p99_ns": {
-            "median": 500,
-            "min": 459,
-            "max": 500
+            "median": 375,
+            "min": 334,
+            "max": 375
           },
           "p99_9_ns": {
-            "median": 1000,
-            "min": 1000,
-            "max": 1042
+            "median": 417,
+            "min": 417,
+            "max": 417
           },
           "max_ns": {
-            "median": 30643,
-            "min": 22352,
-            "max": 49684
+            "median": 27017,
+            "min": 26375,
+            "max": 28225
           },
           "mean_ns": {
-            "median": 121.094,
-            "min": 120.53,
-            "max": 121.473
+            "median": 99.0016,
+            "min": 98.2885,
+            "max": 99.0987
+          }
+        },
+        "F": {
+          "count": 1485888,
+          "p50_ns": {
+            "median": 84,
+            "min": 84,
+            "max": 84
+          },
+          "p99_ns": {
+            "median": 292,
+            "min": 292,
+            "max": 292
+          },
+          "p99_9_ns": {
+            "median": 791,
+            "min": 750,
+            "max": 792
+          },
+          "max_ns": {
+            "median": 26185,
+            "min": 15417,
+            "max": 27267
+          },
+          "mean_ns": {
+            "median": 99.4541,
+            "min": 99.0532,
+            "max": 99.4966
           }
         },
         "H": {
@@ -1249,14 +526,14 @@
             "max": 42
           },
           "max_ns": {
-            "median": 59,
-            "min": 58,
-            "max": 125
+            "median": 58,
+            "min": 42,
+            "max": 59
           },
           "mean_ns": {
-            "median": 9.03881,
-            "min": 8.92159,
-            "max": 9.15838
+            "median": 8.56848,
+            "min": 8.51238,
+            "max": 8.79891
           }
         },
         "I": {
@@ -1277,14 +554,14 @@
             "max": 42
           },
           "max_ns": {
-            "median": 10167,
-            "min": 6208,
-            "max": 25725
+            "median": 7768,
+            "min": 6167,
+            "max": 10601
           },
           "mean_ns": {
-            "median": 9.74828,
-            "min": 9.67891,
-            "max": 9.82099
+            "median": 9.27859,
+            "min": 9.21878,
+            "max": 9.35159
           }
         },
         "J": {
@@ -1310,9 +587,9 @@
             "max": 42
           },
           "mean_ns": {
-            "median": 11.1176,
-            "min": 9.82353,
-            "max": 14.7941
+            "median": 12.2059,
+            "min": 8.58824,
+            "max": 15.9412
           }
         },
         "K": {
@@ -1363,12 +640,12 @@
           "max_ns": {
             "median": 59,
             "min": 59,
-            "max": 5725
+            "max": 59
           },
           "mean_ns": {
-            "median": 9.09274,
-            "min": 9.04814,
-            "max": 9.12031
+            "median": 8.64549,
+            "min": 8.63161,
+            "max": 8.65374
           }
         },
         "P": {
@@ -1389,14 +666,14 @@
             "max": 42
           },
           "max_ns": {
-            "median": 6792,
-            "min": 4750,
-            "max": 22000
+            "median": 8102,
+            "min": 5083,
+            "max": 9226
           },
           "mean_ns": {
-            "median": 11.9969,
-            "min": 11.8858,
-            "max": 12.3897
+            "median": 10.7239,
+            "min": 10.5872,
+            "max": 10.8005
           }
         },
         "Q": {
@@ -1419,12 +696,12 @@
           "max_ns": {
             "median": 59,
             "min": 59,
-            "max": 83
+            "max": 4125
           },
           "mean_ns": {
-            "median": 12.098,
-            "min": 12.0609,
-            "max": 12.3185
+            "median": 10.7735,
+            "min": 10.5607,
+            "max": 11.3298
           }
         },
         "R": {
@@ -1445,14 +722,14 @@
             "max": 42
           },
           "max_ns": {
-            "median": 59,
-            "min": 58,
-            "max": 84
+            "median": 125,
+            "min": 59,
+            "max": 125
           },
           "mean_ns": {
-            "median": 9.10296,
-            "min": 9.00258,
-            "max": 9.13609
+            "median": 8.68235,
+            "min": 8.55356,
+            "max": 8.83135
           }
         },
         "S": {
@@ -1460,55 +737,55 @@
           "p50_ns": {
             "median": 0,
             "min": 0,
-            "max": 41
+            "max": 42
           },
           "p99_ns": {
-            "median": 1708,
-            "min": 1250,
-            "max": 2042
+            "median": 1875,
+            "min": 1459,
+            "max": 2000
           },
           "p99_9_ns": {
-            "median": 1708,
-            "min": 1250,
-            "max": 2042
+            "median": 1875,
+            "min": 1459,
+            "max": 2000
           },
           "max_ns": {
-            "median": 1708,
-            "min": 1250,
-            "max": 2042
+            "median": 1875,
+            "min": 1459,
+            "max": 2000
           },
           "mean_ns": {
-            "median": 298.333,
-            "min": 215.333,
-            "max": 354.167
+            "median": 333.167,
+            "min": 250.167,
+            "max": 347
           }
         },
         "U": {
           "count": 21639067,
           "p50_ns": {
-            "median": 250,
-            "min": 250,
-            "max": 250
+            "median": 167,
+            "min": 167,
+            "max": 167
           },
           "p99_ns": {
-            "median": 916,
-            "min": 875,
-            "max": 917
+            "median": 584,
+            "min": 584,
+            "max": 625
           },
           "p99_9_ns": {
-            "median": 1250,
-            "min": 1209,
-            "max": 1250
+            "median": 834,
+            "min": 833,
+            "max": 875
           },
           "max_ns": {
-            "median": 49910,
-            "min": 41518,
-            "max": 88261
+            "median": 40328,
+            "min": 28018,
+            "max": 1051520.0
           },
           "mean_ns": {
-            "median": 309.968,
-            "min": 308.048,
-            "max": 311.984
+            "median": 191.928,
+            "min": 190.533,
+            "max": 193.16
           }
         },
         "V": {
@@ -1516,55 +793,55 @@
           "p50_ns": {
             "median": 0,
             "min": 0,
-            "max": 41
+            "max": 42
           },
           "p99_ns": {
             "median": 0,
             "min": 0,
-            "max": 41
+            "max": 42
           },
           "p99_9_ns": {
             "median": 0,
             "min": 0,
-            "max": 41
+            "max": 42
           },
           "max_ns": {
             "median": 0,
             "min": 0,
-            "max": 41
+            "max": 42
           },
           "mean_ns": {
             "median": 0,
             "min": 0,
-            "max": 41
+            "max": 42
           }
         },
         "X": {
           "count": 2787676,
           "p50_ns": {
-            "median": 83,
-            "min": 83,
-            "max": 83
+            "median": 42,
+            "min": 42,
+            "max": 42
           },
           "p99_ns": {
-            "median": 500,
-            "min": 500,
-            "max": 500
+            "median": 292,
+            "min": 292,
+            "max": 292
           },
           "p99_9_ns": {
-            "median": 625,
-            "min": 625,
-            "max": 625
+            "median": 416,
+            "min": 375,
+            "max": 416
           },
           "max_ns": {
-            "median": 26893,
-            "min": 20726,
-            "max": 48827
+            "median": 26642,
+            "min": 17185,
+            "max": 83243
           },
           "mean_ns": {
-            "median": 100.473,
-            "min": 99.702,
-            "max": 100.664
+            "median": 68.9425,
+            "min": 68.4609,
+            "max": 68.965
           }
         },
         "Y": {
@@ -1590,9 +867,9 @@
             "max": 59
           },
           "mean_ns": {
-            "median": 9.11151,
-            "min": 9.05348,
-            "max": 9.32353
+            "median": 8.64995,
+            "min": 8.55897,
+            "max": 8.69555
           }
         }
       },
@@ -1601,33 +878,756 @@
         "ns_per_tick": 1,
         "granularity_median_ns": 42,
         "granularity_min_ns": 17,
-        "overhead_unserialized_ns": 0.221755,
-        "overhead_serialized_ns": 8.64397
+        "overhead_unserialized_ns": 0.221635,
+        "overhead_serialized_ns": 8.64367
       },
       "raw_wall_seconds_including_setup": [
-        58.4,
-        58.0,
-        58.5,
-        58.1,
-        58.1
+        38.5,
+        39.9,
+        39.3,
+        38.8,
+        38.8
+      ]
+    },
+    "apply_unordered_map": {
+      "runs": 5,
+      "msgs_per_sec": {
+        "median": 6935460.0,
+        "min": 6885310.0,
+        "max": 6955720.0,
+        "all": [
+          6916860.0,
+          6942380.0,
+          6935460.0,
+          6885310.0,
+          6955720.0
+        ],
+        "spread": 0.0102
+      },
+      "ns_per_msg_median": 144.187,
+      "messages": 268744780,
+      "handled": 264496253,
+      "state_checksum": "ca81fe1ec03459c9",
+      "peak_live_orders": 1924078,
+      "anomalies": {
+        "unknown_ref": 0,
+        "duplicate_add": 0,
+        "locate_mismatch": 0,
+        "over_execute": 0,
+        "over_cancel": 0,
+        "zero_shares": 0
+      },
+      "median_of_chunk_median_msgs_per_sec": 6836250.0,
+      "input_mlocked": true,
+      "timed_span_major_faults_per_run": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "timed_span_major_faults_max": 0,
+      "timed_span_involuntary_ctx_switches_max": 947,
+      "memory": {
+        "max_rss_bytes_median": 8525643776,
+        "max_rss_includes": "the mapped input file's resident pages as well as the tables",
+        "anonymous_footprint_after_setup_bytes_median": 8416034816,
+        "anonymous_footprint_end_bytes_median": 8474411008,
+        "phys_footprint_peak_bytes_median": 8528992616,
+        "mapped_input_bytes": 8251407909,
+        "order_pool_bytes": 128000000,
+        "id_index_bytes": 0,
+        "books_array_bytes": 3670016
+      },
+      "book_storage": {
+        "kind": "vector",
+        "level_vector_bytes_high_water": 38914560,
+        "books_with_levels": 8892
+      },
+      "clock": {
+        "counter_hz": 1000000000,
+        "ns_per_tick": 1,
+        "granularity_median_ns": 42,
+        "granularity_min_ns": 17,
+        "overhead_unserialized_ns": 0.221755,
+        "overhead_serialized_ns": 8.64376
+      },
+      "raw_wall_seconds_including_setup": [
+        44.5,
+        44.5,
+        44.5,
+        44.8,
+        44.5
+      ]
+    },
+    "latency_unordered_map": {
+      "runs": 5,
+      "msgs_per_sec": {
+        "median": 5964630.0,
+        "min": 5943020.0,
+        "max": 5974730.0,
+        "all": [
+          5974730.0,
+          5964630.0,
+          5963130.0,
+          5943020.0,
+          5974450.0
+        ],
+        "spread": 0.0053
+      },
+      "ns_per_msg_median": 167.655,
+      "messages": 268744780,
+      "handled": 264496253,
+      "state_checksum": "ca81fe1ec03459c9",
+      "peak_live_orders": 1924078,
+      "anomalies": {
+        "unknown_ref": 0,
+        "duplicate_add": 0,
+        "locate_mismatch": 0,
+        "over_execute": 0,
+        "over_cancel": 0,
+        "zero_shares": 0
+      },
+      "median_of_chunk_median_msgs_per_sec": null,
+      "input_mlocked": true,
+      "timed_span_major_faults_per_run": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "timed_span_major_faults_max": 0,
+      "timed_span_involuntary_ctx_switches_max": 550,
+      "memory": {
+        "max_rss_bytes_median": 10696015872,
+        "max_rss_includes": "the mapped input file's resident pages as well as the tables",
+        "anonymous_footprint_after_setup_bytes_median": 8416215040,
+        "anonymous_footprint_end_bytes_median": 10644733952,
+        "phys_footprint_peak_bytes_median": 10680180584,
+        "mapped_input_bytes": 8251407909,
+        "order_pool_bytes": 128000000,
+        "id_index_bytes": 0,
+        "books_array_bytes": 3670016
+      },
+      "book_storage": {
+        "kind": "vector",
+        "level_vector_bytes_high_water": 38914560,
+        "books_with_levels": 8892
+      },
+      "latency_all_ns": {
+        "p50_ns": {
+          "median": 125,
+          "min": 125,
+          "max": 125
+        },
+        "p90_ns": {
+          "median": 375,
+          "min": 375,
+          "max": 375
+        },
+        "p99_ns": {
+          "median": 666,
+          "min": 666,
+          "max": 666
+        },
+        "p99_9_ns": {
+          "median": 875,
+          "min": 875,
+          "max": 875
+        },
+        "p99_99_ns": {
+          "median": 1250,
+          "min": 1250,
+          "max": 1292
+        },
+        "max_ns": {
+          "median": 1003540.0,
+          "min": 949086,
+          "max": 1187020.0
+        },
+        "mean_ns": {
+          "median": 167.655,
+          "min": 167.372,
+          "max": 168.265
+        }
+      },
+      "latency_fraction_at_zero_ticks_median": 0.0250961,
+      "latency_timer_floor_ns": {
+        "p50_ns": {
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "p90_ns": {
+          "median": 42,
+          "min": 42,
+          "max": 42
+        },
+        "p99_ns": {
+          "median": 42,
+          "min": 42,
+          "max": 42
+        },
+        "p99_9_ns": {
+          "median": 42,
+          "min": 42,
+          "max": 42
+        },
+        "p99_99_ns": {
+          "median": 58,
+          "min": 58,
+          "max": 59
+        },
+        "max_ns": {
+          "median": 8417,
+          "min": 5850,
+          "max": 21060
+        },
+        "mean_ns": {
+          "median": 8.6534,
+          "min": 8.64982,
+          "max": 8.68226
+        }
+      },
+      "latency_by_type_ns": {
+        "A": {
+          "count": 117145568,
+          "p50_ns": {
+            "median": 83,
+            "min": 83,
+            "max": 83
+          },
+          "p99_ns": {
+            "median": 459,
+            "min": 458,
+            "max": 459
+          },
+          "p99_9_ns": {
+            "median": 584,
+            "min": 584,
+            "max": 600
+          },
+          "max_ns": {
+            "median": 62994,
+            "min": 37142,
+            "max": 111320
+          },
+          "mean_ns": {
+            "median": 127.126,
+            "min": 126.622,
+            "max": 127.78
+          }
+        },
+        "C": {
+          "count": 99917,
+          "p50_ns": {
+            "median": 83,
+            "min": 83,
+            "max": 83
+          },
+          "p99_ns": {
+            "median": 542,
+            "min": 542,
+            "max": 542
+          },
+          "p99_9_ns": {
+            "median": 667,
+            "min": 667,
+            "max": 667
+          },
+          "max_ns": {
+            "median": 6417,
+            "min": 4600,
+            "max": 12042
+          },
+          "mean_ns": {
+            "median": 108.655,
+            "min": 108.397,
+            "max": 108.708
+          }
+        },
+        "D": {
+          "count": 114360997,
+          "p50_ns": {
+            "median": 166,
+            "min": 166,
+            "max": 166
+          },
+          "p99_ns": {
+            "median": 667,
+            "min": 667,
+            "max": 667
+          },
+          "p99_9_ns": {
+            "median": 833,
+            "min": 833,
+            "max": 833
+          },
+          "max_ns": {
+            "median": 1003540.0,
+            "min": 949086,
+            "max": 1187020.0
+          },
+          "mean_ns": {
+            "median": 191.749,
+            "min": 191.168,
+            "max": 192.38
+          }
+        },
+        "E": {
+          "count": 5722824,
+          "p50_ns": {
+            "median": 166,
+            "min": 166,
+            "max": 166
+          },
+          "p99_ns": {
+            "median": 625,
+            "min": 625,
+            "max": 625
+          },
+          "p99_9_ns": {
+            "median": 750,
+            "min": 750,
+            "max": 750
+          },
+          "max_ns": {
+            "median": 29517,
+            "min": 27852,
+            "max": 31018
+          },
+          "mean_ns": {
+            "median": 201.464,
+            "min": 200.688,
+            "max": 201.783
+          }
+        },
+        "F": {
+          "count": 1485888,
+          "p50_ns": {
+            "median": 83,
+            "min": 83,
+            "max": 83
+          },
+          "p99_ns": {
+            "median": 459,
+            "min": 459,
+            "max": 459
+          },
+          "p99_9_ns": {
+            "median": 1000,
+            "min": 959,
+            "max": 1083
+          },
+          "max_ns": {
+            "median": 26542,
+            "min": 24184,
+            "max": 29268
+          },
+          "mean_ns": {
+            "median": 120.047,
+            "min": 119.567,
+            "max": 120.563
+          }
+        },
+        "H": {
+          "count": 8966,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 58,
+            "min": 42,
+            "max": 59
+          },
+          "mean_ns": {
+            "median": 9.19462,
+            "min": 9.14209,
+            "max": 9.36371
+          }
+        },
+        "I": {
+          "count": 4024315,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 11309,
+            "min": 9250,
+            "max": 22518
+          },
+          "mean_ns": {
+            "median": 9.65288,
+            "min": 9.63527,
+            "max": 9.76275
+          }
+        },
+        "J": {
+          "count": 34,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "mean_ns": {
+            "median": 8.58824,
+            "min": 6.08824,
+            "max": 15.9118
+          }
+        },
+        "K": {
+          "count": 3,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          },
+          "p99_ns": {
+            "median": 41,
+            "min": 0,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 41,
+            "min": 0,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 41,
+            "min": 0,
+            "max": 42
+          },
+          "mean_ns": {
+            "median": 13.6667,
+            "min": 0,
+            "max": 28
+          }
+        },
+        "L": {
+          "count": 215161,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 59,
+            "min": 59,
+            "max": 3000
+          },
+          "mean_ns": {
+            "median": 9.08344,
+            "min": 9.04041,
+            "max": 9.15712
+          }
+        },
+        "P": {
+          "count": 1218602,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 8083,
+            "min": 5059,
+            "max": 20143
+          },
+          "mean_ns": {
+            "median": 11.8322,
+            "min": 11.7178,
+            "max": 11.9993
+          }
+        },
+        "Q": {
+          "count": 17836,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 59,
+            "min": 59,
+            "max": 59
+          },
+          "mean_ns": {
+            "median": 11.6587,
+            "min": 11.4581,
+            "max": 11.9105
+          }
+        },
+        "R": {
+          "count": 8906,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 59,
+            "min": 42,
+            "max": 59
+          },
+          "mean_ns": {
+            "median": 9.0375,
+            "min": 8.86739,
+            "max": 9.12913
+          }
+        },
+        "S": {
+          "count": 6,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          },
+          "p99_ns": {
+            "median": 1809,
+            "min": 1709,
+            "max": 2375
+          },
+          "p99_9_ns": {
+            "median": 1809,
+            "min": 1709,
+            "max": 2375
+          },
+          "max_ns": {
+            "median": 1809,
+            "min": 1709,
+            "max": 2375
+          },
+          "mean_ns": {
+            "median": 329.333,
+            "min": 298.667,
+            "max": 395.833
+          }
+        },
+        "U": {
+          "count": 21639067,
+          "p50_ns": {
+            "median": 250,
+            "min": 250,
+            "max": 250
+          },
+          "p99_ns": {
+            "median": 875,
+            "min": 875,
+            "max": 875
+          },
+          "p99_9_ns": {
+            "median": 1166,
+            "min": 1125,
+            "max": 1166
+          },
+          "max_ns": {
+            "median": 49851,
+            "min": 41309,
+            "max": 65202
+          },
+          "mean_ns": {
+            "median": 303.185,
+            "min": 302.618,
+            "max": 303.725
+          }
+        },
+        "V": {
+          "count": 1,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          },
+          "p99_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          },
+          "mean_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 42
+          }
+        },
+        "X": {
+          "count": 2787676,
+          "p50_ns": {
+            "median": 83,
+            "min": 83,
+            "max": 83
+          },
+          "p99_ns": {
+            "median": 500,
+            "min": 500,
+            "max": 500
+          },
+          "p99_9_ns": {
+            "median": 625,
+            "min": 625,
+            "max": 625
+          },
+          "max_ns": {
+            "median": 24458,
+            "min": 17435,
+            "max": 27476
+          },
+          "mean_ns": {
+            "median": 99.1832,
+            "min": 99.1515,
+            "max": 99.5856
+          }
+        },
+        "Y": {
+          "count": 9013,
+          "p50_ns": {
+            "median": 0,
+            "min": 0,
+            "max": 0
+          },
+          "p99_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "p99_9_ns": {
+            "median": 42,
+            "min": 42,
+            "max": 42
+          },
+          "max_ns": {
+            "median": 59,
+            "min": 42,
+            "max": 59
+          },
+          "mean_ns": {
+            "median": 9.08821,
+            "min": 8.90514,
+            "max": 9.15822
+          }
+        }
+      },
+      "clock": {
+        "counter_hz": 1000000000,
+        "ns_per_tick": 1,
+        "granularity_median_ns": 42,
+        "granularity_min_ns": 17,
+        "overhead_unserialized_ns": 0.221635,
+        "overhead_serialized_ns": 8.64387
+      },
+      "raw_wall_seconds_including_setup": [
+        56.7,
+        56.5,
+        57.1,
+        56.7,
+        56.5
       ]
     },
     "apply_no_book": {
       "runs": 5,
       "msgs_per_sec": {
-        "median": 30307000.0,
-        "min": 30241200.0,
-        "max": 30407500.0,
+        "median": 31305200.0,
+        "min": 31279000.0,
+        "max": 31333300.0,
         "all": [
-          30241200.0,
-          30304600.0,
-          30307000.0,
-          30368500.0,
-          30407500.0
+          31305200.0,
+          31306500.0,
+          31279000.0,
+          31280400.0,
+          31333300.0
         ],
-        "spread": 0.0055
+        "spread": 0.0017
       },
-      "ns_per_msg_median": 32.9957,
+      "ns_per_msg_median": 31.9436,
       "messages": 268744780,
       "handled": 264496253,
       "state_checksum": "ce1a78953bdc0000",
@@ -1640,7 +1640,7 @@
         "over_cancel": 0,
         "zero_shares": 0
       },
-      "median_of_chunk_median_msgs_per_sec": 30218400.0,
+      "median_of_chunk_median_msgs_per_sec": 31379300.0,
       "input_mlocked": true,
       "timed_span_major_faults_per_run": [
         0,
@@ -1650,13 +1650,13 @@
         0
       ],
       "timed_span_major_faults_max": 0,
-      "timed_span_involuntary_ctx_switches_max": 182,
+      "timed_span_involuntary_ctx_switches_max": 142,
       "memory": {
         "max_rss_bytes_median": 8516042752,
         "max_rss_includes": "the mapped input file's resident pages as well as the tables",
         "anonymous_footprint_after_setup_bytes_median": 8514568192,
         "anonymous_footprint_end_bytes_median": 8514912256,
-        "phys_footprint_peak_bytes_median": 8519325984,
+        "phys_footprint_peak_bytes_median": 8519342392,
         "mapped_input_bytes": 8251407909,
         "order_pool_bytes": 128000000,
         "id_index_bytes": 134217728,
@@ -1670,33 +1670,33 @@
         "ns_per_tick": 1,
         "granularity_median_ns": 42,
         "granularity_min_ns": 17,
-        "overhead_unserialized_ns": 0.221635,
-        "overhead_serialized_ns": 8.64388
+        "overhead_unserialized_ns": 0.221965,
+        "overhead_serialized_ns": 8.64355
       },
       "raw_wall_seconds_including_setup": [
-        14.5,
-        14.6,
-        14.5,
-        14.6,
-        14.6
+        14.1,
+        14.3,
+        14.3,
+        14.3,
+        14.3
       ]
     },
     "apply_ten_symbols_vector": {
       "runs": 5,
       "msgs_per_sec": {
-        "median": 20130000.0,
-        "min": 19836900.0,
-        "max": 20215400.0,
+        "median": 20820300.0,
+        "min": 20778300.0,
+        "max": 20878500.0,
         "all": [
-          20215400.0,
-          20178900.0,
-          20130000.0,
-          19836900.0,
-          20116700.0
+          20798300.0,
+          20820300.0,
+          20878500.0,
+          20778300.0,
+          20855400.0
         ],
-        "spread": 0.0188
+        "spread": 0.0048
       },
-      "ns_per_msg_median": 49.677,
+      "ns_per_msg_median": 48.03,
       "messages": 15354044,
       "handled": 15349140,
       "state_checksum": "3ddacd6bf4837316",
@@ -1709,7 +1709,7 @@
         "over_cancel": 0,
         "zero_shares": 0
       },
-      "median_of_chunk_median_msgs_per_sec": 20351500.0,
+      "median_of_chunk_median_msgs_per_sec": 20935300.0,
       "input_mlocked": true,
       "timed_span_major_faults_per_run": [
         0,
@@ -1719,13 +1719,13 @@
         0
       ],
       "timed_span_major_faults_max": 0,
-      "timed_span_involuntary_ctx_switches_max": 8,
+      "timed_span_involuntary_ctx_switches_max": 7,
       "memory": {
         "max_rss_bytes_median": 9253421056,
         "max_rss_includes": "the mapped input file's resident pages as well as the tables",
         "anonymous_footprint_after_setup_bytes_median": 9251160064,
         "anonymous_footprint_end_bytes_median": 9252339712,
-        "phys_footprint_peak_bytes_median": 9257147232,
+        "phys_footprint_peak_bytes_median": 9257147256,
         "mapped_input_bytes": 8251407909,
         "order_pool_bytes": 128000000,
         "id_index_bytes": 134217728,
@@ -1741,33 +1741,33 @@
         "ns_per_tick": 1,
         "granularity_median_ns": 42,
         "granularity_min_ns": 17,
-        "overhead_unserialized_ns": 0.22184,
-        "overhead_serialized_ns": 8.64376
+        "overhead_unserialized_ns": 0.221635,
+        "overhead_serialized_ns": 8.64367
       },
       "raw_wall_seconds_including_setup": [
-        7.4,
         7.3,
-        7.4,
+        7.3,
         7.2,
-        7.3
+        7.2,
+        7.2
       ]
     },
     "apply_ten_symbols_ladder": {
       "runs": 5,
       "msgs_per_sec": {
-        "median": 28286800.0,
-        "min": 28174400.0,
-        "max": 28363200.0,
+        "median": 29282600.0,
+        "min": 29276700.0,
+        "max": 29308000.0,
         "all": [
-          28259300.0,
-          28351600.0,
-          28174400.0,
-          28363200.0,
-          28286800.0
+          29304800.0,
+          29276700.0,
+          29278900.0,
+          29308000.0,
+          29282600.0
         ],
-        "spread": 0.0067
+        "spread": 0.0011
       },
-      "ns_per_msg_median": 35.3522,
+      "ns_per_msg_median": 34.15,
       "messages": 15354044,
       "handled": 15349140,
       "state_checksum": "3ddacd6bf4837316",
@@ -1780,7 +1780,7 @@
         "over_cancel": 0,
         "zero_shares": 0
       },
-      "median_of_chunk_median_msgs_per_sec": 28692200.0,
+      "median_of_chunk_median_msgs_per_sec": 29432700.0,
       "input_mlocked": true,
       "timed_span_major_faults_per_run": [
         0,
@@ -1790,13 +1790,13 @@
         0
       ],
       "timed_span_major_faults_max": 0,
-      "timed_span_involuntary_ctx_switches_max": 6,
+      "timed_span_involuntary_ctx_switches_max": 4,
       "memory": {
         "max_rss_bytes_median": 9285009408,
         "max_rss_includes": "the mapped input file's resident pages as well as the tables",
         "anonymous_footprint_after_setup_bytes_median": 9282633728,
         "anonymous_footprint_end_bytes_median": 9283928064,
-        "phys_footprint_peak_bytes_median": 9288751992,
+        "phys_footprint_peak_bytes_median": 9288784808,
         "mapped_input_bytes": 8251407909,
         "order_pool_bytes": 128000000,
         "id_index_bytes": 134217728,
@@ -1867,14 +1867,14 @@
         "granularity_median_ns": 42,
         "granularity_min_ns": 17,
         "overhead_unserialized_ns": 0.221755,
-        "overhead_serialized_ns": 8.64355
+        "overhead_serialized_ns": 8.6748
       },
       "raw_wall_seconds_including_setup": [
-        7.3,
+        7.0,
         7.1,
-        7.1,
-        7.1,
-        7.1
+        7.0,
+        7.0,
+        7.0
       ]
     }
   },

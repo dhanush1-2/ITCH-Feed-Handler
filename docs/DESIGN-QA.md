@@ -30,8 +30,8 @@ The comparison on the full day, with the same pool, books and final state:
 
 |  | msgs/s (median of 5) | spread | latency p50 / p99 / p99.9 (ns, 42 ns granularity) |
 |---|---|---|---|
-| IdIndex (open addressing, blocked hash) | 14.25 M | 1.0% | 83 / 375 / 625 |
-| std::unordered_map | 7.11 M | 1.4% | 125 / 666 / 875 |
+| IdIndex (open addressing, blocked hash) | 14.41 M | 0.6% | 83 / 375 / 583 |
+| std::unordered_map | 7.25 M | 1.1% | 125 / 625 / 833 |
 
 <!-- /gen -->
 

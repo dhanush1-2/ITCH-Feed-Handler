@@ -30,7 +30,7 @@ Prices stay as raw integers (1/10000 dollars) everywhere except display and JSON
 | `RetransmitServer` stores pointers into the mapped file | The source map outlives the server. It keeps the ring small |
 | Bursts apply downstream only, with their own retransmit-loss setting | The simplest model that still tests recovery. A lost answer is covered by `retransmit_loss` |
 | Halt grace stays at <!-- gen:halt_grace_s -->5<!-- /gen --> s | Sensitivity run at 0, 5 and 30 s, `results/halt_grace_12302019.json`. Longer grace discards real trading |
-| Level scan bound of 64 | Raised applied throughput from <!-- gen:apply_before_mps -->13.16 M<!-- /gen --> to <!-- gen:apply_mps -->14.25 M<!-- /gen --> with no p99.9 regression. Chosen in-sample on one day. `docs/OPTIMIZATION-LOG.md` |
+| Level scan bound of 64 | Raised applied throughput from <!-- gen:apply_before_mps -->13.48 M<!-- /gen --> to <!-- gen:apply_mps -->14.41 M<!-- /gen --> with no p99.9 regression. Chosen in-sample on one day. `docs/OPTIMIZATION-LOG.md` |
 
 ## Recovery state machine
 

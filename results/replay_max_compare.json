@@ -1,6 +1,6 @@
 {
   "meta": {
-    "commit": "a917fa50a0cd15484a6e28863abfa199d7fcf0e5",
+    "commit": "690b749de2a5e8fbbcdc18e84e6923d5ad42aeb4",
     "data_file": "data/12302019.NASDAQ_ITCH50",
     "cpu": "Apple M4 Pro",
     "compiler": "AppleClang 21.0.0.21000334",
@@ -16,7 +16,7 @@
     }
   },
   "paced_file": "replay_10x.json",
-  "paced_commit": "ce42ef2e8760f31d27450b4358ad2dac57dd95eb",
+  "paced_commit": "690b749de2a5e8fbbcdc18e84e6923d5ad42aeb4",
   "paced_speed": 10,
   "compared": [
     "anomalies",

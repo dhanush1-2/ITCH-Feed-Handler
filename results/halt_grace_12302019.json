@@ -4,7 +4,7 @@
     {
       "halt_grace_s": 0,
       "meta": {
-        "commit": "2c3e5da1d1ce7327b854ab24144318f32ec4e1a7",
+        "commit": "690b749de2a5e8fbbcdc18e84e6923d5ad42aeb4",
         "data_file": "data/12302019.NASDAQ_ITCH50",
         "cpu": "Apple M4 Pro",
         "compiler": "AppleClang 21.0.0.21000334",
@@ -21,14 +21,14 @@
         "exec_checked_continuous": 5779344,
         "exec_not_best": 273,
         "exec_not_best_continuous": 214,
-        "exec_not_head": 92941,
-        "exec_not_head_continuous": 92911
+        "exec_not_head": 82365,
+        "exec_not_head_continuous": 82346
       }
     },
     {
       "halt_grace_s": 5,
       "meta": {
-        "commit": "2c3e5da1d1ce7327b854ab24144318f32ec4e1a7",
+        "commit": "690b749de2a5e8fbbcdc18e84e6923d5ad42aeb4",
         "data_file": "data/12302019.NASDAQ_ITCH50",
         "cpu": "Apple M4 Pro",
         "compiler": "AppleClang 21.0.0.21000334",
@@ -45,14 +45,14 @@
         "exec_checked_continuous": 5778220,
         "exec_not_best": 273,
         "exec_not_best_continuous": 0,
-        "exec_not_head": 92941,
-        "exec_not_head_continuous": 92902
+        "exec_not_head": 82365,
+        "exec_not_head_continuous": 82337
       }
     },
     {
       "halt_grace_s": 30,
       "meta": {
-        "commit": "2c3e5da1d1ce7327b854ab24144318f32ec4e1a7",
+        "commit": "690b749de2a5e8fbbcdc18e84e6923d5ad42aeb4",
         "data_file": "data/12302019.NASDAQ_ITCH50",
         "cpu": "Apple M4 Pro",
         "compiler": "AppleClang 21.0.0.21000334",
@@ -69,8 +69,8 @@
         "exec_checked_continuous": 5777110,
         "exec_not_best": 273,
         "exec_not_best_continuous": 0,
-        "exec_not_head": 92941,
-        "exec_not_head_continuous": 92901
+        "exec_not_head": 82365,
+        "exec_not_head_continuous": 82336
       }
     }
   ]

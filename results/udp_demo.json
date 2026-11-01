@@ -1,6 +1,6 @@
 {
   "meta": {
-    "commit": "78384b40071f343534ccd3336c9a7cb3601bd10d",
+    "commit": "690b749de2a5e8fbbcdc18e84e6923d5ad42aeb4",
     "data_file": "data/12302019.NASDAQ_ITCH50",
     "cpu": "Apple M4 Pro",
     "compiler": "AppleClang 21.0.0.21000334",
@@ -37,7 +37,7 @@
   },
   "source": {"file": "12302019.NASDAQ_ITCH50", "file_bytes": 8251407909, "bytes_used": 149652744, "messages": 5000000, "packets": 109672, "stream_sha256": "8bccdc8192a55356a18db477c20590c9a9968e9d0731f3debdaa89e210de1616"},
   "result": {"state": "Finished", "stale_reason": "none", "gave_up": "none", "finished": true, "delivered_messages": 5000000, "stream_sha256": "8bccdc8192a55356a18db477c20590c9a9968e9d0731f3debdaa89e210de1616", "stream_matches_source": true, "end_of_session_sends": 1, "handled": 4776012, "skipped": 223988, "wrong_length": 0, "live_orders_at_end": 231866, "seconds": 5.0},
-  "rx": {"gaps_detected": 1130, "dup_packets": 0, "partial_overlaps": 0, "wrong_session": 0, "malformed": 0, "retransmit_requests": 1130, "messages_delivered_late": 52137, "messages_from_retransmit": 52137, "messages_buffered_peak": 177, "buffer_overflow_drops": 0, "max_gap_len": 130},
+  "rx": {"gaps_detected": 1130, "dup_packets": 0, "partial_overlaps": 0, "wrong_session": 0, "malformed": 0, "retransmit_requests": 1130, "messages_delivered_late": 52137, "messages_from_retransmit": 52137, "messages_buffered_peak": 135, "buffer_overflow_drops": 0, "max_gap_len": 130},
   "injected": {"packets_offered": 113100, "downstream_dropped": 1174, "messages_lost_downstream": 52137, "delivered_to_socket": 111926},
   "sockets": {"rcvbuf_bytes": 8388608, "rcvbuf_requested": 8388608, "feed_sent": 111926, "feed_received": 111926, "retransmit_sent": 1141, "retransmit_received": 1141, "requests_sent": 1130, "requests_received": 1130, "requests_ignored": 0, "foreign_datagrams": 0},
   "kernel": {"feed_datagrams_lost": 0, "retransmit_datagrams_lost": 0, "request_datagrams_lost": 0, "send_errors": 0},

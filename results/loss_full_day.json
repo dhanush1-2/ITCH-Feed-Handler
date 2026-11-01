@@ -1,6 +1,6 @@
 {
   "meta": {
-    "commit": "c54ba4f9faa059f07f1d33333b0d6b675a202a72",
+    "commit": "690b749de2a5e8fbbcdc18e84e6923d5ad42aeb4",
     "data_file": "data/12302019.NASDAQ_ITCH50",
     "cpu": "Apple M4 Pro",
     "compiler": "AppleClang 21.0.0.21000334",
@@ -35,7 +35,7 @@
     "check_direct": false
   },
   "source": {"file": "12302019.NASDAQ_ITCH50", "file_bytes": 8251407909, "bytes_used": 8251407909, "messages": 268744780, "packets": 6049916, "stream_sha256": "7fe0dd6d636d2decf6e3663cfa1e308cb557d1fc9aa2aafd30f2d559708b2e0e"},
-  "result": {"state": "Finished", "stale_reason": "none", "finished": true, "delivered_messages": 268744780, "stream_sha256": "7fe0dd6d636d2decf6e3663cfa1e308cb557d1fc9aa2aafd30f2d559708b2e0e", "stream_matches_source": true, "end_of_session_ticks": 1, "handled": 264496253, "skipped": 4248527, "wrong_length": 0, "live_orders_at_end": 0, "seconds": 73.8},
+  "result": {"state": "Finished", "stale_reason": "none", "finished": true, "delivered_messages": 268744780, "stream_sha256": "7fe0dd6d636d2decf6e3663cfa1e308cb557d1fc9aa2aafd30f2d559708b2e0e", "stream_matches_source": true, "end_of_session_ticks": 1, "handled": 264496253, "skipped": 4248527, "wrong_length": 0, "live_orders_at_end": 0, "seconds": 75.1},
   "rx": {"gaps_detected": 1433290, "dup_packets": 4758178, "partial_overlaps": 0, "wrong_session": 0, "malformed": 0, "retransmit_requests": 2164281, "messages_delivered_late": 60346415, "messages_from_retransmit": 93754684, "messages_buffered_peak": 5121, "buffer_overflow_drops": 0, "max_gap_len": 5770},
   "channel": {"sent": 11242926, "dropped": 307311, "duplicated": 54626, "reordered": 7847777, "delivered": 10990241, "in_flight": 0, "downstream_dropped": 257307, "retransmit_dropped": 50004, "messages_lost_downstream": 11085799},
   "dump": {"path": "results/state_loss.bin", "at_end": false, "at_second": 43200, "at_message": 134508460, "bytes": 33656163, "resting_orders": 1771377, "non_empty": true, "complete": true, "valid": true, "sha256": "3af90ca43d96a0a601e7a341c46d5a42a2bdca2054253b5defe054dad1fb4502"},

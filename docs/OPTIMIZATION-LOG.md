@@ -6,7 +6,7 @@ Files: `results/bench_12302019_before_optimization.json` (commit 93efea9, kScan 
 
 ## Headline
 
-Applied (parse + book), full day, median of 5 fresh processes: **<!-- gen:apply_mps -->14.25 M<!-- /gen --> msgs/s** (<!-- gen:apply_ns -->70<!-- /gen --> ns/msg, spread <!-- gen:apply_spread -->1.0%<!-- /gen -->). Target was at least 5 M. Parse only: <!-- gen:parse_mps -->203.76 M<!-- /gen --> msgs/s. Before the one kept change: <!-- gen:apply_before_mps -->13.16 M<!-- /gen -->.
+Applied (parse + book), full day, median of 5 fresh processes: **<!-- gen:apply_mps -->14.41 M<!-- /gen --> msgs/s** (<!-- gen:apply_ns -->69<!-- /gen --> ns/msg, spread <!-- gen:apply_spread -->0.6%<!-- /gen -->). Target was at least 5 M. Parse only: <!-- gen:parse_mps -->202.66 M<!-- /gen --> msgs/s. Before the one kept change: <!-- gen:apply_before_mps -->13.48 M<!-- /gen -->.
 
 ## A/B 1: IdIndex vs std::unordered_map (full day)
 
@@ -16,12 +16,12 @@ Same pool, same books, `unordered_map` reserved for the pool size up front. Stat
 
 |  | msgs/s (median of 5) | spread | latency p50 / p99 / p99.9 (ns, 42 ns granularity) |
 |---|---|---|---|
-| IdIndex (open addressing, blocked hash) | 14.25 M | 1.0% | 83 / 375 / 625 |
-| std::unordered_map | 7.11 M | 1.4% | 125 / 666 / 875 |
+| IdIndex (open addressing, blocked hash) | 14.41 M | 0.6% | 83 / 375 / 583 |
+| std::unordered_map | 7.25 M | 1.1% | 125 / 625 / 833 |
 
 <!-- /gen -->
 
-`latency.all` includes every message type in the file, the 4.25 M skipped ones (types I, J, K, L, S, V, Y: no book work, mostly 0 to 1 ticks) as well as handled ones; the per-type table (`latency_by_type_ns` in the results file) is the honest breakdown (A: p50 83, p99.9 334 ns; D: 83 / 500; U: 167 / 917). IdIndex is <!-- gen:index_speedup -->2.0x<!-- /gen --> faster applied. Table memory added after setup: IdIndex <!-- gen:tables_mb -->265.9 MB<!-- /gen --> (pool <!-- gen:pool_mb -->128.0 MB<!-- /gen --> + index <!-- gen:index_mb -->134.2 MB<!-- /gen --> + books array <!-- gen:books_mb -->3.7 MB<!-- /gen -->); unordered_map <!-- gen:map_tables_mb -->163.7 MB<!-- /gen -->. Those are setup figures; nodes are allocated as orders arrive, so the end-of-run figures are the fair ones: **<!-- gen:map_heap_end_mb -->222.1 MB<!-- /gen --> added by end of run for unordered_map vs <!-- gen:heap_end_mb -->312.6 MB<!-- /gen --> for IdIndex** (`heap_added_at_end_bytes_median`). At peak <!-- gen:peak_live -->1,924,078<!-- /gen --> live orders the unordered_map uses less; IdIndex's speed is bought with a fixed <!-- gen:index_mb -->134.2 MB<!-- /gen --> table.
+`latency.all` includes every message type in the file, the 4.25 M skipped ones (types I, J, K, L, S, V, Y: no book work, mostly 0 to 1 ticks) as well as handled ones; the per-type table (`latency_by_type_ns` in the results file) is the honest breakdown (A: p50 83, p99.9 333 ns; D: 83 / 459; U: 167 / 850). IdIndex is <!-- gen:index_speedup -->2.0x<!-- /gen --> faster applied. Table memory added after setup: IdIndex <!-- gen:tables_mb -->265.9 MB<!-- /gen --> (pool <!-- gen:pool_mb -->128.0 MB<!-- /gen --> + index <!-- gen:index_mb -->134.2 MB<!-- /gen --> + books array <!-- gen:books_mb -->3.7 MB<!-- /gen -->); unordered_map <!-- gen:map_tables_mb -->163.7 MB<!-- /gen -->. Those are setup figures; nodes are allocated as orders arrive, so the end-of-run figures are the fair ones: **<!-- gen:map_heap_end_mb -->222.1 MB<!-- /gen --> added by end of run for unordered_map vs <!-- gen:heap_end_mb -->312.6 MB<!-- /gen --> for IdIndex** (`heap_added_at_end_bytes_median`). At peak <!-- gen:peak_live -->1,924,078<!-- /gen --> live orders the unordered_map uses less; IdIndex's speed is bought with a fixed <!-- gen:index_mb -->134.2 MB<!-- /gen --> table.
 
 ## A/B 2: vector book vs Project 1 ladder, ten busiest symbols
 
@@ -31,8 +31,8 @@ Symbols (by message count): QQQ SPY IWM TQQQ AAPL AMD MSFT URTY TNA XLK; 15,354,
 
 | Book, ten busiest symbols | msgs/s | Spread |
 |---|---|---|
-| Sorted vector (production) | 20.38 M | 3.5% |
-| Project 1 ladder | 28.67 M | 1.3% |
+| Sorted vector (production) | 20.77 M | 0.8% |
+| Project 1 ladder | 29.35 M | 0.2% |
 
 <!-- /gen -->
 
@@ -48,7 +48,7 @@ Memory, computed from real counts: ladder = 3,162,384 B per symbol (2 x (65,536 
 
 ## Memory reporting
 
-`max_rss` is <!-- gen:max_rss_gb -->8.57 GB<!-- /gen --> because it includes the mapped, mlocked <!-- gen:day_bytes -->8.25 GB<!-- /gen --> input. The latency set's RSS (<!-- gen:latency_rss_gb -->10.49 GB<!-- /gen -->) is harness memory: it holds about 2.2 GB of raw histogram samples and is not handler memory. Handler memory is the delta over the footprint taken after the input was locked: **<!-- gen:tables_mb -->265.9 MB<!-- /gen -->** of tables at setup, **<!-- gen:heap_end_mb -->312.6 MB<!-- /gen -->** added by end of run (levels, compressed pages), <!-- gen:peak_over_input_mb -->312.8 MB<!-- /gen --> peak over input.
+`max_rss` is <!-- gen:max_rss_gb -->8.57 GB<!-- /gen --> because it includes the mapped, mlocked <!-- gen:day_bytes -->8.25 GB<!-- /gen --> input. The latency set's RSS (<!-- gen:latency_rss_gb -->10.74 GB<!-- /gen -->) is harness memory: it holds about 2.2 GB of raw histogram samples and is not handler memory. Handler memory is the delta over the footprint taken after the input was locked: **<!-- gen:tables_mb -->265.9 MB<!-- /gen -->** of tables at setup, **<!-- gen:heap_end_mb -->312.6 MB<!-- /gen -->** added by end of run (levels, compressed pages), <!-- gen:peak_over_input_mb -->312.8 MB<!-- /gen --> peak over input.
 
 ## Profile
 
@@ -80,7 +80,7 @@ Rule: keep only if over 5% throughput and no p99.9 regression on the 5-process p
 
 kScan 64 was chosen in-sample: screened and published on the same single day and machine, with no held-out day. The gain may be smaller on a day with a different level distribution.
 
-Kept: `Book::kScan` 8 to 64. Published protocol result, same binary configuration, committed stamps: <!-- gen:apply_before_mps -->13.16 M<!-- /gen --> to <!-- gen:apply_mps -->14.25 M<!-- /gen --> (+<!-- gen:apply_gain -->8.2%<!-- /gen -->). p99.9 per-message apply latency: <!-- gen:p999_before -->666<!-- /gen --> ns before, <!-- gen:p999 -->625<!-- /gen --> ns after. No regression at 42 ns granularity. The unordered_map arm moved the same way (875 vs 917 ns p99.9). State fold unchanged, and the full verify and the noon `cmp` are silent (below).
+Kept: `Book::kScan` 8 to 64. Published protocol result, same binary configuration, committed stamps: <!-- gen:apply_before_mps -->13.48 M<!-- /gen --> to <!-- gen:apply_mps -->14.41 M<!-- /gen --> (+<!-- gen:apply_gain -->6.9%<!-- /gen -->). p99.9 per-message apply latency: <!-- gen:p999_before -->625<!-- /gen --> ns before, <!-- gen:p999 -->583<!-- /gen --> ns after. No regression at 42 ns granularity. The unordered_map arm moved the same way (875 to 833 ns p99.9). State fold unchanged, and the full verify and the noon `cmp` are silent (below).
 
 Why it works (hypothesis the numbers fit, not proven without hardware counters): a short linear scan from the back is predictable and touches adjacent cache lines, while `partition_point` over a few hundred levels is a chain of dependent loads with unpredictable branches.
 

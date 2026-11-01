@@ -51,8 +51,8 @@ Only what `results/fuzz.json` records.
 
 | Target | Requested time | Executions | Crashes | Commit |
 |---|---|---|---|---|
-| `fuzz_mold` | 300 s | 32,295,598 | 0 | `c54ba4f` |
-| `fuzz_parser` | 300 s | 16,198,868 | 0 | `a09caac` |
+| `fuzz_mold` | 300 s | 29,067,622 | 0 | `690b749` |
+| `fuzz_parser` | 300 s | 49,876,977 | 0 | `690b749` |
 
 <!-- /gen -->
 
