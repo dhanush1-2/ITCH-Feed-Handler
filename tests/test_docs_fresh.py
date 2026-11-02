@@ -387,9 +387,14 @@ def test_readme_states_prerequisites():
 
 def test_definition_of_done_is_honest():
     section = text("docs/VERIFICATION.md").split("## Definition of done")[1]
-    assert "- [x]" in section and "- [ ]" in section
-    hosted = next(x for x in section.splitlines() if "hosted" in x.lower())
-    assert hosted.startswith("- [ ]")
+    assert "- [x]" in section
+    lines = section.splitlines()
+    # A ticked public item needs its evidence in the repository.
+    hosted = next(x for x in lines if "hosted" in x.lower())
+    deployed = (ROOT / "docs/images/dashboard-deployed.png").is_file() and bool(gen_module().REPO_SLUG)
+    assert hosted.startswith("- [x]") == deployed
+    ci = next(x for x in lines if "green in ci" in x.lower())
+    assert ci.startswith("- [x]") == (ROOT / "docs/images/proof-ci-green.png").is_file()
 
 
 def _dry(*args):

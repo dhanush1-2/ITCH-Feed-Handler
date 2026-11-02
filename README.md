@@ -72,7 +72,17 @@ Each image is the captured output of the command in its caption, made by `script
 ![Fuzz summary](docs/images/proof-fuzz.png)
 
 <!-- This block shows the proofs that need a public repository, once their image files exist. -->
-<!-- gen:public_proofs --><!-- /gen -->
+<!-- gen:public_proofs -->
+
+CI, every job green on the public repository.
+
+![CI, every job green on the public repository.](docs/images/proof-ci-green.png)
+
+The dashboard as deployed on GitHub Pages.
+
+![The dashboard as deployed on GitHub Pages.](docs/images/dashboard-deployed.png)
+
+<!-- /gen -->
 
 ## Try it in two minutes
 
