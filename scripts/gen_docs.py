@@ -16,9 +16,9 @@ import re
 import sys
 from pathlib import Path
 
-# The owner's GitHub "user/repo". Empty until there is a public repository: while it is empty
-# the README has no CI badge and no dashboard link. Nothing derives it.
-REPO_SLUG = ""
+# The owner's GitHub "user/repo". While it is empty the README has no CI badge and no dashboard
+# link. Nothing derives it.
+REPO_SLUG = "dhanush1-2/ITCH-Feed-Handler"
 
 DOCS = ["README.md", "DESIGN.md", "docs/VERIFICATION.md", "docs/DESIGN-QA.md",
         "docs/OPTIMIZATION-LOG.md", "docs/METHODOLOGY.md"]

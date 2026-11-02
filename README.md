@@ -2,7 +2,11 @@
 
 A C++20 feed handler that replays one full recorded NASDAQ trading day (<!-- gen:messages_m -->268.7 M<!-- /gen --> messages) at <!-- gen:apply_mps -->14.41 M<!-- /gen --> msgs/s on one thread of an <!-- gen:cpu -->Apple M4 Pro<!-- /gen -->, rebuilds every symbol's order book, and recovers from injected MoldUDP64 loss to bit-identical state.
 
-<!-- gen:badges --><!-- /gen -->
+<!-- gen:badges -->
+
+[![CI](https://github.com/dhanush1-2/ITCH-Feed-Handler/actions/workflows/ci.yml/badge.svg)](https://github.com/dhanush1-2/ITCH-Feed-Handler/actions/workflows/ci.yml) [Live dashboard](https://dhanush1-2.github.io/ITCH-Feed-Handler/)
+
+<!-- /gen -->
 
 This is a replay of recorded files. CI and the two-minute demo use synthetic data committed here. The full-day results come from the real file, which you download from NASDAQ. Nothing here is a network latency, tick-to-trade or production claim. "Bit-identical" means two things only: the resting-order state at feed second <!-- gen:noon_second -->43,200<!-- /gen --> (<!-- gen:noon_orders -->1,771,377<!-- /gen --> orders), and the SHA-256 of the whole delivered stream. The end-of-day book is empty, so comparing it would prove nothing.
 
