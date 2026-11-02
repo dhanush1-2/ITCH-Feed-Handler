@@ -102,6 +102,8 @@ def test_every_readme_image_exists():
     refs = re.findall(r"!\[[^\]]*\]\(([^)]+)\)", readme) + re.findall(r'<img[^>]+src="([^"]+)"', readme)
     assert refs, "the README shows no images"
     for ref in refs:
+        if ref.startswith("https://"):
+            continue  # the CI badge, served by GitHub
         path = ROOT / ref
         assert path.is_file() and path.stat().st_size > 0, f"missing image {ref}"
 
