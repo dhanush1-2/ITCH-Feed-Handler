@@ -13,7 +13,7 @@
     s = Math.round(s);
     return pad(Math.floor(s / 3600)) + ":" + pad(Math.floor(s / 60) % 60) + (s % 60 ? ":" + pad(s % 60) : "");
   }
-  function clockS(s) { s = Math.round(s); return pad(Math.floor(s / 3600)) + ":" + pad(Math.floor(s / 60) % 60) + ":" + pad(s % 60); }
+  function clockS(s) { s = Math.floor(s); return pad(Math.floor(s / 3600)) + ":" + pad(Math.floor(s / 60) % 60) + ":" + pad(s % 60); }
   function pad(v) { return v < 10 ? "0" + v : "" + v; }
 
   function el(tag, attrs, kids) {

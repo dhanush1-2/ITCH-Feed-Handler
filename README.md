@@ -76,7 +76,7 @@ Each image is the captured output of the command in its caption, made by `script
 
 ## Try it in two minutes
 
-Prerequisites: CMake 3.25 or newer (the apt package on Ubuntu 22.04 is 3.22, too old), a C++20 compiler (AppleClang 21 here, GCC 13 builds with `-Werror`), Python 3 and network access for the first configure.
+Prerequisites: CMake 3.25 or newer (the apt package on Ubuntu 22.04 is 3.22, too old), a C++20 compiler (AppleClang 21 here, GCC 13 builds with `-Werror`), Python 3 with pytest (`pip install pytest`) and network access for the first configure. Without pytest, configure registers 153 of the 161 tests and says so in its output; pass `-DPython3_EXECUTABLE=` to pick a Python that has it.
 
 CI and the two-minute demo use synthetic data: one invented day for eight invented symbols, written from a seed by `scripts/gen_synthetic_itch.py`. It shows that the handler works and how to check it. It says nothing about real market behaviour, and none of the figures above come from it. See `testdata/README.md`.
 
